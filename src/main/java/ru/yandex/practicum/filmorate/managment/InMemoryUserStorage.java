@@ -40,7 +40,7 @@ public class InMemoryUserStorage implements UserStorage {
         User userToSave = User.copyWithId(user, userId);
 
         users.put(userId, userToSave);
-        emailToUserId.put(userToSave.getEmail().toLowerCase(), userId);
+        emailToUserId.put(userToSave.getEmail(), userId);
         loginToUserId.put(userToSave.getLogin(), userId);
 
         log.info("Создан новый пользователь {}", userToSave);
@@ -115,8 +115,8 @@ public class InMemoryUserStorage implements UserStorage {
         User existingUser = users.get(userId);
 
         if (!existingUser.getEmail().equals(userToUpdate.getEmail())) {
-            emailToUserId.remove(existingUser.getEmail().toLowerCase());
-            emailToUserId.put(userToUpdate.getEmail().toLowerCase(), userId);
+            emailToUserId.remove(existingUser.getEmail());
+            emailToUserId.put(userToUpdate.getEmail(), userId);
         }
 
         if (!existingUser.getLogin().equals(userToUpdate.getLogin())) {
@@ -147,7 +147,7 @@ public class InMemoryUserStorage implements UserStorage {
      * @return true если пользователь с таким email существует, false в противном случае
      */
     public boolean existsByEmail(String email) {
-        return emailToUserId.containsKey(email.toLowerCase());
+        return emailToUserId.containsKey(email);
     }
 
     /**

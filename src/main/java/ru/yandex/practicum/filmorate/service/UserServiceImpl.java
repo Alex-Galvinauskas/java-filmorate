@@ -52,7 +52,6 @@ public class UserServiceImpl implements UserService {
             log.debug("Для пользователя {} установлено имя из логина: {}", user.getLogin(), user.getName());
         }
 
-        user.normalize();
         return userStorage.createUser(user);
     }
 
@@ -114,7 +113,6 @@ public class UserServiceImpl implements UserService {
             log.debug("Для пользователя {} установлено имя из логина: {}", user.getLogin(), user.getName());
         }
 
-        user.normalize();
         return userStorage.updateUser(user);
     }
 }

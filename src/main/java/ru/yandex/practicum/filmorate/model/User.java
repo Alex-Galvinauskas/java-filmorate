@@ -34,7 +34,7 @@ public class User {
     public static User copyWithId(User source, Long newId) {
         return User.builder()
                 .id(newId)
-                .email(source.getEmail().toLowerCase())
+                .email(source.getEmail())
                 .login(source.getLogin())
                 .name(source.getName())
                 .birthday(source.getBirthday())
@@ -43,7 +43,7 @@ public class User {
 
     public User copyWithoutId() {
         return User.builder()
-                .email(this.email.toLowerCase())
+                .email(this.email)
                 .login(this.login)
                 .name(this.name)
                 .birthday(this.birthday)
@@ -55,10 +55,6 @@ public class User {
     }
 
     public void setEmail(String email) {
-        this.email = email != null ? email.toLowerCase() : null;
-    }
-
-    public void normalize() {
-        this.email = this.email != null ? this.email.toLowerCase() : null;
+        this.email = email != null ? email : null;
     }
 }
