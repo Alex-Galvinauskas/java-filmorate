@@ -6,7 +6,10 @@ import java.util.List;
 
 public interface FilmService {
     Film createFilm(Film film);
+
     List<Film> getAllFilms();
+
     Film getFilmById(Long id);
+
     Film updateFilm(Film film);
 }
