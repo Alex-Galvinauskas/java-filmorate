@@ -54,7 +54,4 @@ public class User {
         return name == null || name.isBlank() ? login : name;
     }
 
-    public void setEmail(String email) {
-        this.email = email != null ? email : null;
-    }
 }
