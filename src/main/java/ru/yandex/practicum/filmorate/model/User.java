@@ -41,15 +41,6 @@ public class User {
                 .build();
     }
 
-    public User copyWithoutId() {
-        return User.builder()
-                .email(this.email)
-                .login(this.login)
-                .name(this.name)
-                .birthday(this.birthday)
-                .build();
-    }
-
     public String getName() {
         return name == null || name.isBlank() ? login : name;
     }
