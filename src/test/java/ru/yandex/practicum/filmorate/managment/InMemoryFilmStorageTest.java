@@ -21,15 +21,6 @@ class InMemoryFilmStorageTest {
         filmStorage = new InMemoryFilmStorage();
     }
 
-    private Film createTestFilm() {
-        return Film.builder()
-                .name("Test Film")
-                .description("Test Description")
-                .releaseDate(LocalDate.of(2000, 1, 1))
-                .duration(120)
-                .build();
-    }
-
     @Test
     @DisplayName("Создание фильма с валидными данными присваивает ID и сохраняет фильм")
     void createFilm_ValidFilm_AssignsIdAndStoresFilm() {
@@ -40,6 +31,15 @@ class InMemoryFilmStorageTest {
         assertNotNull(result.getId());
         assertEquals("Test Film", result.getName());
         assertTrue(filmStorage.existsFilmById(result.getId()));
+    }
+
+    private Film createTestFilm() {
+        return Film.builder()
+                .name("Test Film")
+                .description("Test Description")
+                .releaseDate(LocalDate.of(2000, 1, 1))
+                .duration(120)
+                .build();
     }
 
     @Test

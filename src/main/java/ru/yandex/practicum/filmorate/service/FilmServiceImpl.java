@@ -6,7 +6,7 @@
  *
  * @see ru.yandex.practicum.filmorate.service.FilmService
  * @see ru.yandex.practicum.filmorate.managment.FilmStorage
- * @see Film
+ * @see ru.yandex.practicum.filmorate.model.Film
  */
 package ru.yandex.practicum.filmorate.service;
 
@@ -35,7 +35,9 @@ public class FilmServiceImpl implements FilmService {
      * Присваивает фильму уникальный идентификатор.
      *
      * @param film фильм для создания
+     *
      * @return созданный фильм с присвоенным ID
+     *
      * @throws DuplicateException если фильм с таким названием и годом выпуска уже существует
      */
     @Override
@@ -64,7 +66,9 @@ public class FilmServiceImpl implements FilmService {
      * Выполняет проверку существования фильма и генерирует исключение если фильм не найден.
      *
      * @param id идентификатор фильма
+     *
      * @return найденный фильм
+     *
      * @throws NotFoundException если фильм с указанным ID не найден
      */
     @Override
@@ -80,8 +84,10 @@ public class FilmServiceImpl implements FilmService {
      * Разрешает обновление если ключевые поля (название и год) не изменились.
      *
      * @param film фильм с обновленными данными
+     *
      * @return обновленный фильм
-     * @throws NotFoundException если фильм с указанным ID не найден
+     *
+     * @throws NotFoundException  если фильм с указанным ID не найден
      * @throws DuplicateException если фильм с новым названием и годом выпуска уже существует
      */
     @Override

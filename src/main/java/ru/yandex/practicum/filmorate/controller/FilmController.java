@@ -30,6 +30,7 @@ public class FilmController {
      * Создает новый фильм.
      *
      * @param film объект фильма для создания
+     *
      * @return созданный фильм с присвоенным идентификатором
      */
     @PostMapping
@@ -52,7 +53,9 @@ public class FilmController {
      * Возвращает фильм по его идентификатору.
      *
      * @param id идентификатор фильма
+     *
      * @return найденный фильм
+     *
      * @throws ru.yandex.practicum.filmorate.exception.NotFoundException если фильм с указанным ID не найден
      */
     @GetMapping("/{id}")
@@ -64,7 +67,9 @@ public class FilmController {
      * Обновляет существующий фильм.
      *
      * @param film объект фильма с обновленными данными
+     *
      * @return обновленный фильм
+     *
      * @throws ru.yandex.practicum.filmorate.exception.NotFoundException если фильм с указанным ID не найден
      */
     @PutMapping

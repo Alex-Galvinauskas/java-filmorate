@@ -28,16 +28,6 @@ class UserServiceImplTest {
     @InjectMocks
     private UserServiceImpl userService;
 
-    private User createTestUser() {
-        return User.builder()
-                .id(1L)
-                .email("test@example.com")
-                .login("testlogin")
-                .name("Test User")
-                .birthday(LocalDate.of(1990, 1, 1))
-                .build();
-    }
-
     @Test
     @DisplayName("Создание пользователя с валидными данными возвращает созданного пользователя")
     void createUser_ValidUser_ReturnsCreatedUser() {
@@ -53,6 +43,16 @@ class UserServiceImplTest {
         assertNotNull(result);
         assertEquals("test@example.com", result.getEmail());
         verify(userStorage, times(1)).createUser(any(User.class));
+    }
+
+    private User createTestUser() {
+        return User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .login("testlogin")
+                .name("Test User")
+                .birthday(LocalDate.of(1990, 1, 1))
+                .build();
     }
 
     @Test

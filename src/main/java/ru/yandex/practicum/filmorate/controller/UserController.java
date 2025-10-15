@@ -30,6 +30,7 @@ public class UserController {
      * Создает нового пользователя.
      *
      * @param user объект пользователя для создания
+     *
      * @return созданный пользователь с присвоенным идентификатором
      */
     @PostMapping
@@ -52,7 +53,9 @@ public class UserController {
      * Возвращает пользователя по его идентификатору.
      *
      * @param id идентификатор пользователя
+     *
      * @return найденный пользователь
+     *
      * @throws ru.yandex.practicum.filmorate.exception.NotFoundException если пользователь с указанным ID не найден
      */
     @GetMapping("/{id}")
@@ -64,7 +67,9 @@ public class UserController {
      * Обновляет существующего пользователя.
      *
      * @param user объект пользователя с обновленными данными
+     *
      * @return обновленный пользователь
+     *
      * @throws ru.yandex.practicum.filmorate.exception.NotFoundException если пользователь с указанным ID не найден
      */
     @PutMapping

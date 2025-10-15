@@ -21,15 +21,6 @@ class InMemoryUserStorageTest {
         userStorage = new InMemoryUserStorage();
     }
 
-    private User createTestUser() {
-        return User.builder()
-                .email("test@example.com")
-                .login("testlogin")
-                .name("Test User")
-                .birthday(LocalDate.of(1990, 1, 1))
-                .build();
-    }
-
     @Test
     @DisplayName("Создание пользователя с валидными данными присваивает ID и сохраняет пользователя")
     void createUser_ValidUser_AssignsIdAndStoresUser() {
@@ -40,6 +31,15 @@ class InMemoryUserStorageTest {
         assertNotNull(result.getId());
         assertEquals("test@example.com", result.getEmail());
         assertTrue(userStorage.existsById(result.getId()));
+    }
+
+    private User createTestUser() {
+        return User.builder()
+                .email("test@example.com")
+                .login("testlogin")
+                .name("Test User")
+                .birthday(LocalDate.of(1990, 1, 1))
+                .build();
     }
 
     @Test
