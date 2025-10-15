@@ -28,16 +28,6 @@ class FilmServiceImplTest {
     @InjectMocks
     private FilmServiceImpl filmService;
 
-    private Film createTestFilm() {
-        return Film.builder()
-                .id(1L)
-                .name("Test Film")
-                .description("Test Description")
-                .releaseDate(LocalDate.of(2000, 1, 1))
-                .duration(120)
-                .build();
-    }
-
     @Test
     @DisplayName("Создание фильма с валидными данными возвращает созданный фильм")
     void createFilm_ValidFilm_ReturnsCreatedFilm() {
@@ -52,6 +42,16 @@ class FilmServiceImplTest {
         assertNotNull(result);
         assertEquals("Test Film", result.getName());
         verify(filmStorage, times(1)).createFilm(any(Film.class));
+    }
+
+    private Film createTestFilm() {
+        return Film.builder()
+                .id(1L)
+                .name("Test Film")
+                .description("Test Description")
+                .releaseDate(LocalDate.of(2000, 1, 1))
+                .duration(120)
+                .build();
     }
 
     @Test

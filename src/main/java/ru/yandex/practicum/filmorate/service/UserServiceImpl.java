@@ -41,7 +41,7 @@ public class UserServiceImpl implements UserService {
     public User createUser(User user) {
         log.info("Создание нового пользователя.");
 
-       userValidator.validateForCreation(user);
+        userValidator.validateForCreation(user);
         normalizeUser(user);
 
         return userStorage.createUser(user);
