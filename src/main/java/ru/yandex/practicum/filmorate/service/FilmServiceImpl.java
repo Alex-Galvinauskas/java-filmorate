@@ -44,7 +44,7 @@ public class FilmServiceImpl implements FilmService {
     public Film createFilm(Film film) {
         log.info("Создание нового фильма: {}", film);
 
-        filmValidator.validateFilmUniqueness(filmStorage, film.getName(), film.getReleaseDate().getYear());
+        filmValidator.validateFilmUniqueness(film.getName(), film.getReleaseDate().getYear());
 
         return filmStorage.createFilm(film);
     }
@@ -96,7 +96,7 @@ public class FilmServiceImpl implements FilmService {
 
         Film existingFilm = getFilmById(film.getId());
 
-        filmValidator.validateFilmUniquenessForUpdate(filmStorage, existingFilm, film);
+        filmValidator.validateFilmUniquenessForUpdate(existingFilm, film);
 
         return filmStorage.updateFilm(film);
     }

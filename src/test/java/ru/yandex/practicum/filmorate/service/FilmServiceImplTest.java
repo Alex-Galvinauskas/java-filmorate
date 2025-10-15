@@ -6,10 +6,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.FilmStorage;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.utils.validators.FilmValidatorImpl;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -20,10 +23,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class FilmServiceImplTest {
 
     @Mock
     private FilmStorage filmStorage;
+
+    @Mock
+    private FilmValidatorImpl filmValidator;
 
     @InjectMocks
     private FilmServiceImpl filmService;
@@ -60,7 +67,8 @@ class FilmServiceImplTest {
         Film film = createTestFilm();
         film.setId(null);
 
-        when(filmStorage.existsFilmByNameAndReleaseYear(any(), any())).thenReturn(true);
+        doThrow(new DuplicateException("Фильм с таким названием и годом выпуска уже существует"))
+                .when(filmValidator).validateFilmUniqueness(anyString(), anyInt());
 
         assertThrows(DuplicateException.class, () -> filmService.createFilm(film));
         verify(filmStorage, never()).createFilm(any(Film.class));
@@ -137,7 +145,9 @@ class FilmServiceImplTest {
         updatedFilm.setName("Different Film");
 
         when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
-        when(filmStorage.existsFilmByNameAndReleaseYear(any(), any())).thenReturn(true);
+        doThrow(new DuplicateException("Фильм с таким названием и годом выпуска уже существует"))
+                .when(filmValidator).validateFilmUniquenessForUpdate(any(Film.class),
+                        any(Film.class));
 
         assertThrows(DuplicateException.class, () -> filmService.updateFilm(updatedFilm));
         verify(filmStorage, never()).updateFilm(any(Film.class));

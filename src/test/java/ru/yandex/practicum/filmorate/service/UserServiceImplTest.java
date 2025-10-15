@@ -11,7 +11,7 @@ import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.UserStorage;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.utils.validators.UserValidator;
+import ru.yandex.practicum.filmorate.utils.validators.UserValidatorImpl;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -31,8 +31,8 @@ class UserServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        UserValidator userValidator = new UserValidator(userStorage);
-        userService = new UserServiceImpl(userStorage, userValidator);
+        UserValidatorImpl userValidatorImpl = new UserValidatorImpl(userStorage);
+        userService = new UserServiceImpl(userStorage, userValidatorImpl);
     }
 
     @Test
@@ -105,7 +105,7 @@ class UserServiceImplTest {
 
         assertEquals("testlogin", result.getName());
     }
-    
+
     @Test
     @DisplayName("Получение всех пользователей возвращает список пользователей")
     void getAllUsers_ReturnsUsersList() {
