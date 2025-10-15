@@ -33,7 +33,7 @@ public class UserValidator {
      * @throws DuplicateException если email уже используется другим пользователем
      */
     public void validateUniqueEmailForCreation(String email) {
-        if (userStorage.getUserByEmail(email).isPresent()) {
+        if (userStorage.existsByEmail(email)) {
             throw new DuplicateException("Пользователь с таким email " + email + " уже существует");
         }
     }
@@ -46,7 +46,7 @@ public class UserValidator {
      * @throws DuplicateException если логин уже используется другим пользователем
      */
     public void validateUniqueLoginForCreation(String login) {
-        if (userStorage.getUserByLogin(login).isPresent()) {
+        if (userStorage.existsByLogin(login)) {
             throw new DuplicateException("Пользователь с таким логином " + login + " уже существует");
         }
     }
@@ -86,7 +86,7 @@ public class UserValidator {
      */
     public void validateUniqueEmailForUpdate(User updatedUser, User existingUser) {
         if (!existingUser.getEmail().equals(updatedUser.getEmail())) {
-            if (userStorage.getUserByEmail(updatedUser.getEmail()).isPresent()) {
+            if (userStorage.existsByEmail(updatedUser.getEmail())) {
                 throw new DuplicateException("Пользователь с таким email " + updatedUser.getEmail() + " уже " +
                         "существует");
             }
@@ -103,7 +103,7 @@ public class UserValidator {
      */
     public void validateUniqueLoginForUpdate(User updatedUser, User existingUser) {
         if (!existingUser.getLogin().equals(updatedUser.getLogin())) {
-            if (userStorage.getUserByLogin(updatedUser.getLogin()).isPresent()) {
+            if (userStorage.existsByLogin(updatedUser.getLogin())) {
                 throw new DuplicateException("Пользователь с таким логином " + updatedUser.getLogin() + " уже " +
                         "существует");
             }
