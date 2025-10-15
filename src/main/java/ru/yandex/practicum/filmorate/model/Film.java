@@ -35,21 +35,15 @@ public class Film {
     private Integer duration;
 
     public static Film copyWithId(Film source, Long newId) {
+        if (source == null) {
+            throw new IllegalArgumentException("Исходный файл не может быть пустым");
+        }
         return Film.builder()
                 .id(newId)
                 .name(source.getName())
                 .description(source.getDescription())
                 .releaseDate(source.getReleaseDate())
                 .duration(source.getDuration())
-                .build();
-    }
-
-    public Film copyWithoutId() {
-        return Film.builder()
-                .name(this.name)
-                .description(this.description)
-                .releaseDate(this.releaseDate)
-                .duration(this.duration)
                 .build();
     }
 }
