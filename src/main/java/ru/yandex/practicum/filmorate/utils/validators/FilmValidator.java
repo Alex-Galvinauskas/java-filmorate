@@ -4,6 +4,7 @@
  */
 package ru.yandex.practicum.filmorate.utils.validators;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
@@ -12,18 +13,10 @@ import ru.yandex.practicum.filmorate.model.Film;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class FilmValidator {
 
-    /**
-     * Проверяет уникальность фильма по названию и году выпуска.
-     */
-    public void validateFilmUniqueness(FilmStorage filmStorage, String name, int releaseYear) {
-        log.debug("Проверка уникальности фильма: {} ({})", name, releaseYear);
-
-        if (filmStorage.existsFilmByNameAndReleaseYear(name, releaseYear)) {
-            throw new DuplicateException(buildDuplicateErrorMessage(name, releaseYear));
-        }
-    }
+    private final FilmStorage filmStorage;
 
     /**
      * Проверяет уникальность фильма при обновлении.
@@ -38,6 +31,17 @@ public class FilmValidator {
         if (nameChanged || yearChanged) {
             validateFilmUniqueness(filmStorage, updatedFilm.getName(),
                     updatedFilm.getReleaseDate().getYear());
+        }
+    }
+
+    /**
+     * Проверяет уникальность фильма по названию и году выпуска.
+     */
+    public void validateFilmUniqueness(FilmStorage filmStorage, String name, int releaseYear) {
+        log.debug("Проверка уникальности фильма: {} ({})", name, releaseYear);
+
+        if (filmStorage.existsFilmByNameAndReleaseYear(name, releaseYear)) {
+            throw new DuplicateException(buildDuplicateErrorMessage(name, releaseYear));
         }
     }
 
