@@ -16,6 +16,7 @@ import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.UserStorage;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.utils.validators.UserValidator;
 
 import java.util.List;
 
@@ -24,6 +25,7 @@ import java.util.List;
 @Slf4j
 public class UserServiceImpl implements UserService {
     private final UserStorage userStorage;
+    private final UserValidator userValidator;
 
     /**
      * Создает нового пользователя с проверкой уникальности.
@@ -39,18 +41,8 @@ public class UserServiceImpl implements UserService {
     public User createUser(User user) {
         log.info("Создание нового пользователя.");
 
-        if (userStorage.existsByEmail(user.getEmail())) {
-            throw new DuplicateException("Пользователь с email " + user.getEmail() + " уже существует");
-        }
-
-        if (userStorage.existsByLogin(user.getLogin())) {
-            throw new DuplicateException("Пользователь с login " + user.getLogin() + " уже существует");
-        }
-
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-            log.debug("Для пользователя {} установлено имя из логина: {}", user.getLogin(), user.getName());
-        }
+       userValidator.validateForCreation(user);
+        normalizeUser(user);
 
         return userStorage.createUser(user);
     }
@@ -75,8 +67,7 @@ public class UserServiceImpl implements UserService {
      * @throws NotFoundException если пользователь с указанным ID не найден
      */
     public User getUserById(Long id) {
-        return userStorage.getUserById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
+        return userValidator.validateUserExist(id);
     }
 
     /**
@@ -94,25 +85,16 @@ public class UserServiceImpl implements UserService {
     public User updateUser(User user) {
         log.info("Обновление данных пользователя.");
 
-        User existingUser = userStorage.getUserById(user.getId())
-                .orElseThrow(() ->
-                        new NotFoundException("Пользователь с id " + user.getId() + " не найден"));
+        userValidator.validateForUpdate(user);
+        normalizeUser(user);
 
-        if (!existingUser.getEmail().equals(user.getEmail()) &&
-                userStorage.existsByEmail(user.getEmail())) {
-            throw new DuplicateException("Пользователь с email " + user.getEmail() + " уже существует");
-        }
+        return userStorage.updateUser(user);
+    }
 
-        if (!existingUser.getLogin().equals(user.getLogin()) &&
-                userStorage.existsByLogin(user.getLogin())) {
-            throw new DuplicateException("Пользователь с login " + user.getLogin() + " уже существует");
-        }
-
+    private void normalizeUser(User user) {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
             log.debug("Для пользователя {} установлено имя из логина: {}", user.getLogin(), user.getName());
         }
-
-        return userStorage.updateUser(user);
     }
 }

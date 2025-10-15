@@ -17,6 +17,7 @@ import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.FilmStorage;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.utils.validators.FilmValidator;
 
 import java.util.List;
 
@@ -26,6 +27,7 @@ import java.util.List;
 public class FilmServiceImpl implements FilmService {
 
     private final FilmStorage filmStorage;
+    private final FilmValidator filmValidator;
 
     /**
      * Создает новый фильм с проверкой уникальности.
@@ -40,12 +42,7 @@ public class FilmServiceImpl implements FilmService {
     public Film createFilm(Film film) {
         log.info("Создание нового фильма: {}", film);
 
-        if (filmStorage.existsFilmByNameAndReleaseYear(film.getName(), film.getReleaseDate().getYear())) {
-            throw new DuplicateException(
-                    String.format("Фильм с названием '%s' и годом выхода '%s' уже существует",
-                            film.getName(),
-                            film.getReleaseDate().getYear()));
-        }
+        filmValidator.validateFilmUniqueness(filmStorage, film.getName(), film.getReleaseDate().getYear());
 
         return filmStorage.createFilm(film);
     }
@@ -93,17 +90,7 @@ public class FilmServiceImpl implements FilmService {
 
         Film existingFilm = getFilmById(film.getId());
 
-        boolean nameChanged = !existingFilm.getName().equals(film.getName());
-        boolean yearChanged = existingFilm.getReleaseDate().getYear() != film.getReleaseDate().getYear();
-
-        if (nameChanged || yearChanged) {
-            if (filmStorage.existsFilmByNameAndReleaseYear(film.getName(), film.getReleaseDate().getYear())) {
-                throw new DuplicateException(
-                        String.format("Фильм с названием '%s' и годом выхода '%s' уже существует",
-                                film.getName(),
-                                film.getReleaseDate().getYear()));
-            }
-        }
+        filmValidator.validateFilmUniquenessForUpdate(filmStorage, existingFilm, film);
 
         return filmStorage.updateFilm(film);
     }
