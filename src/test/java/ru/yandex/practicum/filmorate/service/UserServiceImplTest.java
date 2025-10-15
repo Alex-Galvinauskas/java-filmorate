@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,13 +11,13 @@ import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.UserStorage;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.utils.validators.UserValidator;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,21 +29,23 @@ class UserServiceImplTest {
     @InjectMocks
     private UserServiceImpl userService;
 
+    @BeforeEach
+    void setUp() {
+        UserValidator userValidator = new UserValidator(userStorage);
+        userService = new UserServiceImpl(userStorage, userValidator);
+    }
+
     @Test
-    @DisplayName("Создание пользователя с валидными данными возвращает созданного пользователя")
-    void createUser_ValidUser_ReturnsCreatedUser() {
+    @DisplayName("Создание пользователя с дублирующим логином выбрасывает DuplicateException")
+    void createUser_DuplicateLogin_ThrowsDuplicateException() {
         User user = createTestUser();
         user.setId(null);
 
-        when(userStorage.existsByEmail(any())).thenReturn(false);
-        when(userStorage.existsByLogin(any())).thenReturn(false);
-        when(userStorage.createUser(any(User.class))).thenReturn(user);
+        when(userStorage.existsByEmail(user.getEmail())).thenReturn(false);
+        when(userStorage.existsByLogin(user.getLogin())).thenReturn(true);
 
-        User result = userService.createUser(user);
-
-        assertNotNull(result);
-        assertEquals("test@example.com", result.getEmail());
-        verify(userStorage, times(1)).createUser(any(User.class));
+        assertThrows(DuplicateException.class, () -> userService.createUser(user));
+        verify(userStorage, never()).createUser(any(User.class));
     }
 
     private User createTestUser() {
@@ -61,23 +64,27 @@ class UserServiceImplTest {
         User user = createTestUser();
         user.setId(null);
 
-        when(userStorage.existsByEmail(any())).thenReturn(true);
+        when(userStorage.existsByEmail(user.getEmail())).thenReturn(true);
 
         assertThrows(DuplicateException.class, () -> userService.createUser(user));
         verify(userStorage, never()).createUser(any(User.class));
     }
 
     @Test
-    @DisplayName("Создание пользователя с дублирующим логином выбрасывает DuplicateException")
-    void createUser_DuplicateLogin_ThrowsDuplicateException() {
+    @DisplayName("Создание пользователя с валидными данными возвращает созданного пользователя")
+    void createUser_ValidUser_ReturnsCreatedUser() {
         User user = createTestUser();
         user.setId(null);
 
-        when(userStorage.existsByEmail(any())).thenReturn(false);
-        when(userStorage.existsByLogin(any())).thenReturn(true);
+        when(userStorage.existsByEmail(user.getEmail())).thenReturn(false);
+        when(userStorage.existsByLogin(user.getLogin())).thenReturn(false);
+        when(userStorage.createUser(any(User.class))).thenReturn(user);
 
-        assertThrows(DuplicateException.class, () -> userService.createUser(user));
-        verify(userStorage, never()).createUser(any(User.class));
+        User result = userService.createUser(user);
+
+        assertNotNull(result);
+        assertEquals("test@example.com", result.getEmail());
+        verify(userStorage, times(1)).createUser(any(User.class));
     }
 
     @Test
@@ -90,15 +97,15 @@ class UserServiceImplTest {
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        when(userStorage.existsByEmail(any())).thenReturn(false);
-        when(userStorage.existsByLogin(any())).thenReturn(false);
+        when(userStorage.existsByEmail(user.getEmail())).thenReturn(false);
+        when(userStorage.existsByLogin(user.getLogin())).thenReturn(false);
         when(userStorage.createUser(any(User.class))).thenReturn(user);
 
         User result = userService.createUser(user);
 
         assertEquals("testlogin", result.getName());
     }
-
+    
     @Test
     @DisplayName("Получение всех пользователей возвращает список пользователей")
     void getAllUsers_ReturnsUsersList() {
@@ -108,7 +115,7 @@ class UserServiceImplTest {
         List<User> result = userService.getAllUsers();
 
         assertEquals(1, result.size());
-        assertEquals("test@example.com", result.get(0).getEmail());
+        assertEquals("test@example.com", result.getFirst().getEmail());
         verify(userStorage, times(1)).getAllUsers();
     }
 
@@ -169,7 +176,7 @@ class UserServiceImplTest {
         updatedUser.setEmail("new@example.com");
 
         when(userStorage.getUserById(1L)).thenReturn(Optional.of(existingUser));
-        when(userStorage.existsByEmail(any())).thenReturn(true);
+        when(userStorage.existsByEmail("new@example.com")).thenReturn(true);
 
         assertThrows(DuplicateException.class, () -> userService.updateUser(updatedUser));
         verify(userStorage, never()).updateUser(any(User.class));
