@@ -11,7 +11,5 @@ public interface FilmValidatorRules {
 
     void validateFilmUniqueness(String name, int releaseYear);
 
-    default String buildDuplicateErrorMessage(String name, int releaseYear) {
-        return null;
-    }
+    String buildDuplicateErrorMessage(String name, int releaseYear);
 }
