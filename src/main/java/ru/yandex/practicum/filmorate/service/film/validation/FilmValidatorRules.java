@@ -1,10 +1,10 @@
-package ru.yandex.practicum.filmorate.utils.validators;
+package ru.yandex.practicum.filmorate.service.film.validation;
 
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.Film;
 
 @Component
-public interface FilmValidator {
+public interface FilmValidatorRules {
 
     void validateFilmUniquenessForUpdate(Film existingFilm,
                                          Film updatedFilm);

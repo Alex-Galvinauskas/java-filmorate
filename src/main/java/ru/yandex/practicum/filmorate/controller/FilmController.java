@@ -4,7 +4,7 @@
  * Предоставляет REST API для работы с сущностью Film.
  *
  * @see ru.yandex.practicum.filmorate.model.Film
- * @see ru.yandex.practicum.filmorate.service.FilmService
+ * @see ru.yandex.practicum.filmorate.service.film.FilmService
  */
 package ru.yandex.practicum.filmorate.controller;
 
@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.service.film.FilmService;
 
 import java.util.List;
 

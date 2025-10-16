@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.utils.validators;
+package ru.yandex.practicum.filmorate.service.user.validation;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +11,7 @@ import ru.yandex.practicum.filmorate.model.User;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class UserValidatorImpl implements UserValidator {
+public class UserValidatorImpl implements UserValidatorRules {
 
     private final UserStorage userStorage;
 
@@ -20,9 +20,9 @@ public class UserValidatorImpl implements UserValidator {
      *
      * @param user пользователь для создания
      */
-    public void validateForCreation(User user) {
-        validateUniqueEmailForCreation(user.getEmail());
-        validateUniqueLoginForCreation(user.getLogin());
+    public void validateForCreate(User user) {
+        validateUniqueEmailForCreate(user.getEmail());
+        validateUniqueLoginForCreate(user.getLogin());
     }
 
     /**
@@ -32,7 +32,7 @@ public class UserValidatorImpl implements UserValidator {
      *
      * @throws DuplicateException если email уже используется другим пользователем
      */
-    public void validateUniqueEmailForCreation(String email) {
+    public void validateUniqueEmailForCreate(String email) {
         if (userStorage.existsByEmail(email)) {
             throw new DuplicateException("Пользователь с таким email " + email + " уже существует");
         }
@@ -45,7 +45,7 @@ public class UserValidatorImpl implements UserValidator {
      *
      * @throws DuplicateException если логин уже используется другим пользователем
      */
-    public void validateUniqueLoginForCreation(String login) {
+    public void validateUniqueLoginForCreate(String login) {
         if (userStorage.existsByLogin(login)) {
             throw new DuplicateException("Пользователь с таким логином " + login + " уже существует");
         }

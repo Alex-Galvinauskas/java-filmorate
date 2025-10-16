@@ -1,11 +1,11 @@
-package ru.yandex.practicum.filmorate.utils.validators;
+package ru.yandex.practicum.filmorate.service.user.validation;
 
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.User;
 
 @Component
-public interface UserValidator {
-    void validateForCreation(User user);
+public interface UserValidatorRules {
+    void validateForCreate(User user);
 
     void validateForUpdate(User user);
 

@@ -4,11 +4,11 @@
  * Обеспечивает проверку уникальности фильмов и обработку исключительных ситуаций.
  * Делегирует операции хранения данных объекту FilmStorage.
  *
- * @see ru.yandex.practicum.filmorate.service.FilmService
+ * @see ru.yandex.practicum.filmorate.service.film.FilmService
  * @see ru.yandex.practicum.filmorate.managment.FilmStorage
  * @see ru.yandex.practicum.filmorate.model.Film
  */
-package ru.yandex.practicum.filmorate.service;
+package ru.yandex.practicum.filmorate.service.film;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +17,7 @@ import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.FilmStorage;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.utils.validators.FilmValidator;
+import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
 
 import java.util.List;
 
@@ -27,7 +27,7 @@ import java.util.List;
 public class FilmServiceImpl implements FilmService {
 
     private final FilmStorage filmStorage;
-    private final FilmValidator filmValidator;
+    private final FilmValidatorRules filmValidator;
 
     /**
      * Создает новый фильм с проверкой уникальности.

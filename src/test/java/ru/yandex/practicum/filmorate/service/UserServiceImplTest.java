@@ -11,7 +11,8 @@ import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.UserStorage;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.utils.validators.UserValidatorImpl;
+import ru.yandex.practicum.filmorate.service.user.UserServiceImpl;
+import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorImpl;
 
 import java.time.LocalDate;
 import java.util.List;

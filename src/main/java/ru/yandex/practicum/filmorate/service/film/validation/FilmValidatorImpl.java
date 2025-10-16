@@ -2,7 +2,7 @@
  * Компонент для валидации фильмов.
  * Может быть внедрен через dependency injection.
  */
-package ru.yandex.practicum.filmorate.utils.validators;
+package ru.yandex.practicum.filmorate.service.film.validation;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +14,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class FilmValidatorImpl implements FilmValidator {
+public class FilmValidatorImpl implements FilmValidatorRules {
 
     private final FilmStorage filmStorage;
 

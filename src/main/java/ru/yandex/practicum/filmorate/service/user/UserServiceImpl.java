@@ -3,11 +3,11 @@
  * Содержит бизнес-логику приложения для операций с пользователями.
  * Обеспечивает проверку уникальности email и логина, нормализацию данных пользователя.
  *
- * @see ru.yandex.practicum.filmorate.service.UserService
+ * @see ru.yandex.practicum.filmorate.service.user.UserService
  * @see ru.yandex.practicum.filmorate.managment.UserStorage
  * @see User
  */
-package ru.yandex.practicum.filmorate.service;
+package ru.yandex.practicum.filmorate.service.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,7 @@ import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.UserStorage;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.utils.validators.UserValidator;
+import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorRules;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ import java.util.List;
 @Slf4j
 public class UserServiceImpl implements UserService {
     private final UserStorage userStorage;
-    private final UserValidator userValidator;
+    private final UserValidatorRules userValidator;
 
     /**
      * Создает нового пользователя с проверкой уникальности.
@@ -41,7 +41,7 @@ public class UserServiceImpl implements UserService {
     public User createUser(User user) {
         log.info("Создание нового пользователя.");
 
-        userValidator.validateForCreation(user);
+        userValidator.validateForCreate(user);
         normalizeUser(user);
 
         return userStorage.createUser(user);
