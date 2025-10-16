@@ -8,11 +8,9 @@
  */
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.film.FilmService;
 
@@ -20,60 +18,31 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/films")
-@RequiredArgsConstructor
 @Slf4j
-public class FilmController {
+public class FilmController extends AbstractController<Film, FilmService> {
 
-    private final FilmService filmService;
 
-    /**
-     * Создает новый фильм.
-     *
-     * @param film объект фильма для создания
-     *
-     * @return созданный фильм с присвоенным идентификатором
-     */
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public Film createFilm(@Valid @RequestBody Film film) {
-        return filmService.createFilm(film);
+    public FilmController(FilmService filmService) {
+        super(filmService, "фильма");
     }
 
-    /**
-     * Возвращает список всех фильмов.
-     *
-     * @return список всех фильмов в системе
-     */
-    @GetMapping
-    public List<Film> getAllFilms() {
-        return filmService.getAllFilms();
+    @Override
+    protected Film createEntity(Film film) {
+        return service.createFilm(film);
     }
 
-    /**
-     * Возвращает фильм по его идентификатору.
-     *
-     * @param id идентификатор фильма
-     *
-     * @return найденный фильм
-     *
-     * @throws ru.yandex.practicum.filmorate.exception.NotFoundException если фильм с указанным ID не найден
-     */
-    @GetMapping("/{id}")
-    public Film getFilmById(@PathVariable Long id) {
-        return filmService.getFilmById(id);
+    @Override
+    protected List<Film> getAllEntities() {
+        return service.getAllFilms();
     }
 
-    /**
-     * Обновляет существующий фильм.
-     *
-     * @param film объект фильма с обновленными данными
-     *
-     * @return обновленный фильм
-     *
-     * @throws ru.yandex.practicum.filmorate.exception.NotFoundException если фильм с указанным ID не найден
-     */
-    @PutMapping
-    public Film updateFilm(@Valid @RequestBody Film film) {
-        return filmService.updateFilm(film);
+    @Override
+    protected Film getEntityById(Long id) {
+        return service.getFilmById(id);
+    }
+
+    @Override
+    protected Film updateEntity(Film film) {
+        return service.updateFilm(film);
     }
 }
