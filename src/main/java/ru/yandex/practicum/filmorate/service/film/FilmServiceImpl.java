@@ -138,6 +138,15 @@ public class FilmServiceImpl implements FilmService {
         return filmStorage.updateFilm(film);
     }
 
+    /**
+     * Удаляет лайк у фильма.
+     * Проверяет существование фильма и пользователя.
+     *
+     * @param filmId id фильма
+     * @param userId id пользователя
+     *
+     * @throws NotFoundException если фильм с указанными ID не найдены
+     */
     @Override
     public void removeLike(Long filmId, Long userId) {
         log.info("Удаление лайка фильму с ID: {} от пользователя {}", filmId, userId);
