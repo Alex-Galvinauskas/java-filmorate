@@ -11,7 +11,6 @@ package ru.yandex.practicum.filmorate.service.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
@@ -31,8 +30,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
     private final UserStorage userStorage;
     private final UserValidatorRules userValidator;
-    @Value("${app.validation.user.name.default-from-login:true}")
-    private boolean defaultNameFromLogin;
+    private static final boolean DEFAULT_NAME_FROM_LOGIN = true;
 
     /**
      * Создает нового пользователя с проверкой уникальности.
@@ -189,7 +187,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private void normalizeUser(User user) {
-        if (defaultNameFromLogin && (user.getName() == null || user.getName().isBlank())) {
+        if (DEFAULT_NAME_FROM_LOGIN && (user.getName() == null || user.getName().isBlank())) {
             user.setName(user.getLogin());
             log.debug("Для пользователя {} установлено имя из логина: {}", user.getLogin(), user.getName());
         }

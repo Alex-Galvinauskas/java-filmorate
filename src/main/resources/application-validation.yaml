@@ -1,16 +1,5 @@
 app:
   validation:
-    user:
-      login:
-        min-length: 4
-        max-length: 20
-        pattern: "^[\\w\\p{IsCyrillic}]+$"
-      name:
-        default-from-login: true
-      messages:
-        email-duplicate: "Пользователь с таким email {0} уже существует"
-        login-duplicate: "Пользователь с таким логином {0} уже существует"
-        not-found: "Пользователь с id {0} не найден"
     film:
       min-release-date: "1895-12-28"
       max-description-length: 200

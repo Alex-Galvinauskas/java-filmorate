@@ -2,9 +2,7 @@ package ru.yandex.practicum.filmorate.service.user.validation;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.configuration.UserValidationProperties;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.UserStorage;
@@ -16,7 +14,10 @@ import ru.yandex.practicum.filmorate.model.User;
 public class UserValidatorImpl implements UserValidatorRules {
 
     private final UserStorage userStorage;
-    private final UserValidationProperties validationProperties;
+
+    private static final String EMAIL_DUPLICATE_MESSAGE = "Пользователь с таким email {0} уже существует";
+    private static final String LOGIN_DUPLICATE_MESSAGE = "Пользователь с таким логином {0} уже существует";
+    private static final String USER_NOT_FOUND_MESSAGE = "Пользователь с id {0} не найден";
 
     /**
      * Выполняет все проверки для создания нового пользователя.
@@ -37,8 +38,7 @@ public class UserValidatorImpl implements UserValidatorRules {
      */
     public void validateUniqueEmailForCreate(String email) {
         if (userStorage.existsByEmail(email)) {
-            String message = validationProperties.getMessages().
-                    getEmailDuplicate().replace("{0}", email);
+            String message = EMAIL_DUPLICATE_MESSAGE.replace("{0}", email);
             throw new DuplicateException(message);
         }
     }
@@ -52,8 +52,7 @@ public class UserValidatorImpl implements UserValidatorRules {
      */
     public void validateUniqueLoginForCreate(String login) {
         if (userStorage.existsByLogin(login)) {
-            String message = validationProperties.getMessages().
-                    getLoginDuplicate().replace("{0}", login);
+            String message = LOGIN_DUPLICATE_MESSAGE.replace("{0}", login);
             throw new DuplicateException(message);
         }
     }
@@ -80,7 +79,8 @@ public class UserValidatorImpl implements UserValidatorRules {
      */
     public User validateUserExist(Long id) {
         return userStorage.getUserById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND_MESSAGE.replace("{0}",
+                String.valueOf(id))));
     }
 
     /**
@@ -94,8 +94,7 @@ public class UserValidatorImpl implements UserValidatorRules {
     public void validateUniqueEmailForUpdate(User updatedUser, User existingUser) {
         if (!existingUser.getEmail().equals(updatedUser.getEmail())) {
             if (userStorage.existsByEmail(updatedUser.getEmail())) {
-                String message = validationProperties.getMessages().
-                        getEmailDuplicate().replace("{0}", updatedUser.getEmail());
+                String message = EMAIL_DUPLICATE_MESSAGE.replace("{0}", updatedUser.getEmail());
                 throw new DuplicateException(message);
             }
         }
@@ -112,8 +111,7 @@ public class UserValidatorImpl implements UserValidatorRules {
     public void validateUniqueLoginForUpdate(User updatedUser, User existingUser) {
         if (!existingUser.getLogin().equals(updatedUser.getLogin())) {
             if (userStorage.existsByLogin(updatedUser.getLogin())) {
-                String message = validationProperties.getMessages().
-                        getLoginDuplicate().replace("{0}", updatedUser.getLogin());
+                String message = LOGIN_DUPLICATE_MESSAGE.replace("{0}", updatedUser.getLogin());
                 throw new DuplicateException(message);
             }
         }
