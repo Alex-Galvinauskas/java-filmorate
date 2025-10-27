@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.annotation.MinReleaseDate;
 
 import java.time.LocalDate;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Data
 @Builder
@@ -34,9 +36,11 @@ public class Film {
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Integer duration;
 
+    private Set<Long> likes = ConcurrentHashMap.newKeySet();
+
     public static Film copyWithId(Film source, Long newId) {
         if (source == null) {
-            throw new IllegalArgumentException("Исходный файл не может быть пустым");
+            throw new IllegalArgumentException("Исходный файл не может быть null");
         }
         return Film.builder()
                 .id(newId)
