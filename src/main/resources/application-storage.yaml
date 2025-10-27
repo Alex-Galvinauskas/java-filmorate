@@ -1,0 +1,10 @@
+app:
+  storage:
+    type: in-memory
+    user:
+      id:
+        initial: 1
+        increment: 1
+    cache:
+      enabled: true
+      ttl: 300000

@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: filmorate
+  jackson:
+    date-format: yyyy-MM-dd
+    property-naming-strategy: SNAKE_CASE
+
+server:
+  port: 8080
+  servlet:
+    context-path: /

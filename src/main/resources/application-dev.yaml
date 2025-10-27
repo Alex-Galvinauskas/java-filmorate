@@ -1,0 +1,14 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+logging:
+  level:
+    ru.yandex.practicum.filmorate: DEBUG
+
+app:
+  storage:
+    type: in-memory
+    cache:
+      enabled: false
