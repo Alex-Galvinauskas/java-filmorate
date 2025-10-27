@@ -10,6 +10,7 @@
 package ru.yandex.practicum.filmorate.managment;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -26,7 +27,11 @@ public class InMemoryUserStorage implements UserStorage {
     private final Map<Long, User> users = new ConcurrentHashMap<>();
     private final Map<String, Long> emailToUserId = new ConcurrentHashMap<>();
     private final Map<String, Long> loginToUserId = new ConcurrentHashMap<>();
-    private final AtomicLong nextUserId = new AtomicLong(1);
+    private final AtomicLong nextUserId;
+
+    public InMemoryUserStorage(@Value("${app.storage.user.id.initial:1}") long initialId) {
+        this.nextUserId = new AtomicLong(initialId);
+    }
 
     /**
      * Создает нового пользователя в хранилище.
