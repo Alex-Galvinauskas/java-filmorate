@@ -19,7 +19,9 @@ import ru.yandex.practicum.filmorate.managment.FilmStorage;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -50,6 +52,23 @@ public class FilmServiceImpl implements FilmService {
     }
 
     /**
+     * Добавляет лайк фильму.
+     * @param filmId id фильма
+     * @param userId id пользователя
+     *
+     * @throws NotFoundException если фильм с указанным ID не найден
+     */
+    @Override
+    public void addLike(Long filmId, Long userId) {
+        log.info("Добавление лайка фильму с ID: {} от пользователя {}", filmId, userId);
+
+        Film film = getFilmById(filmId);
+        film.getLikes().add(userId);
+
+        log.debug("Лайк добавлен. Текущее количество лайков: {}", film.getLikes().size());
+    }
+
+    /**
      * Возвращает список всех фильмов.
      * Не выполняет дополнительной бизнес-логики, просто делегирует запрос в хранилище.
      *
@@ -59,6 +78,24 @@ public class FilmServiceImpl implements FilmService {
     public List<Film> getAllFilms() {
         log.info("Получение списка всех фильмов");
         return filmStorage.getAllFilms();
+    }
+
+    /**
+     * Возвращает список популярных фильмов.
+     * Популярность определяется количеством лайков.
+     * @param count количество фильмов (если null или отрицательное, то по умолчанию)
+     * @return список популярных фильмов, сортированных по количеству лайков по убыванию
+     */
+    @Override
+    public List<Film> getPopularFilms(Integer count) {
+        log.info("Получение списка популярных фильмов. Количество: {}", count);
+
+        int filmsCount = (count != null) || (count >= 0) ? count : 10;
+
+        return filmStorage.getAllFilms().stream()
+                .sorted((Comparator.comparingInt((Film film) -> film.getLikes().size()).reversed()))
+                .limit(filmsCount)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -99,5 +136,18 @@ public class FilmServiceImpl implements FilmService {
         filmValidator.validateFilmUniquenessForUpdate(existingFilm, film);
 
         return filmStorage.updateFilm(film);
+    }
+
+    @Override
+    public void removeLike(Long filmId, Long userId) {
+        log.info("Удаление лайка фильму с ID: {} от пользователя {}", filmId, userId);
+
+        Film film = getFilmById(filmId);
+
+        if (!film.getLikes().remove(userId)) {
+            log.warn("Попытка удалить несуществующий лайк фильма с ID: {} от пользователя {}", filmId, userId);
+        } else {
+            log.debug("Лайк удален. Теперь у фильма с ID: {} {} лайков", film.getLikes().size(), filmId);
+        }
     }
 }
