@@ -79,7 +79,7 @@ public class FilmController extends AbstractController<Film, FilmService> {
      * @param id - id фильма
      * @param userId - id пользователя
      */
-    @DeleteMapping("/{id}like/{userId}")
+    @DeleteMapping("/{id}/like/{userId}")
     public void deleteLike(@PathVariable Long id, @PathVariable Long userId) {
         log.info("Получен запрос на удаление лайка фильму с id {} от пользователя с id {}", id, userId);
 

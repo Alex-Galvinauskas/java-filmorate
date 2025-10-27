@@ -26,5 +26,5 @@ public @interface MinReleaseDate {
 
     Class<? extends Payload>[] payload() default {};
 
-    String value() default "${app.validation.film.min-release-date:1895-12-28}";
+    String value() default "1895-12-28";
 }

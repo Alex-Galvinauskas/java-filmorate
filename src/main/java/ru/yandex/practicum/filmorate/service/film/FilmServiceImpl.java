@@ -65,6 +65,8 @@ public class FilmServiceImpl implements FilmService {
         Film film = getFilmById(filmId);
         film.getLikes().add(userId);
 
+        filmStorage.updateFilm(film);
+
         log.debug("Лайк добавлен. Текущее количество лайков: {}", film.getLikes().size());
     }
 
@@ -156,6 +158,7 @@ public class FilmServiceImpl implements FilmService {
         if (!film.getLikes().remove(userId)) {
             log.warn("Попытка удалить несуществующий лайк фильма с ID: {} от пользователя {}", filmId, userId);
         } else {
+            filmStorage.updateFilm(film);
             log.debug("Лайк удален. Теперь у фильма с ID: {} {} лайков", film.getLikes().size(), filmId);
         }
     }

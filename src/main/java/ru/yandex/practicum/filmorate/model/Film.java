@@ -1,5 +1,8 @@
 package ru.yandex.practicum.filmorate.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -31,6 +34,7 @@ public class Film {
 
     @NotNull(message = "Дата релиза обязательна")
     @MinReleaseDate
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
@@ -38,6 +42,21 @@ public class Film {
 
     @Builder.Default
     private Set<Long> likes = ConcurrentHashMap.newKeySet();
+
+    @JsonCreator
+    public Film(
+            @JsonProperty("id") Long id,
+            @JsonProperty("name") String name,
+            @JsonProperty("description") String description,
+            @JsonProperty("releaseDate") LocalDate releaseDate,
+            @JsonProperty("duration") Integer duration) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.releaseDate = releaseDate;
+        this.duration = duration;
+        this.likes = ConcurrentHashMap.newKeySet();
+    }
 
     public static Film copyWithId(Film source, Long newId) {
         if (source == null) {

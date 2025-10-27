@@ -4,7 +4,7 @@ logging:
     ru.yandex.practicum.filmorate.controller: DEBUG
     ru.yandex.practicum.filmorate.service: DEBUG
     ru.yandex.practicum.filmorate.managment: DEBUG
-    logging:level:org:zalando:logbook=TRACE:
+    logging:level:org:zalando:logbook: TRACE
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %-5level - %logger{36} - %msg%n"
   file:
