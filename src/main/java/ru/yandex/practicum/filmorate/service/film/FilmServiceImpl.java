@@ -90,7 +90,7 @@ public class FilmServiceImpl implements FilmService {
     public List<Film> getPopularFilms(Integer count) {
         log.info("Получение списка популярных фильмов. Количество: {}", count);
 
-        int filmsCount = (count != null) || (count >= 0) ? count : 10;
+        int filmsCount = (count != null) && (count >= 0) ? count : 10;
 
         return filmStorage.getAllFilms().stream()
                 .sorted((Comparator.comparingInt((Film film) -> film.getLikes().size()).reversed()))
