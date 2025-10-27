@@ -37,6 +37,7 @@ public class User {
     @Past(message = "Дата рождения не может быть в будущем")
     private LocalDate birthday;
 
+    @Builder.Default
     private Set<Long> friends = ConcurrentHashMap.newKeySet();
 
     public static User copyWithId(User source, Long newId) {

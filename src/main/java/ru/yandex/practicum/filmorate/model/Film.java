@@ -36,6 +36,7 @@ public class Film {
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Integer duration;
 
+    @Builder.Default
     private Set<Long> likes = ConcurrentHashMap.newKeySet();
 
     public static Film copyWithId(Film source, Long newId) {
