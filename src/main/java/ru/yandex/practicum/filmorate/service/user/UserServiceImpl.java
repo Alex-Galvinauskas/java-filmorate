@@ -183,7 +183,7 @@ public class UserServiceImpl implements UserService {
         User friend = userValidator.validateUserExist(friendId);
 
         user.getFriends().remove(friendId);
-        user.getFriends().remove(userId);
+        friend.getFriends().remove(userId);
 
         log.debug("Пользователи {} и {} больше не друзья.", userId, friendId);
     }
