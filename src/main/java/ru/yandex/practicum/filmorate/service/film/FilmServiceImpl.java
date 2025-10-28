@@ -18,6 +18,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.FilmStorage;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
+import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.util.Comparator;
 import java.util.List;
@@ -30,6 +31,7 @@ public class FilmServiceImpl implements FilmService {
 
     private final FilmStorage filmStorage;
     private final FilmValidatorRules filmValidator;
+    private final UserService userService;
 
     /**
      * Создает новый фильм с проверкой уникальности.
@@ -63,8 +65,9 @@ public class FilmServiceImpl implements FilmService {
         log.info("Добавление лайка фильму с ID: {} от пользователя {}", filmId, userId);
 
         Film film = getFilmById(filmId);
-        film.getLikes().add(userId);
+        userService.getUserById(userId);
 
+        film.getLikes().add(userId);
         Film updatedFilm = filmStorage.updateFilm(film);
 
         log.debug("Лайк добавлен. Текущее количество лайков: {}", updatedFilm.getLikes().size());
@@ -155,6 +158,7 @@ public class FilmServiceImpl implements FilmService {
         log.info("Удаление лайка фильму с ID: {} от пользователя {}", filmId, userId);
 
         Film film = getFilmById(filmId);
+        userService.getUserById(userId);
 
         if (!film.getLikes().remove(userId)) {
             log.warn("Попытка удалить несуществующий лайк фильма с ID: {} от пользователя {}", filmId, userId);

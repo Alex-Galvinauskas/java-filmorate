@@ -18,7 +18,7 @@ class InMemoryUserStorageTest {
 
     @BeforeEach
     void setUp() {
-        userStorage = new InMemoryUserStorage();
+        userStorage = new InMemoryUserStorage(1L);
     }
 
     @Test
