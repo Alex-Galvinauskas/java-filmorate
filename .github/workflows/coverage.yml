@@ -72,6 +72,7 @@ jobs:
           echo "✅ Coverage badge generated: ${PERCENT}%"
 
       - name: Commit and push badge
+        if: github.event_name == 'push'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -79,12 +80,10 @@ jobs:
           BRANCH=${GITHUB_REF#refs/heads/}
           echo "Current branch: $BRANCH"
           
-          git checkout -B $BRANCH
-          
           git add coverage.svg
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
             git commit -m "📊 Update test coverage: $PERCENT% [skip ci]"
-            git push origin $BRANCH
+            git push
           fi
