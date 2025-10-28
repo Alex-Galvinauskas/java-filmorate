@@ -24,29 +24,54 @@ jobs:
           cache: maven
 
       - name: Run tests with coverage
-        run: mvn clean test jacoco:report
+        run: |
+          mvn clean test jacoco:report
+          ls -la target/site/jacoco/ || echo "Jacoco directory doesn't exist"
 
       - name: Generate coverage badge
         run: |
+          sleep 5
+          
           if [ ! -f "target/site/jacoco/jacoco.xml" ]; then
             echo "❌ JaCoCo report not found!"
-            ls -la target/site/jacoco/ || echo "Jacoco directory doesn't exist"
+            echo "Listing target directory:"
+            find target -name "*.xml" -type f 2>/dev/null || echo "No XML files found"
             exit 1
           fi
           
-          COVERAGE=$(grep -oP 'LINE-RATE="\K[0-9.]+' target/site/jacoco/jacoco.xml | head -1)
+          echo "✅ JaCoCo report found"
           
-          if [ -z "$COVERAGE" ]; then
-            COVERAGE=$(grep -oP 'line-rate="\K[0-9.]+' target/site/jacoco/jacoco.xml | head -1)
-          fi
+          COVERAGE=$(xmllint --xpath 'string(//report/counter[@type="LINE"]/@missed)' 
+          target/site/jacoco/jacoco.xml 2>/dev/null || echo "")
+          TOTAL=$(xmllint --xpath 'string(//report/counter[@type="LINE"]/@covered)' 
+          target/site/jacoco/jacoco.xml 2>/dev/null || echo "")
           
-          echo "Raw coverage value: $COVERAGE"
+          echo "Coverage data - Missed: $COVERAGE, Covered: $TOTAL"
           
-          if [ -z "$COVERAGE" ]; then
-            echo "❌ Could not parse coverage from JaCoCo report"
-            PERCENT=0
+          if [ -n "$COVERAGE" ] && [ -n "$TOTAL" ]; then
+            MISSED_NUM=$(echo "$COVERAGE" | awk '{print int($1)}')
+            COVERED_NUM=$(echo "$TOTAL" | awk '{print int($1)}')
+            TOTAL_LINES=$((MISSED_NUM + COVERED_NUM))
+          
+            if [ $TOTAL_LINES -gt 0 ]; then
+              PERCENT=$((COVERED_NUM * 100 / TOTAL_LINES))
+            else
+              PERCENT=0
+            fi
           else
-            PERCENT=$(echo "$COVERAGE * 100" | awk '{printf "%.0f\n", $1}')
+            echo "Trying alternative parsing method..."
+            COVERAGE_LINE=$(grep 'LINE' target/site/jacoco/jacoco.xml | head -1)
+            echo "Coverage line: $COVERAGE_LINE"
+          
+            if [[ $COVERAGE_LINE =~ missed=\"([0-9]+)\".*covered=\"([0-9]+)\" ]]; then
+              MISSED_NUM=${BASH_REMATCH[1]}
+              COVERED_NUM=${BASH_REMATCH[2]}
+              TOTAL_LINES=$((MISSED_NUM + COVERED_NUM))
+              PERCENT=$((COVERED_NUM * 100 / TOTAL_LINES))
+            else
+              echo "❌ Could not parse coverage data"
+              PERCENT=0
+            fi
           fi
           
           echo "Coverage percentage: $PERCENT%"
@@ -77,9 +102,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          BRANCH=${GITHUB_REF#refs/heads/}
-          echo "Current branch: $BRANCH"
-          
+          git status
           git add coverage.svg
           if git diff --staged --quiet; then
             echo "No changes to commit"
@@ -87,3 +110,10 @@ jobs:
             git commit -m "📊 Update test coverage: $PERCENT% [skip ci]"
             git push
           fi
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          retention-days: 30

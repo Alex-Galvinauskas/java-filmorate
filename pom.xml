@@ -26,7 +26,6 @@
         <assertj-core.version>4.0.0-M1</assertj-core.version>
         <mockito-core.version>5.20.0</mockito-core.version>
         <jacoco.version>0.8.10</jacoco.version>
-        <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <dependencies>
