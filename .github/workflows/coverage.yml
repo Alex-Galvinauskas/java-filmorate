@@ -1,0 +1,89 @@
+name: Test Coverage and Badge
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run tests with coverage
+        run: mvn clean test jacoco:report
+
+      - name: Generate coverage badge
+        run: |
+          if [ ! -f "target/site/jacoco/jacoco.xml" ]; then
+            echo "❌ JaCoCo report not found!"
+            ls -la target/site/jacoco/ || echo "Jacoco directory doesn't exist"
+            exit 1
+          fi
+          
+          COVERAGE=$(grep -oP 'LINE-RATE="\K[0-9.]+' target/site/jacoco/jacoco.xml | head -1)
+          
+          if [ -z "$COVERAGE" ]; then
+            COVERAGE=$(grep -oP 'line-rate="\K[0-9.]+' target/site/jacoco/jacoco.xml | head -1)
+          fi
+          
+          echo "Raw coverage value: $COVERAGE"
+          
+          if [ -z "$COVERAGE" ]; then
+            echo "❌ Could not parse coverage from JaCoCo report"
+            PERCENT=0
+          else
+            PERCENT=$(echo "$COVERAGE * 100" | awk '{printf "%.0f\n", $1}')
+          fi
+          
+          echo "Coverage percentage: $PERCENT%"
+          
+          if [ "$PERCENT" -ge 90 ]; then
+            COLOR="brightgreen"
+          elif [ "$PERCENT" -ge 80 ]; then
+            COLOR="green"
+          elif [ "$PERCENT" -ge 70 ]; then
+            COLOR="yellowgreen"
+          elif [ "$PERCENT" -ge 60 ]; then
+            COLOR="yellow"
+          elif [ "$PERCENT" -ge 50 ]; then
+            COLOR="orange"
+          else
+            COLOR="red"
+          fi
+          
+          echo "Selected color: $COLOR"
+          
+          curl -s "https://img.shields.io/badge/coverage-${PERCENT}%25-${COLOR}?logo=java&style=for-the-badge" -o coverage.svg
+          
+          echo "✅ Coverage badge generated: ${PERCENT}%"
+
+      - name: Commit and push badge
+        if: github.event_name == 'push'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          BRANCH=${GITHUB_REF#refs/heads/}
+          echo "Current branch: $BRANCH"
+          
+          git add coverage.svg
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "📊 Update test coverage: $PERCENT% [skip ci]"
+            git push
+          fi

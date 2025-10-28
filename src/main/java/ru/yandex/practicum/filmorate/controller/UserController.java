@@ -4,71 +4,97 @@
  * Предоставляет REST API для работы с сущностью User.
  *
  * @see User
- * @see ru.yandex.practicum.filmorate.service.UserService
+ * @see ru.yandex.practicum.filmorate.service.user.UserService
  */
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/users")
-@RequiredArgsConstructor
 @Slf4j
-public class UserController {
+    public class UserController extends AbstractController<User, UserService> {
 
-    private final UserService userService;
 
-    /**
-     * Создает нового пользователя.
-     *
-     * @param user объект пользователя для создания
-     * @return созданный пользователь с присвоенным идентификатором
-     */
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public User createUser(@Valid @RequestBody User user) {
-        return userService.createUser(user);
+    public UserController(UserService userService) {
+        super(userService, "пользователя");
+    }
+
+    @Override
+    protected User createEntity(User user) {
+        return service.createUser(user);
+    }
+
+    @Override
+    protected List<User> getAllEntities() {
+        return service.getAllUsers();
+    }
+
+    @Override
+    protected User getEntityById(Long id) {
+        return service.getUserById(id);
+    }
+
+    @Override
+    protected User updateEntity(User user) {
+        return service.updateUser(user);
     }
 
     /**
-     * Возвращает список всех пользователей.
-     *
-     * @return список всех пользователей в системе
+     * Добавляет пользователя в друзья
+     * @param id - id пользователя
+     * @param friendId - id друга для добавления
      */
-    @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    @PutMapping("/{id}/friends/{friendId}")
+    public void addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        log.info("Получен запрос на добавление друга {} к пользователю {}", friendId, id);
+
+        service.addFriend(id, friendId);
+
+        log.info("Пользователь {} успешно добавлен в друзья {}", friendId, id);
     }
 
     /**
-     * Возвращает пользователя по его идентификатору.
-     *
-     * @param id идентификатор пользователя
-     * @return найденный пользователь
-     * @throws ru.yandex.practicum.filmorate.exception.NotFoundException если пользователь с указанным ID не найден
+     * Получает список друзей пользователя
+     * @param id - id пользователя
+     * @return - список друзей
      */
-    @GetMapping("/{id}")
-    public User getUserById(@PathVariable Long id) {
-        return userService.getUserById(id);
+    @GetMapping("/{id}/friends")
+    public List<User> getFriends(@PathVariable Long id) {
+        log.info("Получен запрос на получение списка друзей пользователя {}", id);
+
+        List<User> friends = service.getFriends(id);
+
+        log.info("Список друзей {} пользователя {} получен", friends.size(), id);
+        return friends;
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public List<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+        log.info("Получен запрос на получение общих друзей пользователей {} и {}", id, otherId);
+
+        List<User> commonFriends = service.getCommonFriends(id, otherId);
+
+        log.info("Список общих друзей пользователей {} и {} получен", id, otherId);
+        return commonFriends;
     }
 
     /**
-     * Обновляет существующего пользователя.
-     *
-     * @param user объект пользователя с обновленными данными
-     * @return обновленный пользователь
-     * @throws ru.yandex.practicum.filmorate.exception.NotFoundException если пользователь с указанным ID не найден
+     * Удаляет друга из списка друзей
+     * @param id - id пользователя
+     * @param friendId - id друга для удаления
      */
-    @PutMapping
-    public User updateUser(@Valid @RequestBody User user) {
-        return userService.updateUser(user);
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public void removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        log.info("Получен запрос на удаление друга {} из списка друзей пользователя {}", friendId, id);
+
+        service.removeFriend(id, friendId);
+
+        log.info("Пользователь {} успешно удален из друзей {}", friendId, id);
     }
 }

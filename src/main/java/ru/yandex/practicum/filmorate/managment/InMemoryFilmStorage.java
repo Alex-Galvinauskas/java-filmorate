@@ -5,7 +5,7 @@
  * Использует дополнительный индекс для быстрого поиска фильмов по названию и году выпуска.
  *
  * @see ru.yandex.practicum.filmorate.managment.FilmStorage
- * @see Film
+ * @see ru.yandex.practicum.filmorate.model.Film
  */
 package ru.yandex.practicum.filmorate.managment;
 
@@ -33,6 +33,7 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Присваивает фильму уникальный идентификатор и сохраняет его.
      *
      * @param film фильм для создания (без ID)
+     *
      * @return созданный фильм с присвоенным идентификатором
      */
     @Override
@@ -61,6 +62,7 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Находит фильм по его идентификатору.
      *
      * @param id идентификатор фильма
+     *
      * @return Optional с найденным фильмом или пустой Optional если фильм не найден
      */
     @Override
@@ -80,7 +82,9 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Заменяет фильм с указанным ID на новый объект фильма.
      *
      * @param film фильм с обновленными данными
+     *
      * @return обновленный фильм
+     *
      * @throws NotFoundException если фильм с указанным ID не найден
      */
     @Override
@@ -92,7 +96,15 @@ public class InMemoryFilmStorage implements FilmStorage {
             throw new NotFoundException("Фильм с указанным ID не найден");
         }
 
-        Film filmToUpdate = Film.copyWithId(film, filmId);
+        Film filmToUpdate = Film.builder()
+                .id(filmId)
+                .name(film.getName())
+                .description(film.getDescription())
+                .releaseDate(film.getReleaseDate())
+                .duration(film.getDuration())
+                .likes(existingFilm.getLikes())
+                .build();
+
         films.put(filmId, filmToUpdate);
         updateIndex(filmToUpdate, existingFilm);
 
@@ -104,6 +116,7 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Проверяет существование фильма по идентификатору.
      *
      * @param id идентификатор фильма
+     *
      * @return true если фильм существует, false в противном случае
      */
     @Override
@@ -115,8 +128,9 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Проверяет существование фильма по названию и году выпуска.
      * Использует индекс для быстрого поиска.
      *
-     * @param name название фильма
+     * @param name        название фильма
      * @param releaseYear год выпуска
+     *
      * @return true если фильм с такими названием и годом существует, false в противном случае
      */
     @Override
@@ -165,7 +179,7 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Используется для быстрого поиска дубликатов фильмов.
      *
      * @param nameLowercase название в нижнем регистре
-     * @param releaseYear год выпуска
+     * @param releaseYear   год выпуска
      */
     private record FilmKey(String nameLowercase, int releaseYear) {
     }

@@ -1,0 +1,6 @@
+app:
+  storage:
+    type: in-memory
+    cache:
+      enabled: true
+      ttl: 300000

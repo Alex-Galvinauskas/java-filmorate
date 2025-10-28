@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@DisplayName("Тестирование глобального обработчика исключений")
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler exceptionHandler = new GlobalExceptionHandler();
@@ -68,7 +69,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     @DisplayName("Обработка MethodArgumentNotValidException с ошибками полей возвращает детали валидации")
-    void testHandleMethodArgumentNotValidException_ReturnsBadRequest() throws Exception {
+    void testHandleMethodArgumentNotValidException_ReturnsBadRequest() {
         MethodArgumentNotValidException exception = mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = mock(BindingResult.class);
         FieldError fieldError = new FieldError("object", "field", "default message");
@@ -85,7 +86,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     @DisplayName("Обработка MethodArgumentNotValidException без ошибок полей возвращает сообщение по умолчанию")
-    void testHandleMethodArgumentNotValidException_NoFieldErrors_ReturnsDefaultMessage() throws Exception {
+    void testHandleMethodArgumentNotValidException_NoFieldErrors_ReturnsDefaultMessage() {
         MethodArgumentNotValidException exception = mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = mock(BindingResult.class);
 

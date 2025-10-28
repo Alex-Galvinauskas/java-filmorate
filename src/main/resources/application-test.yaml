@@ -1,0 +1,14 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+logging:
+  level:
+    ru.yandex.practicum.filmorate: WARN
+
+app:
+  storage:
+    type: in-memory
+    cache:
+      enabled: false

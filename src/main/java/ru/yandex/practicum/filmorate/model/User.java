@@ -7,12 +7,18 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
+
+    public static final String LOGIN_PATTERN = "^[\\w\\p{IsCyrillic}]+$";
+    public static final int LOGIN_MIN_LENGTH = 4;
+    public static final int LOGIN_MAX_LENGTH = 20;
 
     private Long id;
 
@@ -21,8 +27,8 @@ public class User {
     private String email;
 
     @NotBlank(message = "Логин не может быть пустым")
-    @Size(min = 4, max = 20, message = "Логин должен быть от 4 до 20 символов")
-    @Pattern(regexp = "^[\\w\\p{IsCyrillic}]+$",
+    @Size(min = LOGIN_MIN_LENGTH, max = LOGIN_MAX_LENGTH, message = "Логин должен быть от 4 до 20 символов")
+    @Pattern(regexp = LOGIN_PATTERN,
             message = "Логин может содержать только буквы (латинские и русские), цифры и символ подчеркивания")
     private String login;
 
@@ -30,6 +36,9 @@ public class User {
 
     @Past(message = "Дата рождения не может быть в будущем")
     private LocalDate birthday;
+
+    @Builder.Default
+    private Set<Long> friends = ConcurrentHashMap.newKeySet();
 
     public static User copyWithId(User source, Long newId) {
         return User.builder()

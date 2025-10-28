@@ -21,7 +21,10 @@ import java.lang.annotation.*;
 @Documented
 public @interface MinReleaseDate {
     String message() default "Дата выхода фильма не может быть раньше 28 декабря 1895 года";
+
     Class<?>[] groups() default {};
+
     Class<? extends Payload>[] payload() default {};
+
     String value() default "1895-12-28";
 }
