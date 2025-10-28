@@ -65,9 +65,9 @@ public class FilmServiceImpl implements FilmService {
         Film film = getFilmById(filmId);
         film.getLikes().add(userId);
 
-        filmStorage.updateFilm(film);
+        Film updatedFilm = filmStorage.updateFilm(film);
 
-        log.debug("Лайк добавлен. Текущее количество лайков: {}", film.getLikes().size());
+        log.debug("Лайк добавлен. Текущее количество лайков: {}", updatedFilm.getLikes().size());
     }
 
     /**
@@ -95,7 +95,8 @@ public class FilmServiceImpl implements FilmService {
         int filmsCount = (count != null) && (count >= 0) ? count : 10;
 
         return filmStorage.getAllFilms().stream()
-                .sorted((Comparator.comparingInt((Film film) -> film.getLikes().size()).reversed()))
+                .sorted((Comparator.comparingInt((Film film) ->
+                        film.getLikes().size()).reversed()))
                 .limit(filmsCount)
                 .collect(Collectors.toList());
     }
@@ -158,8 +159,8 @@ public class FilmServiceImpl implements FilmService {
         if (!film.getLikes().remove(userId)) {
             log.warn("Попытка удалить несуществующий лайк фильма с ID: {} от пользователя {}", filmId, userId);
         } else {
-            filmStorage.updateFilm(film);
-            log.debug("Лайк удален. Теперь у фильма с ID: {} {} лайков", film.getLikes().size(), filmId);
+            Film updatedFilm = filmStorage.updateFilm(film);
+            log.debug("Лайк удален. Теперь у фильма с ID: {} {} лайков", updatedFilm.getLikes().size(), filmId);
         }
     }
 }

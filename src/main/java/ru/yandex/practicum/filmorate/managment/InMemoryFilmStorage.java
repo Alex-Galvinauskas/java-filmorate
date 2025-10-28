@@ -96,7 +96,15 @@ public class InMemoryFilmStorage implements FilmStorage {
             throw new NotFoundException("Фильм с указанным ID не найден");
         }
 
-        Film filmToUpdate = Film.copyWithId(film, filmId);
+        Film filmToUpdate = Film.builder()
+                .id(filmId)
+                .name(film.getName())
+                .description(film.getDescription())
+                .releaseDate(film.getReleaseDate())
+                .duration(film.getDuration())
+                .likes(existingFilm.getLikes())
+                .build();
+
         films.put(filmId, filmToUpdate);
         updateIndex(filmToUpdate, existingFilm);
 

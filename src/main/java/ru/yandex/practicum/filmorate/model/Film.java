@@ -62,12 +62,19 @@ public class Film {
         if (source == null) {
             throw new IllegalArgumentException("Исходный файл не может быть null");
         }
+
+        Set<Long> copiedLikes = ConcurrentHashMap.newKeySet();
+        if (source.getLikes() != null) {
+            copiedLikes.addAll(source.getLikes());
+        }
+
         return Film.builder()
                 .id(newId)
                 .name(source.getName())
                 .description(source.getDescription())
                 .releaseDate(source.getReleaseDate())
                 .duration(source.getDuration())
+                .likes(copiedLikes)
                 .build();
     }
 }
