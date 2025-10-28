@@ -3,7 +3,7 @@
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.0-brightgreen)
 ![Version](https://img.shields.io/badge/version-0.2.0_Beta-red)
-![Tests](https://img.shields.io/badge/tests-95%25%20coverage-green)
+![Coverage](https://github.com/Alex-Galvinauskas/filmorate/raw/main/coverage.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 
@@ -253,25 +253,26 @@ src/
 │
 ├── test/java/ru/yandex/practicum/filmorate/
 │   ├── controller/              # Тесты контроллеров
-│   │   ├── FilmControllerTest.java       → Тесты FilmController
-│   │   └── UserControllerTest.java       → Тесты UserController
+│   │   ├── FilmControllerTest.java                → Тесты FilmController
+│   │   └── UserControllerTest.java                → Тесты UserController
 │   ├── exception/               # Тесты исключений
-│   │   └── GlobalExceptionHandler.java   → Тесты обработки исключений
+│   │   └── GlobalExceptionHandler.java            → Тесты обработки исключений
 │   ├── management/              # Тесты хранилища
-│   │   ├── InMemoryFilmStorageTest.java  → Тесты хранилища фильмов
-│   │   └── InMemoryUserStorageTest.java  → Тесты хранилища пользователей
+│   │   ├── InMemoryFilmStorageTest.java           → Тесты хранилища фильмов
+│   │   └── InMemoryUserStorageTest.java           → Тесты хранилища пользователей
 │   ├── model/                   # Тесты моделей
-│   │   ├── FilmValidationTest.java       → Тесты валидации фильмов
-│   │   └── UserValidationTest.java       → Тесты валидации пользователей
-│   └── service/                 # Тесты сервисного слоя
-    ├── FilmServiceImplTest.java          → Тесты сервиса фильмов
-    ├── UserServiceImplTest.java          → Тесты сервиса пользователей
-    └── validation/              # Тесты валидаторов
-        ├── FilmValidatorImplTest.java    → Тесты валидатора фильмов
-        └── UserValidatorImplTest.java    → Тесты валидатора пользователей
-│   └── FilmorateApplicationTests.java    → Интеграционные тесты приложения
+│   │   ├── FilmValidationTest.java                → Тесты валидации фильмов
+│   │   └── UserValidationTest.java                → Тесты валидации пользователей
+│   ├── service/                 # Тесты сервисного слоя
+│   │      ├── FilmServiceImplTest.java            → Тесты сервиса фильмов
+│   │      ├── UserServiceImplTest.java            → Тесты сервиса пользователей
+│   │      ├── film/validation/              # Тесты валидаторов
+│   │      │     └── FilmValidatorImplTest.java    → Тесты валидатора фильмов
+│   │      └── user/validation/
+│   │            └── UserValidatorImplTest.java    → Тесты валидатора пользователей
+│   └── FilmorateApplicationTests.java             → Интеграционные тесты приложения
 │
-└── README.md                             → Документация проекта
+└── README.md                                      → Документация проекта
 ```
 
 ## 🧪 Типы тестов
