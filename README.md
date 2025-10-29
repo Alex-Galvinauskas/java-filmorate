@@ -3,7 +3,7 @@
 
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.0-brightgreen)
-![Coverage](https://raw.githubusercontent.com/Alex-Galvinauskas/filmorate/main/coverage.svg)
+![Coverage](https://raw.githubusercontent.com/Alex-Galvinauskas/java-filmorate/main/coverage.svg)
 ![Version](https://img.shields.io/badge/version-0.2.0_Beta-red)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 

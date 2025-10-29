@@ -29,6 +29,7 @@ jobs:
           ls -la target/site/jacoco/ || echo "Jacoco directory doesn't exist"
 
       - name: Generate coverage badge
+        id: coverage-badge
         run: |
           sleep 5
           
@@ -76,6 +77,8 @@ jobs:
           
           echo "Coverage percentage: $PERCENT%"
           
+          echo "PERCENT=$PERCENT" >> $GITHUB_OUTPUT
+          
           if [ "$PERCENT" -ge 90 ]; then
             COLOR="brightgreen"
           elif [ "$PERCENT" -ge 80 ]; then
@@ -107,7 +110,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "📊 Update test coverage: $PERCENT% [skip ci]"
+            git commit -m "📊 Update test coverage: ${{ steps.coverage-badge.outputs.PERCENT }}% [skip ci]"
             git push
           fi
 
