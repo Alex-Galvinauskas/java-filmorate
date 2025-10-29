@@ -1,9 +1,10 @@
 # Filmorate - Система управления фильмами и пользователями
 
+
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.0-brightgreen)
+![Coverage](https://raw.githubusercontent.com/Alex-Galvinauskas/filmorate/main/coverage.svg)
 ![Version](https://img.shields.io/badge/version-0.2.0_Beta-red)
-![Coverage](https://github.com/Alex-Galvinauskas/filmorate/raw/main/coverage.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 
@@ -55,9 +56,9 @@
 - **Lombok**
 - **Maven**
 - **Jakarta Validation**
-- **JUnit 5** - фреймворк для тестирования
-- **Mockito** - библиотека для мокинга
-- **Hamcrest** - библиотека для утверждений
+- **JUnit 5**
+- **Mockito**
+- **Hamcrest**
 
 ---
 
