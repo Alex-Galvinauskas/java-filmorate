@@ -13,6 +13,7 @@ import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.FilmStorage;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.film.FilmServiceImpl;
 import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorImpl;
@@ -21,6 +22,8 @@ import ru.yandex.practicum.filmorate.service.user.UserService;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -52,6 +55,9 @@ class FilmServiceImplTest {
                 .description("Test Description")
                 .releaseDate(LocalDate.of(2000, 1, 1))
                 .duration(120)
+                .mpa(MpaRating.PG)
+                .genres(ConcurrentHashMap.newKeySet())
+                .likes(ConcurrentHashMap.newKeySet())
                 .build();
     }
 
@@ -75,15 +81,18 @@ class FilmServiceImplTest {
             Film film = createTestFilm();
             film.setId(null);
 
-            when(filmStorage.existsFilmByNameAndReleaseYear(any(),
-                    any())).thenReturn(false);
+            doNothing().when(filmValidator).validateFilmUniqueness(anyString(), anyInt());
             when(filmStorage.createFilm(any(Film.class))).thenReturn(film);
 
             Film result = filmService.createFilm(film);
 
             assertNotNull(result);
             assertEquals("Test Film", result.getName());
-            verify(filmStorage, times(1)).createFilm(any(Film.class));
+            assertEquals(MpaRating.PG, result.getMpa());
+            verify(filmValidator, times(1))
+                    .validateFilmUniqueness("Test Film", 2000);
+            verify(filmStorage, times(1))
+                    .createFilm(any(Film.class));
         }
 
         @Test
@@ -96,6 +105,17 @@ class FilmServiceImplTest {
                     .when(filmValidator).validateFilmUniqueness(anyString(), anyInt());
 
             assertThrows(DuplicateException.class, () -> filmService.createFilm(film));
+            verify(filmStorage, never()).createFilm(any(Film.class));
+        }
+
+        @Test
+        @DisplayName("Создание фильма без MPA рейтинга выбрасывает IllegalArgumentException")
+        void createFilm_WithoutMpa_ThrowsIllegalArgumentExceptionTest() {
+            Film film = createTestFilm();
+            film.setId(null);
+            film.setMpa(null);
+
+            assertThrows(IllegalArgumentException.class, () -> filmService.createFilm(film));
             verify(filmStorage, never()).createFilm(any(Film.class));
         }
     }
@@ -152,14 +172,15 @@ class FilmServiceImplTest {
             updatedFilm.setName("Updated Film");
 
             when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
-            when(filmStorage.existsFilmByNameAndReleaseYear(any(), any()))
-                    .thenReturn(false);
+            doNothing().when(filmValidator).validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
             when(filmStorage.updateFilm(any(Film.class))).thenReturn(updatedFilm);
 
             Film result = filmService.updateFilm(updatedFilm);
 
             assertNotNull(result);
             assertEquals("Updated Film", result.getName());
+            verify(filmValidator, times(1))
+                    .validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
             verify(filmStorage, times(1)).updateFilm(any(Film.class));
         }
 
@@ -182,11 +203,35 @@ class FilmServiceImplTest {
 
             when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
             doThrow(new DuplicateException("Фильм с таким названием и годом выпуска уже существует"))
-                    .when(filmValidator).validateFilmUniquenessForUpdate(any(Film.class),
-                            any(Film.class));
+                    .when(filmValidator).validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
 
             assertThrows(DuplicateException.class, () -> filmService.updateFilm(updatedFilm));
             verify(filmStorage, never()).updateFilm(any(Film.class));
+        }
+
+        @Test
+        @DisplayName("Обновление фильма сохраняет существующие лайки")
+        void updateFilm_PreservesExistingLikesTest() {
+            Film existingFilm = createTestFilm();
+            existingFilm.getLikes().addAll(Set.of(1L, 2L, 3L));
+
+            Film updatedFilm = createTestFilm();
+            updatedFilm.setName("Updated Film");
+            updatedFilm.setLikes(ConcurrentHashMap.newKeySet());
+
+            when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
+            doNothing().when(filmValidator).validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
+            when(filmStorage.updateFilm(any(Film.class)))
+                    .thenAnswer(invocation -> {
+                Film film = invocation.getArgument(0);
+                assertEquals(3, film.getLikes().size());
+                return film;
+            });
+
+            Film result = filmService.updateFilm(updatedFilm);
+
+            assertEquals(3, result.getLikes().size());
+            assertTrue(result.getLikes().containsAll(Set.of(1L, 2L, 3L)));
         }
     }
 
@@ -215,8 +260,8 @@ class FilmServiceImplTest {
         void addLike_FilmNotExist_ThrowsNotFoundExceptionTest() {
             when(filmStorage.getFilmById(1L)).thenReturn(Optional.empty());
 
-            assertThrows(NotFoundException.class, () -> filmService
-                    .addLike(1L, 1L));
+            assertThrows(NotFoundException.class, () ->
+                    filmService.addLike(1L, 1L));
             verify(userService, never()).getUserById(anyLong());
         }
 
@@ -228,8 +273,24 @@ class FilmServiceImplTest {
             when(userService.getUserById(1L))
                     .thenThrow(new NotFoundException("Пользователь не найден"));
 
-            assertThrows(NotFoundException.class, () -> filmService
-                    .addLike(1L, 1L));
+            assertThrows(NotFoundException.class, () ->
+                    filmService.addLike(1L, 1L));
+        }
+
+        @Test
+        @DisplayName("Добавление лайка - дублирующий лайк игнорируется")
+        void addLike_DuplicateLike_IgnoresDuplicateTest() {
+            Film film = createTestFilm();
+            film.getLikes().add(1L);
+            User user = createTestUser();
+
+            when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(film));
+            when(userService.getUserById(1L)).thenReturn(user);
+
+            filmService.addLike(1L, 1L);
+
+            assertEquals(1, film.getLikes().size());
+            verify(filmStorage, never()).updateFilm(any(Film.class));
         }
 
         @Test
@@ -315,7 +376,11 @@ class FilmServiceImplTest {
         @DisplayName("Получение популярных фильмов - отрицательный count использует значение по умолчанию")
         void getPopularFilms_NegativeCount_UsesDefaultTest() {
             List<Film> films = IntStream.range(0, 15)
-                    .mapToObj(i -> createTestFilm())
+                    .mapToObj(i -> {
+                        Film film = createTestFilm();
+                        film.setId((long) i);
+                        return film;
+                    })
                     .collect(Collectors.toList());
 
             when(filmStorage.getAllFilms()).thenReturn(films);
@@ -372,9 +437,55 @@ class FilmServiceImplTest {
             List<Film> result = filmService.getPopularFilms(3);
 
             assertEquals(3, result.size());
-            assertEquals(2L, result.get(0).getId());
-            assertEquals(3L, result.get(1).getId());
-            assertEquals(1L, result.get(2).getId());
+            assertEquals(2L, result.get(0).getId()); // 3 лайка
+            assertEquals(3L, result.get(1).getId()); // 2 лайка
+            assertEquals(1L, result.get(2).getId()); // 1 лайк
+        }
+
+        @Test
+        @DisplayName("Получение популярных фильмов - фильмы без лайков")
+        void getPopularFilms_FilmsWithoutLikes_ReturnsAllTest() {
+            Film film1 = createTestFilm();
+            film1.setId(1L);
+
+            Film film2 = createTestFilm();
+            film2.setId(2L);
+
+            when(filmStorage.getAllFilms()).thenReturn(List.of(film1, film2));
+
+            List<Film> result = filmService.getPopularFilms(2);
+
+            assertEquals(2, result.size());
+        }
+    }
+
+    @Nested
+    @DisplayName("Тесты нормализации фильмов")
+    class NormalizationTests {
+
+        @Test
+        @DisplayName("Нормализация устанавливает пустые коллекции если они null")
+        void normalizeFilm_SetsEmptyCollectionsWhenNullTest() {
+            Film film = Film.builder()
+                    .id(1L)
+                    .name("Test Film")
+                    .description("Test Description")
+                    .releaseDate(LocalDate.of(2000, 1, 1))
+                    .duration(120)
+                    .mpa(MpaRating.PG)
+                    .genres(null)
+                    .likes(null)
+                    .build();
+
+            when(filmStorage.createFilm(any(Film.class))).thenReturn(film);
+            doNothing().when(filmValidator).validateFilmUniqueness(anyString(), anyInt());
+
+            Film result = filmService.createFilm(film);
+
+            assertNotNull(result.getGenres());
+            assertNotNull(result.getLikes());
+            assertTrue(result.getGenres().isEmpty());
+            assertTrue(result.getLikes().isEmpty());
         }
     }
 }
