@@ -19,7 +19,6 @@ public class InMemoryUserStorage implements UserStorage {
     private final Map<String, Long> emailToUserId = new ConcurrentHashMap<>();
     private final Map<String, Long> loginToUserId = new ConcurrentHashMap<>();
     private final AtomicLong nextUserId;
-    private static final long INITIAL_USER_ID = 1L;
 
     public InMemoryUserStorage(@Value("${app.storage.user.id.initial:1}") long initialId) {
         this.nextUserId = new AtomicLong(initialId);
