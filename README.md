@@ -91,6 +91,79 @@
 
 ---
 
+## 🗄️ База данных
+
+### Схема базы данных
+
+![Диаграмма базы данных](BD_ER-Diagramm.png)
+
+### Основные таблицы и их назначение:
+
+- **users** - хранит информацию о пользователях (email, логин, имя, дата рождения)
+- **films** - содержит данные о фильмах (название, описание, дата релиза, продолжительность, рейтинг MPA)
+- **friendships** - управляет связями дружбы между пользователями со статусами подтверждения
+- **likes** - отслеживает лайки пользователей к фильмам
+- **genres** - справочник жанров фильмов
+- **film_genres** - связывает фильмы с их жанрами (многие-ко-многим)
+- **mpa_ratings** - справочник рейтингов MPA (возрастных ограничений)
+
+### Примеры SQL-запросов
+
+#### Получение всех фильмов:
+```sql
+SELECT f.id, f.name, f.description, f.release_date, f.duration, 
+       m.name as mpa_rating, m.description as mpa_description
+FROM films f
+JOIN mpa_ratings m ON f.mpa_rating_id = m.id
+ORDER BY f.id;
+```
+
+#### Получение всех пользователей:
+
+```sql
+SELECT id, email, login, name, birthday 
+FROM users 
+ORDER BY id;
+```
+
+#### Получение топ-N самых популярных фильмов:
+
+```sql
+SELECT f.id, f.name, f.description, f.release_date, f.duration,
+       m.name as mpa_rating,
+       COUNT(l.user_id) as likes_count
+FROM films f
+JOIN mpa_ratings m ON f.mpa_rating_id = m.id
+LEFT JOIN likes l ON f.id = l.film_id
+GROUP BY f.id, f.name, f.description, f.release_date, f.duration, m.name
+ORDER BY likes_count DESC
+LIMIT 10;
+```
+
+#### Получение списка общих друзей:
+
+```sql
+SELECT u.id, u.email, u.login, u.name, u.birthday
+FROM users u
+JOIN friendships f1 ON u.id = f1.friend_id AND f1.user_id = ? AND f1.status = 'CONFIRMED'
+JOIN friendships f2 ON u.id = f2.friend_id AND f2.user_id = ? AND f2.status = 'CONFIRMED'
+WHERE u.id != ? AND u.id != ?;
+```
+
+#### Добавление фильма:
+
+```sql
+INSERT INTO films (name, description, release_date, duration, mpa_rating_id)
+VALUES (?, ?, ?, ?, ?);
+```
+
+#### Добавление пользователя в друзья:
+
+```sql
+INSERT INTO friendships (user_id, friend_id, status) 
+VALUES (?, ?, 'UNCONFIRMED');
+```
+
 ## 🎯 Примеры использования
 
 ### **Создание фильма**
@@ -236,7 +309,11 @@ src/
 │   │   └── InMemoryUserStorage.java      → In-memory реализация для пользователей
 │   ├── model/                   # Модели данных
 │   │   ├── Film.java                     → Сущность фильма
-│   │   └── User.java                     → Сущность пользователя
+│   │   ├── User.java                     → Сущность пользователя
+│   │   ├── Friendship.java               → Сущность дружбы
+│   │   ├── FriendshipStatus.java         → Статусы дружбы
+│   │   ├── Genre.java                    → Жанры фильмов
+│   │   └── MpaRating.java                → Рейтинги MPA
 │   ├── service/                 # Сервисный слой (бизнес-логика)
 │   │   ├── film/
 │   │   │   ├── FilmService.java                  → Интерфейс сервиса фильмов
