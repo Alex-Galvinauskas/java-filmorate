@@ -265,23 +265,23 @@ class InMemoryUserStorageTest {
         }
 
         @Test
-        @DisplayName("Проверка существования пользователя по email регистрозависима")
+        @DisplayName("Проверка существования пользователя по email регистронезависима")
         void existsByEmail_CaseSensitive_ReturnsFalseForDifferentCaseTest() {
             User user = userStorage.createUser(createTestUser());
 
             boolean result = userStorage.existsByEmail("TEST@example.com");
 
-            assertFalse(result);
+            assertTrue(result);
         }
 
         @Test
-        @DisplayName("Проверка существования пользователя по логину регистрозависима")
+        @DisplayName("Проверка существования пользователя по логину регистронезависима")
         void existsByLogin_CaseSensitive_ReturnsFalseForDifferentCaseTest() {
             User user = userStorage.createUser(createTestUser());
 
             boolean result = userStorage.existsByLogin("TEST-LOGIN");
 
-            assertFalse(result);
+            assertTrue(result);
         }
     }
 
@@ -328,23 +328,23 @@ class InMemoryUserStorageTest {
         }
 
         @Test
-        @DisplayName("Поиск пользователя по email регистрозависим")
+        @DisplayName("Поиск пользователя по email регистронезависим")
         void getUserByEmail_CaseSensitive_ReturnsEmptyForDifferentCaseTest() {
             userStorage.createUser(createTestUser());
 
             Optional<User> result = userStorage.getUserByEmail("TEST@example.com");
 
-            assertFalse(result.isPresent());
+            assertTrue(result.isPresent());
         }
 
         @Test
-        @DisplayName("Поиск пользователя по логину регистрозависим")
+        @DisplayName("Поиск пользователя по логину регистронезависим")
         void getUserByLogin_CaseSensitive_ReturnsEmptyForDifferentCaseTest() {
             userStorage.createUser(createTestUser());
 
             Optional<User> result = userStorage.getUserByLogin("TEST-LOGIN");
 
-            assertFalse(result.isPresent());
+            assertTrue(result.isPresent());
         }
     }
 }
