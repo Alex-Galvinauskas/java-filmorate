@@ -41,6 +41,13 @@ public class Film {
     private Integer duration;
 
     @Builder.Default
+    private Set<Genre> genres = ConcurrentHashMap.newKeySet();
+
+    @NotNull(message = "Рейтинг MPA обязателен")
+    @JsonProperty("mpa_rating")
+    private MpaRating mpa;
+
+    @Builder.Default
     private Set<Long> likes = ConcurrentHashMap.newKeySet();
 
     @JsonCreator
@@ -49,18 +56,27 @@ public class Film {
             @JsonProperty("name") String name,
             @JsonProperty("description") String description,
             @JsonProperty("releaseDate") LocalDate releaseDate,
-            @JsonProperty("duration") Integer duration) {
+            @JsonProperty("duration") Integer duration,
+            @JsonProperty("genres") Set<Genre> genres,
+            @JsonProperty("mpa_rating") MpaRating mpa) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.releaseDate = releaseDate;
         this.duration = duration;
+        this.genres = genres != null ? genres : ConcurrentHashMap.newKeySet();
+        this.mpa = mpa;
         this.likes = ConcurrentHashMap.newKeySet();
     }
 
     public static Film copyWithId(Film source, Long newId) {
         if (source == null) {
             throw new IllegalArgumentException("Исходный файл не может быть null");
+        }
+
+        Set<Genre> copiedGenres = ConcurrentHashMap.newKeySet();
+        if (source.getGenres() != null) {
+            copiedGenres.addAll(source.getGenres());
         }
 
         Set<Long> copiedLikes = ConcurrentHashMap.newKeySet();
@@ -74,6 +90,8 @@ public class Film {
                 .description(source.getDescription())
                 .releaseDate(source.getReleaseDate())
                 .duration(source.getDuration())
+                .genres(copiedGenres)
+                .mpa(source.getMpa())
                 .likes(copiedLikes)
                 .build();
     }
