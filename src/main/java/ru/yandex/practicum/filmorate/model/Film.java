@@ -67,8 +67,12 @@ public class Film {
         this.genres = genres != null ? genres : ConcurrentHashMap.newKeySet();
         this.mpa = mpa;
         this.likes = ConcurrentHashMap.newKeySet();
-    }
 
+        if (this.mpa == null) {
+            throw new IllegalArgumentException("MPA рейтинг обязателен для фильма");
+        }
+    }
+    
     public static Film copyWithId(Film source, Long newId) {
         if (source == null) {
             throw new IllegalArgumentException("Исходный файл не может быть null");

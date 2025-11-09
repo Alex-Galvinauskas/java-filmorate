@@ -17,4 +17,6 @@ public interface FilmStorage {
     boolean existsFilmById(Long id);
 
     boolean existsFilmByNameAndReleaseYear(String name, Integer releaseYear);
+
+    boolean existsFilmByNameAndReleaseYearAndIdNot(String name, Integer releaseYear, Long excludeId);
 }

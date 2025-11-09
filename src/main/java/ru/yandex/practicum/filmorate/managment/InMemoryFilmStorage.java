@@ -1,12 +1,3 @@
-/**
- * Реализация хранилища фильмов в памяти.
- * Хранит данные о фильмах в ConcurrentHashMap и обеспечивает потокобезопасные операции.
- * Генерирует уникальные идентификаторы для новых фильмов с помощью AtomicLong.
- * Использует дополнительный индекс для быстрого поиска фильмов по названию и году выпуска.
- *
- * @see ru.yandex.practicum.filmorate.managment.FilmStorage
- * @see ru.yandex.practicum.filmorate.model.Film
- */
 package ru.yandex.practicum.filmorate.managment;
 
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +24,6 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Присваивает фильму уникальный идентификатор и сохраняет его.
      *
      * @param film фильм для создания (без ID)
-     *
      * @return созданный фильм с присвоенным идентификатором
      */
     @Override
@@ -62,7 +52,6 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Находит фильм по его идентификатору.
      *
      * @param id идентификатор фильма
-     *
      * @return Optional с найденным фильмом или пустой Optional если фильм не найден
      */
     @Override
@@ -79,21 +68,20 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     /**
      * Обновляет существующий фильм в хранилище.
-     * Заменяет фильм с указанным ID на новый объект фильма.
+     * Сохраняет все поля из обновленного фильма, включая жанры и MPA рейтинг.
      *
      * @param film фильм с обновленными данными
-     *
      * @return обновленный фильм
-     *
      * @throws NotFoundException если фильм с указанным ID не найден
      */
     @Override
     public Film updateFilm(Film film) {
         Long filmId = film.getId();
         Film existingFilm = films.get(filmId);
-        if (!films.containsKey(filmId)) {
+
+        if (existingFilm == null) {
             log.warn("Попытка обновления несуществующего фильма с ID {}", filmId);
-            throw new NotFoundException("Фильм с указанным ID не найден");
+            throw new NotFoundException("Фильм с ID " + filmId + " не найден");
         }
 
         Film filmToUpdate = Film.builder()
@@ -102,7 +90,9 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .description(film.getDescription())
                 .releaseDate(film.getReleaseDate())
                 .duration(film.getDuration())
-                .likes(existingFilm.getLikes())
+                .genres(film.getGenres() != null ? film.getGenres() : existingFilm.getGenres())
+                .mpa(film.getMpa() != null ? film.getMpa() : existingFilm.getMpa())
+                .likes(film.getLikes() != null ? film.getLikes() : existingFilm.getLikes())
                 .build();
 
         films.put(filmId, filmToUpdate);
@@ -116,7 +106,6 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Проверяет существование фильма по идентификатору.
      *
      * @param id идентификатор фильма
-     *
      * @return true если фильм существует, false в противном случае
      */
     @Override
@@ -128,9 +117,8 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Проверяет существование фильма по названию и году выпуска.
      * Использует индекс для быстрого поиска.
      *
-     * @param name        название фильма
+     * @param name название фильма
      * @param releaseYear год выпуска
-     *
      * @return true если фильм с такими названием и годом существует, false в противном случае
      */
     @Override
@@ -143,6 +131,30 @@ public class InMemoryFilmStorage implements FilmStorage {
         FilmKey key = new FilmKey(name.toLowerCase(), releaseYear);
         boolean exists = filmIndex.containsKey(key);
         log.debug("Поиск фильма по названию '{}' и году {}. Найден: {}", name, releaseYear, exists);
+        return exists;
+    }
+
+    /**
+     * Проверяет существование другого фильма с таким же названием и годом выпуска, но другим ID.
+     * Используется для проверки уникальности при обновлении фильма.
+     *
+     * @param name название фильма
+     * @param releaseYear год выпуска
+     * @param excludeId ID фильма, который исключается из проверки
+     * @return true если существует другой фильм с такими названием и годом, false в противном случае
+     */
+    public boolean existsFilmByNameAndReleaseYearAndIdNot(String name, Integer releaseYear, Long excludeId) {
+        if (name == null || releaseYear == null || excludeId == null) {
+            log.debug("Попытка поиска фильма с null параметрами");
+            return false;
+        }
+
+        FilmKey key = new FilmKey(name.toLowerCase(), releaseYear);
+        Long existingFilmId = filmIndex.get(key);
+
+        boolean exists = existingFilmId != null && !existingFilmId.equals(excludeId);
+        log.debug("Поиск другого фильма по названию '{}' и году {} исключая ID {}. Найден: {}",
+                name, releaseYear, excludeId, exists);
         return exists;
     }
 
@@ -169,6 +181,12 @@ public class InMemoryFilmStorage implements FilmStorage {
                     newFilm.getReleaseDate().getYear()
             );
 
+            Long existingFilmId = filmIndex.get(newKey);
+            if (existingFilmId != null && !existingFilmId.equals(newFilm.getId())) {
+                log.warn("Обнаружен потенциальный дубликат фильма: {} (ID: {}) конфликтует с ID: {}",
+                        newKey, newFilm.getId(), existingFilmId);
+            }
+
             filmIndex.put(newKey, newFilm.getId());
             log.debug("Добавлена новая запись в индекс: {} -> ID {}", newKey, newFilm.getId());
         }
@@ -179,8 +197,12 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Используется для быстрого поиска дубликатов фильмов.
      *
      * @param nameLowercase название в нижнем регистре
-     * @param releaseYear   год выпуска
+     * @param releaseYear год выпуска
      */
     private record FilmKey(String nameLowercase, int releaseYear) {
+        @Override
+        public String toString() {
+            return "FilmKey{name='" + nameLowercase + "', year=" + releaseYear + '}';
+        }
     }
 }
