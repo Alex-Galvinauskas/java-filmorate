@@ -72,7 +72,7 @@ public class Film {
             throw new IllegalArgumentException("MPA рейтинг обязателен для фильма");
         }
     }
-    
+
     public static Film copyWithId(Film source, Long newId) {
         if (source == null) {
             throw new IllegalArgumentException("Исходный файл не может быть null");

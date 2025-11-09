@@ -125,14 +125,15 @@ public class InMemoryUserStorage implements UserStorage {
             log.warn("Попытка обновления несуществующего пользователя с ID: {}", userId);
             throw new NotFoundException("Пользователь с ID " + userId + " не найден");
         }
-        
+
         User userToUpdate = User.builder()
                 .id(userId)
                 .email(user.getEmail())
                 .login(user.getLogin())
                 .name(user.getName())
                 .birthday(user.getBirthday())
-                .friendships(user.getFriendships() != null ? user.getFriendships() : existingUser.getFriendships())
+                .friendships(user.getFriendships() != null ? user.getFriendships() :
+                        existingUser.getFriendships())
                 .build();
 
         if (!existingUser.getEmail().equalsIgnoreCase(userToUpdate.getEmail())) {

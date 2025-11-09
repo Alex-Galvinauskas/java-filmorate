@@ -19,7 +19,6 @@ import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorImpl;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
