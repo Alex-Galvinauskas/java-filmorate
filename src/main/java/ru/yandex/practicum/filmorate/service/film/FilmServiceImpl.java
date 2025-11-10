@@ -39,25 +39,26 @@ public class FilmServiceImpl implements FilmService {
      * Присваивает фильму уникальный идентификатор.
      *
      * @param film фильм для создания
-     *
      * @return созданный фильм с присвоенным ID
-     *
      * @throws DuplicateException если фильм с таким названием и годом выпуска уже существует
      */
     @Override
     public Film createFilm(Film film) {
-        log.info("Создание нового фильма: {}", film);
+        log.info("Создание нового фильма: {}", film.getName());
 
         filmValidator.validateFilmUniqueness(film.getName(), film.getReleaseDate().getYear());
 
-        return filmStorage.createFilm(film);
+        normalizeFilm(film);
+
+        Film createdFilm = filmStorage.createFilm(film);
+        log.info("Фильм создан с ID: {}", createdFilm.getId());
+        return createdFilm;
     }
 
     /**
      * Добавляет лайк фильму.
      * @param filmId id фильма
      * @param userId id пользователя
-     *
      * @throws NotFoundException если фильм с указанным ID не найден
      */
     @Override
@@ -67,10 +68,15 @@ public class FilmServiceImpl implements FilmService {
         Film film = getFilmById(filmId);
         userService.getUserById(userId);
 
-        film.getLikes().add(userId);
-        Film updatedFilm = filmStorage.updateFilm(film);
+        if (film.getLikes().contains(userId)) {
+            log.warn("Пользователь {} уже лайкал фильм {}", userId, filmId);
+            return;
+        }
 
-        log.debug("Лайк добавлен. Текущее количество лайков: {}", updatedFilm.getLikes().size());
+        film.getLikes().add(userId);
+        filmStorage.updateFilm(film);
+
+        log.debug("Лайк добавлен. Текущее количество лайков: {}", film.getLikes().size());
     }
 
     /**
@@ -95,11 +101,10 @@ public class FilmServiceImpl implements FilmService {
     public List<Film> getPopularFilms(Integer count) {
         log.info("Получение списка популярных фильмов. Количество: {}", count);
 
-        int filmsCount = (count != null) && (count >= 0) ? count : 10;
+        int filmsCount = (count != null && count > 0) ? count : 10;
 
         return filmStorage.getAllFilms().stream()
-                .sorted((Comparator.comparingInt((Film film) ->
-                        film.getLikes().size()).reversed()))
+                .sorted(Comparator.comparingInt((Film film) -> film.getLikes().size()).reversed())
                 .limit(filmsCount)
                 .collect(Collectors.toList());
     }
@@ -109,9 +114,7 @@ public class FilmServiceImpl implements FilmService {
      * Выполняет проверку существования фильма и генерирует исключение если фильм не найден.
      *
      * @param id идентификатор фильма
-     *
      * @return найденный фильм
-     *
      * @throws NotFoundException если фильм с указанным ID не найден
      */
     @Override
@@ -127,9 +130,7 @@ public class FilmServiceImpl implements FilmService {
      * Разрешает обновление если ключевые поля (название и год) не изменились.
      *
      * @param film фильм с обновленными данными
-     *
      * @return обновленный фильм
-     *
      * @throws NotFoundException  если фильм с указанным ID не найден
      * @throws DuplicateException если фильм с новым названием и годом выпуска уже существует
      */
@@ -141,7 +142,15 @@ public class FilmServiceImpl implements FilmService {
 
         filmValidator.validateFilmUniquenessForUpdate(existingFilm, film);
 
-        return filmStorage.updateFilm(film);
+        normalizeFilm(film);
+
+        if (film.getLikes() == null || film.getLikes().isEmpty()) {
+            film.setLikes(existingFilm.getLikes());
+        }
+
+        Film updatedFilm = filmStorage.updateFilm(film);
+        log.info("Фильм с ID: {} успешно обновлен", updatedFilm.getId());
+        return updatedFilm;
     }
 
     /**
@@ -150,7 +159,6 @@ public class FilmServiceImpl implements FilmService {
      *
      * @param filmId id фильма
      * @param userId id пользователя
-     *
      * @throws NotFoundException если фильм с указанными ID не найдены
      */
     @Override
@@ -163,8 +171,24 @@ public class FilmServiceImpl implements FilmService {
         if (!film.getLikes().remove(userId)) {
             log.warn("Попытка удалить несуществующий лайк фильма с ID: {} от пользователя {}", filmId, userId);
         } else {
-            Film updatedFilm = filmStorage.updateFilm(film);
-            log.debug("Лайк удален. Теперь у фильма с ID: {} {} лайков", updatedFilm.getLikes().size(), filmId);
+            filmStorage.updateFilm(film);
+            log.debug("Лайк удален. Теперь у фильма с ID: {} {} лайков", filmId, film.getLikes().size());
+        }
+    }
+
+    /**
+     * Нормализует данные фильма перед сохранением
+     */
+    private void normalizeFilm(Film film) {
+        if (film.getGenres() == null) {
+            film.setGenres(java.util.concurrent.ConcurrentHashMap.newKeySet());
+        }
+        if (film.getLikes() == null) {
+            film.setLikes(java.util.concurrent.ConcurrentHashMap.newKeySet());
+        }
+
+        if (film.getMpa() == null) {
+            throw new IllegalArgumentException("MPA рейтинг обязателен для фильма");
         }
     }
 }

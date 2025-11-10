@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.service.film.FilmService;
 
 import java.time.LocalDate;
@@ -57,6 +58,7 @@ class FilmControllerTest {
                 .description("Test Description")
                 .releaseDate(LocalDate.of(2020, 1, 1))
                 .duration(120)
+                .mpa(MpaRating.PG)
                 .build();
 
         testFilm2 = Film.builder()
@@ -65,6 +67,7 @@ class FilmControllerTest {
                 .description("Another Description")
                 .releaseDate(LocalDate.of(2021, 1, 1))
                 .duration(150)
+                .mpa(MpaRating.PG)
                 .build();
     }
 
@@ -125,6 +128,7 @@ class FilmControllerTest {
                     .description("Updated Description")
                     .releaseDate(LocalDate.of(2020, 1, 1))
                     .duration(130)
+                    .mpa(MpaRating.PG)
                     .build();
 
             when(filmService.updateFilm(any(Film.class))).thenReturn(updatedFilm);
@@ -134,111 +138,112 @@ class FilmControllerTest {
                             .content(objectMapper.writeValueAsString(updatedFilm)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.name", is("Updated Film")))
-                    .andExpect(jsonPath("$.duration", is(130)));
+                    .andExpect(jsonPath("$.duration", is(130)))
+                    .andExpect(jsonPath("$.mpa_rating", is("PG"))); // Можно также проверить MPA
 
             verify(filmService, times(1)).updateFilm(any(Film.class));
         }
-    }
 
-    @Nested
-    @DisplayName("Тесты операций с лайками")
-    class LikeOperationsTests {
+        @Nested
+        @DisplayName("Тесты операций с лайками")
+        class LikeOperationsTests {
 
-        @Test
-        @DisplayName("Добавление лайка вызывает сервис")
-        void addLike_ShouldCallServiceTest() throws Exception {
-            doNothing().when(filmService).addLike(1L, 1L);
+            @Test
+            @DisplayName("Добавление лайка вызывает сервис")
+            void addLike_ShouldCallServiceTest() throws Exception {
+                doNothing().when(filmService).addLike(1L, 1L);
 
-            mockMvc.perform(put("/films/1/like/1"))
-                    .andExpect(status().isOk());
+                mockMvc.perform(put("/films/1/like/1"))
+                        .andExpect(status().isOk());
 
-            verify(filmService, times(1)).addLike(1L, 1L);
+                verify(filmService, times(1)).addLike(1L, 1L);
+            }
+
+            @Test
+            @DisplayName("Удаление лайка вызывает сервис")
+            void deleteLike_ShouldCallServiceTest() throws Exception {
+                doNothing().when(filmService).removeLike(1L, 1L);
+
+                mockMvc.perform(delete("/films/1/like/1"))
+                        .andExpect(status().isOk());
+
+                verify(filmService, times(1)).removeLike(1L, 1L);
+            }
         }
 
-        @Test
-        @DisplayName("Удаление лайка вызывает сервис")
-        void deleteLike_ShouldCallServiceTest() throws Exception {
-            doNothing().when(filmService).removeLike(1L, 1L);
+        @Nested
+        @DisplayName("Тесты получения популярных фильмов")
+        class PopularFilmsTests {
 
-            mockMvc.perform(delete("/films/1/like/1"))
-                    .andExpect(status().isOk());
+            @Test
+            @DisplayName("Получение популярных фильмов с указанным количеством возвращает фильмы")
+            void getPopularFilms_ShouldReturnPopularFilmsTest() throws Exception {
+                List<Film> popularFilms = Arrays.asList(testFilm2, testFilm);
+                when(filmService.getPopularFilms(2)).thenReturn(popularFilms);
 
-            verify(filmService, times(1)).removeLike(1L, 1L);
-        }
-    }
+                mockMvc.perform(get("/films/popular")
+                                .param("count", "2"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$", hasSize(2)))
+                        .andExpect(jsonPath("$[0].name", is("Another Film")))
+                        .andExpect(jsonPath("$[1].name", is("Test Film")));
 
-    @Nested
-    @DisplayName("Тесты получения популярных фильмов")
-    class PopularFilmsTests {
+                verify(filmService, times(1)).getPopularFilms(2);
+            }
 
-        @Test
-        @DisplayName("Получение популярных фильмов с указанным количеством возвращает фильмы")
-        void getPopularFilms_ShouldReturnPopularFilmsTest() throws Exception {
-            List<Film> popularFilms = Arrays.asList(testFilm2, testFilm);
-            when(filmService.getPopularFilms(2)).thenReturn(popularFilms);
+            @Test
+            @DisplayName("Получение популярных фильмов без указания количества использует значение по умолчанию")
+            void getPopularFilms_WithDefaultCount_ShouldUseDefaultValueTest() throws Exception {
+                List<Film> popularFilms = Collections.singletonList(testFilm);
+                when(filmService.getPopularFilms(10)).thenReturn(popularFilms);
 
-            mockMvc.perform(get("/films/popular")
-                            .param("count", "2"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(2)))
-                    .andExpect(jsonPath("$[0].name", is("Another Film")))
-                    .andExpect(jsonPath("$[1].name", is("Test Film")));
+                mockMvc.perform(get("/films/popular"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$", hasSize(1)));
 
-            verify(filmService, times(1)).getPopularFilms(2);
-        }
+                verify(filmService, times(1)).getPopularFilms(10);
+            }
 
-        @Test
-        @DisplayName("Получение популярных фильмов без указания количества использует значение по умолчанию")
-        void getPopularFilms_WithDefaultCount_ShouldUseDefaultValueTest() throws Exception {
-            List<Film> popularFilms = Collections.singletonList(testFilm);
-            when(filmService.getPopularFilms(10)).thenReturn(popularFilms);
+            @Test
+            @DisplayName("Получение популярных фильмов с нулевым количеством возвращает пустой список")
+            void getPopularFilms_WithZeroCount_ShouldReturnEmptyListTest() throws Exception {
+                List<Film> popularFilms = Collections.emptyList();
+                when(filmService.getPopularFilms(0)).thenReturn(popularFilms);
 
-            mockMvc.perform(get("/films/popular"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(1)));
+                mockMvc.perform(get("/films/popular")
+                                .param("count", "0"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$", hasSize(0)));
 
-            verify(filmService, times(1)).getPopularFilms(10);
-        }
-
-        @Test
-        @DisplayName("Получение популярных фильмов с нулевым количеством возвращает пустой список")
-        void getPopularFilms_WithZeroCount_ShouldReturnEmptyListTest() throws Exception {
-            List<Film> popularFilms = Collections.emptyList();
-            when(filmService.getPopularFilms(0)).thenReturn(popularFilms);
-
-            mockMvc.perform(get("/films/popular")
-                            .param("count", "0"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(0)));
-
-            verify(filmService, times(1)).getPopularFilms(0);
-        }
-    }
-
-    @Nested
-    @DisplayName("Тесты валидации endpoints")
-    class EndpointValidationTests {
-
-        @Test
-        @DisplayName("Некорректный ID в пути возвращает ошибку")
-        void getFilmById_InvalidId_ReturnsBadRequestTest() throws Exception {
-            mockMvc.perform(get("/films/invalid"))
-                    .andExpect(status().isBadRequest());
+                verify(filmService, times(1)).getPopularFilms(0);
+            }
         }
 
-        @Test
-        @DisplayName("Некорректный ID для лайка возвращает ошибку")
-        void addLike_InvalidIds_ReturnsBadRequestTest() throws Exception {
-            mockMvc.perform(put("/films/invalid/like/invalid"))
-                    .andExpect(status().isBadRequest());
-        }
+        @Nested
+        @DisplayName("Тесты валидации endpoints")
+        class EndpointValidationTests {
 
-        @Test
-        @DisplayName("Некорректный параметр count возвращает ошибку")
-        void getPopularFilms_InvalidCount_ReturnsBadRequestTest() throws Exception {
-            mockMvc.perform(get("/films/popular")
-                            .param("count", "invalid"))
-                    .andExpect(status().isBadRequest());
+            @Test
+            @DisplayName("Некорректный ID в пути возвращает ошибку")
+            void getFilmById_InvalidId_ReturnsBadRequestTest() throws Exception {
+                mockMvc.perform(get("/films/invalid"))
+                        .andExpect(status().isBadRequest());
+            }
+
+            @Test
+            @DisplayName("Некорректный ID для лайка возвращает ошибку")
+            void addLike_InvalidIds_ReturnsBadRequestTest() throws Exception {
+                mockMvc.perform(put("/films/invalid/like/invalid"))
+                        .andExpect(status().isBadRequest());
+            }
+
+            @Test
+            @DisplayName("Некорректный параметр count возвращает ошибку")
+            void getPopularFilms_InvalidCount_ReturnsBadRequestTest() throws Exception {
+                mockMvc.perform(get("/films/popular")
+                                .param("count", "invalid"))
+                        .andExpect(status().isBadRequest());
+            }
         }
     }
 }

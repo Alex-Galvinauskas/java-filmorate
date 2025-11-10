@@ -38,20 +38,29 @@ public class User {
     private LocalDate birthday;
 
     @Builder.Default
-    private Set<Long> friends = ConcurrentHashMap.newKeySet();
+    private Set<Friendship> friendships = ConcurrentHashMap.newKeySet();
 
     public static User copyWithId(User source, Long newId) {
+        if (source == null) {
+            throw new IllegalArgumentException("Пользователь не может быть null");
+        }
+
+        Set<Friendship> copiedFriendships = ConcurrentHashMap.newKeySet();
+        if (source.getFriendships() != null) {
+            copiedFriendships.addAll(source.getFriendships());
+        }
+
         return User.builder()
                 .id(newId)
                 .email(source.getEmail())
                 .login(source.getLogin())
                 .name(source.getName())
                 .birthday(source.getBirthday())
+                .friendships(copiedFriendships)
                 .build();
     }
 
     public String getName() {
         return name == null || name.isBlank() ? login : name;
     }
-
 }

@@ -1,3 +1,7 @@
+/**
+ * Компонент для валидации пользователей.
+ * Может быть внедрен через dependency injection.
+ */
 package ru.yandex.practicum.filmorate.service.user.validation;
 
 import lombok.RequiredArgsConstructor;

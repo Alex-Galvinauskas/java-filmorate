@@ -35,6 +35,7 @@ class FilmValidationTest {
                 .description("Valid Description")
                 .releaseDate(LocalDate.of(2000, 1, 1))
                 .duration(120)
+                .mpa(MpaRating.PG)
                 .build();
 
         Set<ConstraintViolation<Film>> violations = validator.validate(film);
@@ -118,8 +119,14 @@ class FilmValidationTest {
         @Test
         @DisplayName("Создание фильма через JSON конструктор корректно инициализирует likes")
         void jsonConstructor_InitializesLikesTest() {
-            Film film = new Film(1L, "Test Film", "Description",
-                    LocalDate.of(2000, 1, 1), 120);
+            Film film = Film.builder()
+                    .id(1L)
+                    .name("Test Film")
+                    .description("Test Description")
+                    .releaseDate(LocalDate.of(2000, 1, 1))
+                    .duration(120)
+                    .mpa(MpaRating.G)
+                    .build();
 
             assertNotNull(film.getLikes());
             assertTrue(film.getLikes().isEmpty());
@@ -130,8 +137,14 @@ class FilmValidationTest {
         @Test
         @DisplayName("Создание фильма через JSON конструктор с null likes создает пустой Set")
         void jsonConstructor_NullLikes_CreatesEmptySetTest() {
-            Film film = new Film(1L, "Test Film", "Description",
-                    LocalDate.of(2000, 1, 1), 120);
+            Film film = Film.builder()
+                    .id(1L)
+                    .name("Test Film")
+                    .description("Test Description")
+                    .releaseDate(LocalDate.of(2000, 1, 1))
+                    .duration(120)
+                    .mpa(MpaRating.G)
+                    .build();
 
             assertNotNull(film.getLikes());
             assertEquals(0, film.getLikes().size());

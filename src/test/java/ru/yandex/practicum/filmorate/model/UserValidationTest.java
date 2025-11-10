@@ -319,7 +319,7 @@ class UserValidationTest {
             assertEquals("original-login", copy.getLogin());
             assertEquals("Original Name", copy.getName());
             assertEquals(LocalDate.of(1990, 1, 1), copy.getBirthday());
-            assertTrue(copy.getFriends().isEmpty());
+            assertTrue(copy.getFriendships().isEmpty());
         }
 
         @Test
@@ -340,7 +340,7 @@ class UserValidationTest {
             assertEquals("test-login", copy.getLogin());
             assertEquals("test-login", copy.getName());
             assertNull(copy.getBirthday());
-            assertTrue(copy.getFriends().isEmpty());
+            assertTrue(copy.getFriendships().isEmpty());
         }
 
         @Test
@@ -361,7 +361,7 @@ class UserValidationTest {
             assertEquals("test-login", copy.getLogin());
             assertEquals("test-login", copy.getName());
             assertNull(copy.getBirthday());
-            assertTrue(copy.getFriends().isEmpty());
+            assertTrue(copy.getFriendships().isEmpty());
         }
 
         @Test
@@ -382,7 +382,7 @@ class UserValidationTest {
             assertEquals("test-login", copy.getLogin());
             assertEquals("test-login", copy.getName());
             assertNull(copy.getBirthday());
-            assertTrue(copy.getFriends().isEmpty());
+            assertTrue(copy.getFriendships().isEmpty());
         }
     }
 

@@ -21,21 +21,21 @@ public class FilmValidatorImpl implements FilmValidatorRules {
     /**
      * Проверяет уникальность фильма при обновлении.
      */
-    public void validateFilmUniquenessForUpdate(Film existingFilm,
-                                                Film updatedFilm) {
-
-        boolean nameChanged = !existingFilm.getName().equals(updatedFilm.getName());
-        boolean yearChanged = existingFilm.getReleaseDate().getYear() != updatedFilm.getReleaseDate().getYear();
-
-        if (nameChanged || yearChanged) {
-            validateFilmUniqueness(updatedFilm.getName(),
-                    updatedFilm.getReleaseDate().getYear());
+    @Override
+    public void validateFilmUniquenessForUpdate(Film existingFilm, Film updatedFilm) {
+        if (existingFilm.getName().equals(updatedFilm.getName()) &&
+                existingFilm.getReleaseDate().getYear() == updatedFilm.getReleaseDate().getYear()) {
+            return;
         }
+
+        validateFilmUniqueness(updatedFilm.getName(), updatedFilm.getReleaseDate().getYear());
     }
 
     /**
      * Проверяет уникальность фильма по названию и году выпуска.
+     * Игнорирует фильм с тем же ID при обновлении.
      */
+    @Override
     public void validateFilmUniqueness(String name, int releaseYear) {
         log.debug("Проверка уникальности фильма: {} ({})", name, releaseYear);
 
@@ -44,8 +44,24 @@ public class FilmValidatorImpl implements FilmValidatorRules {
         }
     }
 
-    public String buildDuplicateErrorMessage(String name, int releaseYear) {
-        return String.format("Фильм с названием '%s' и годом выхода '%s' уже существует", name, releaseYear);
+    /**
+     * Проверяет уникальность фильма при обновлении с учетом ID
+     */
+    public void validateFilmUniquenessForUpdateWithId(Film existingFilm, Film updatedFilm) {
+        String newName = updatedFilm.getName();
+        int newYear = updatedFilm.getReleaseDate().getYear();
+
+        if (existingFilm.getName().equals(newName) && existingFilm.getReleaseDate().getYear() == newYear) {
+            return;
+        }
+
+        if (filmStorage.existsFilmByNameAndReleaseYearAndIdNot(newName, newYear, existingFilm.getId())) {
+            throw new DuplicateException(buildDuplicateErrorMessage(newName, newYear));
+        }
     }
 
+    @Override
+    public String buildDuplicateErrorMessage(String name, int releaseYear) {
+        return String.format("Фильм с названием '%s' и годом выхода '%d' уже существует", name, releaseYear);
+    }
 }

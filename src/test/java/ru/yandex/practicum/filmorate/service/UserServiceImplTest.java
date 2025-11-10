@@ -10,6 +10,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.UserStorage;
+import ru.yandex.practicum.filmorate.model.Friendship;
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.user.UserServiceImpl;
 import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorImpl;
@@ -17,7 +19,7 @@ import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorImpl;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -42,6 +44,15 @@ class UserServiceImplTest {
                 .login("test-login")
                 .name("Test User")
                 .birthday(LocalDate.of(1990, 1, 1))
+                .friendships(ConcurrentHashMap.newKeySet())
+                .build();
+    }
+
+    private Friendship createFriendship(Long userId, Long friendId, FriendshipStatus status) {
+        return Friendship.builder()
+                .userId(userId)
+                .friendId(friendId)
+                .status(status)
                 .build();
     }
 
@@ -87,7 +98,8 @@ class UserServiceImplTest {
 
             assertNotNull(result);
             assertEquals("test@example.com", result.getEmail());
-            verify(userStorage, times(1)).createUser(any(User.class));
+            verify(userStorage, times(1))
+                    .createUser(any(User.class));
         }
     }
 
@@ -103,6 +115,7 @@ class UserServiceImplTest {
                     .login("test-login")
                     .name("")
                     .birthday(LocalDate.of(1990, 1, 1))
+                    .friendships(ConcurrentHashMap.newKeySet())
                     .build();
 
             when(userStorage.createUser(any(User.class))).thenReturn(user);
@@ -120,6 +133,7 @@ class UserServiceImplTest {
                     .login("test-login")
                     .name(null)
                     .birthday(LocalDate.of(1990, 1, 1))
+                    .friendships(ConcurrentHashMap.newKeySet())
                     .build();
 
             when(userStorage.createUser(any(User.class))).thenReturn(user);
@@ -137,6 +151,7 @@ class UserServiceImplTest {
                     .login("test-login")
                     .name("   ")
                     .birthday(LocalDate.of(1990, 1, 1))
+                    .friendships(ConcurrentHashMap.newKeySet())
                     .build();
 
             when(userStorage.createUser(any(User.class))).thenReturn(user);
@@ -154,6 +169,7 @@ class UserServiceImplTest {
                     .login("test-login")
                     .name("Real Name")
                     .birthday(LocalDate.of(1990, 1, 1))
+                    .friendships(ConcurrentHashMap.newKeySet())
                     .build();
 
             when(userStorage.createUser(any(User.class))).thenReturn(user);
@@ -172,6 +188,7 @@ class UserServiceImplTest {
                     .login("valid-login")
                     .name("Valid Name")
                     .birthday(LocalDate.of(1990, 1, 1))
+                    .friendships(ConcurrentHashMap.newKeySet())
                     .build();
 
             when(userStorage.createUser(any(User.class))).thenReturn(user);
@@ -200,10 +217,12 @@ class UserServiceImplTest {
 
             userService.addFriend(1L, 2L);
 
-            assertTrue(user.getFriends().contains(2L));
-            assertTrue(friend.getFriends().contains(1L));
+            assertTrue(user.getFriendships().stream()
+                    .anyMatch(f -> f.getFriendId().equals(2L) &&
+                            f.getStatus() == FriendshipStatus.UNCONFIRMED));
             verify(userValidator, times(1)).validateUserExist(1L);
             verify(userValidator, times(1)).validateUserExist(2L);
+            verify(userStorage, times(1)).updateUser(user);
         }
 
         @Test
@@ -212,7 +231,8 @@ class UserServiceImplTest {
             when(userValidator.validateUserExist(1L))
                     .thenThrow(new NotFoundException("Пользователь с id 1 не найден"));
 
-            assertThrows(NotFoundException.class, () -> userService.addFriend(1L, 2L));
+            assertThrows(NotFoundException.class, () ->
+                    userService.addFriend(1L, 2L));
             verify(userValidator, never()).validateUserExist(2L);
         }
 
@@ -225,8 +245,8 @@ class UserServiceImplTest {
             when(userValidator.validateUserExist(2L))
                     .thenThrow(new NotFoundException("Пользователь с id 2 не найден"));
 
-            assertThrows(NotFoundException.class, () -> userService.addFriend(1L,
-                    2L));
+            assertThrows(NotFoundException.class, () ->
+                    userService.addFriend(1L, 2L));
             verify(userValidator, times(1)).validateUserExist(1L);
             verify(userValidator, times(1)).validateUserExist(2L);
         }
@@ -235,40 +255,44 @@ class UserServiceImplTest {
         @DisplayName("Добавление друга - пользователи уже друзья, дубликаты не создаются")
         void addFriend_AlreadyFriends_NoDuplicateTest() {
             User user = createTestUser();
-            user.getFriends().add(2L);
+            user.getFriendships().add(createFriendship(1L, 2L, FriendshipStatus.UNCONFIRMED));
 
             User friend = createTestUser();
             friend.setId(2L);
-            friend.getFriends().add(1L);
 
             when(userValidator.validateUserExist(1L)).thenReturn(user);
             when(userValidator.validateUserExist(2L)).thenReturn(friend);
 
             userService.addFriend(1L, 2L);
 
-            assertEquals(1, user.getFriends().size());
-            assertEquals(1, friend.getFriends().size());
-            assertTrue(user.getFriends().contains(2L));
-            assertTrue(friend.getFriends().contains(1L));
+            assertEquals(1, user.getFriendships().size());
+            assertTrue(user.getFriendships().stream()
+                    .anyMatch(f -> f.getFriendId().equals(2L)));
         }
 
         @Test
         @DisplayName("Удаление друзей - оба пользователя существуют")
         void removeFriend_BothUsersExist_RemovesFriendsTest() {
             User user = createTestUser();
-            user.getFriends().add(2L);
+            user.getFriendships().add(createFriendship(1L, 2L, FriendshipStatus.UNCONFIRMED));
 
             User friend = createTestUser();
             friend.setId(2L);
-            friend.getFriends().add(1L);
+            friend.getFriendships().add(createFriendship(2L, 1L,
+                    FriendshipStatus.UNCONFIRMED));
 
             when(userValidator.validateUserExist(1L)).thenReturn(user);
             when(userValidator.validateUserExist(2L)).thenReturn(friend);
 
             userService.removeFriend(1L, 2L);
 
-            assertFalse(user.getFriends().contains(2L));
-            assertFalse(friend.getFriends().contains(1L));
+            assertFalse(user.getFriendships().stream()
+                    .anyMatch(f -> f.getFriendId().equals(2L)));
+            assertFalse(friend.getFriendships().stream()
+                    .anyMatch(f -> f.getFriendId().equals(1L)));
+
+            verify(userStorage, times(1)).updateUser(user);
+            verify(userStorage, times(1)).updateUser(friend);
         }
 
         @Test
@@ -277,8 +301,8 @@ class UserServiceImplTest {
             when(userValidator.validateUserExist(1L))
                     .thenThrow(new NotFoundException("Пользователь с id 1 не найден"));
 
-            assertThrows(NotFoundException.class, () -> userService.removeFriend(1L,
-                    2L));
+            assertThrows(NotFoundException.class, () ->
+                    userService.removeFriend(1L, 2L));
         }
 
         @Test
@@ -293,8 +317,10 @@ class UserServiceImplTest {
 
             assertDoesNotThrow(() -> userService.removeFriend(1L, 2L));
 
-            assertFalse(user.getFriends().contains(2L));
-            assertFalse(friend.getFriends().contains(1L));
+            assertFalse(user.getFriendships().stream()
+                    .anyMatch(f -> f.getFriendId().equals(2L)));
+            assertFalse(friend.getFriendships().stream()
+                    .anyMatch(f -> f.getFriendId().equals(1L)));
         }
     }
 
@@ -306,8 +332,8 @@ class UserServiceImplTest {
         @DisplayName("Получение списка друзей - пользователь существует")
         void getFriends_UserExists_ReturnsFriendsListTest() {
             User user = createTestUser();
-            user.getFriends().add(2L);
-            user.getFriends().add(3L);
+            user.getFriendships().add(createFriendship(1L, 2L, FriendshipStatus.UNCONFIRMED));
+            user.getFriendships().add(createFriendship(1L, 3L, FriendshipStatus.UNCONFIRMED));
 
             User friend1 = createTestUser();
             friend1.setId(2L);
@@ -341,8 +367,8 @@ class UserServiceImplTest {
         @DisplayName("Получение списка друзей - когда друг не найден в хранилище")
         void getFriends_FriendNotFoundInStorage_ExcludesFromResultTest() {
             User user = createTestUser();
-            user.getFriends().add(2L);
-            user.getFriends().add(3L);
+            user.getFriendships().add(createFriendship(1L, 2L, FriendshipStatus.UNCONFIRMED));
+            user.getFriendships().add(createFriendship(1L, 3L, FriendshipStatus.UNCONFIRMED));
 
             when(userValidator.validateUserExist(1L)).thenReturn(user);
             when(userStorage.getUserById(2L)).thenReturn(Optional.empty());
@@ -363,11 +389,21 @@ class UserServiceImplTest {
         @DisplayName("Получение общих друзей - пользователи существуют и имеют общих друзей")
         void getCommonFriends_UsersExistWithCommonFriends_ReturnsCommonFriendsTest() {
             User user1 = createTestUser();
-            user1.getFriends().addAll(Set.of(2L, 3L, 4L));
+            user1.getFriendships().add(createFriendship(1L, 2L,
+                    FriendshipStatus.UNCONFIRMED));
+            user1.getFriendships().add(createFriendship(1L, 3L,
+                    FriendshipStatus.UNCONFIRMED));
+            user1.getFriendships().add(createFriendship(1L, 4L,
+                    FriendshipStatus.UNCONFIRMED));
 
             User user2 = createTestUser();
             user2.setId(2L);
-            user2.getFriends().addAll(Set.of(1L, 3L, 5L));
+            user2.getFriendships().add(createFriendship(2L, 1L,
+                    FriendshipStatus.UNCONFIRMED));
+            user2.getFriendships().add(createFriendship(2L, 3L,
+                    FriendshipStatus.UNCONFIRMED));
+            user2.getFriendships().add(createFriendship(2L, 5L,
+                    FriendshipStatus.UNCONFIRMED));
 
             User commonFriend = createTestUser();
             commonFriend.setId(3L);
@@ -387,11 +423,13 @@ class UserServiceImplTest {
         @DisplayName("Получение общих друзей - нет общих друзей")
         void getCommonFriends_NoCommonFriends_ReturnsEmptyListTest() {
             User user1 = createTestUser();
-            user1.getFriends().add(2L);
+            user1.getFriendships().add(createFriendship(1L, 2L,
+                    FriendshipStatus.UNCONFIRMED));
 
             User user2 = createTestUser();
             user2.setId(2L);
-            user2.getFriends().add(3L);
+            user2.getFriendships().add(createFriendship(2L, 3L,
+                    FriendshipStatus.UNCONFIRMED));
 
             when(userValidator.validateUserExist(1L)).thenReturn(user1);
             when(userValidator.validateUserExist(2L)).thenReturn(user2);
@@ -405,11 +443,13 @@ class UserServiceImplTest {
         @DisplayName("Получение общих друзей - общий друг не найден в хранилище")
         void getCommonFriends_CommonFriendNotFound_ExcludesFromResultTest() {
             User user1 = createTestUser();
-            user1.getFriends().add(3L);
+            user1.getFriendships().add(createFriendship(1L, 3L,
+                    FriendshipStatus.UNCONFIRMED));
 
             User user2 = createTestUser();
             user2.setId(2L);
-            user2.getFriends().add(3L);
+            user2.getFriendships().add(createFriendship(2L, 3L,
+                    FriendshipStatus.UNCONFIRMED));
 
             when(userValidator.validateUserExist(1L)).thenReturn(user1);
             when(userValidator.validateUserExist(2L)).thenReturn(user2);
@@ -424,11 +464,21 @@ class UserServiceImplTest {
         @DisplayName("Получение общих друзей - множественные общие друзья")
         void getCommonFriends_MultipleCommonFriends_ReturnsAllTest() {
             User user1 = createTestUser();
-            user1.getFriends().addAll(Set.of(3L, 4L, 5L));
+            user1.getFriendships().add(createFriendship(1L, 3L,
+                    FriendshipStatus.UNCONFIRMED));
+            user1.getFriendships().add(createFriendship(1L, 4L,
+                    FriendshipStatus.UNCONFIRMED));
+            user1.getFriendships().add(createFriendship(1L, 5L,
+                    FriendshipStatus.UNCONFIRMED));
 
             User user2 = createTestUser();
             user2.setId(2L);
-            user2.getFriends().addAll(Set.of(3L, 4L, 6L));
+            user2.getFriendships().add(createFriendship(2L, 3L,
+                    FriendshipStatus.UNCONFIRMED));
+            user2.getFriendships().add(createFriendship(2L, 4L,
+                    FriendshipStatus.UNCONFIRMED));
+            user2.getFriendships().add(createFriendship(2L, 6L,
+                    FriendshipStatus.UNCONFIRMED));
 
             User friend3 = createTestUser();
             friend3.setId(3L);

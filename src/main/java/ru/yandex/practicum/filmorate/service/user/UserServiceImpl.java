@@ -12,16 +12,14 @@ package ru.yandex.practicum.filmorate.service.user;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.UserStorage;
+import ru.yandex.practicum.filmorate.model.Friendship;
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorRules;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,42 +36,64 @@ public class UserServiceImpl implements UserService {
      * Выполняет нормализацию данных пользователя.
      *
      * @param user пользователь для создания
-     *
      * @return созданный пользователь
-     *
-     * @throws DuplicateException если пользователь с таким email или логином уже существует
      */
     public User createUser(User user) {
-        log.info("Создание нового пользователя.");
+        log.info("Создание нового пользователя: {}", user.getLogin());
 
         userValidator.validateForCreate(user);
         normalizeUser(user);
 
-        return userStorage.createUser(user);
+        User createdUser = userStorage.createUser(user);
+        log.info("Пользователь создан с ID: {}", createdUser.getId());
+        return createdUser;
     }
 
     /**
-     * Добавляет обоих пользователей в список друзей.
+     * Добавляет дружбу между пользователями.
+     * Создает неподтвержденную дружбу, где userId инициирует запрос, а friendId получает его.
      *
-     * @param userId индентификатор пользователя, который добавляется в друзья
-     * @param friendId идентификатор друга, который добавляется в друзья
-     *
-     *throws NotFoundException если один или оба пользователя не существует
+     * @param userId   идентификатор пользователя, который отправляет запрос дружбы
+     * @param friendId идентификатор друга, который получает запрос дружбы
+     * @throws NotFoundException если один или оба пользователя не существует
      */
     @Override
     public void addFriend(Long userId, Long friendId) {
         log.info("Добавление пользователя {} в друзья пользователя {}.", friendId, userId);
 
+        if (userId.equals(friendId)) {
+            log.warn("Попытка добавить самого себя в друзья: {}", userId);
+            return;
+        }
+
         User user = userValidator.validateUserExist(userId);
         User friend = userValidator.validateUserExist(friendId);
 
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
+        if (isFriend(user, friendId)) {
+            log.warn("Пользователи {} и {} уже являются друзьями.", userId, friendId);
+            return;
+        }
 
-        log.debug("Пользователи {} и {} теперь в друзья.", userId, friendId);
+        Friendship friendship = Friendship.builder()
+                .userId(userId)
+                .friendId(friendId)
+                .status(FriendshipStatus.UNCONFIRMED)
+                .build();
+
+        Friendship friendFriendship = Friendship.builder()
+                .userId(friendId)
+                .friendId(userId)
+                .status(FriendshipStatus.UNCONFIRMED)
+                .build();
+
+        user.getFriendships().add(friendship);
+        userStorage.updateUser(user);
+        userStorage.updateUser(friend);
+
+        log.debug("Запрос дружбы отправлен от пользователя {} пользователю {}.", userId, friendId);
     }
 
-     /**
+    /**
      * Возвращает список всех пользователей.
      *
      * @return список всех пользователей
@@ -87,21 +107,17 @@ public class UserServiceImpl implements UserService {
      * Находит пользователя по идентификатору.
      *
      * @param id идентификатор пользователя
-     *
      * @return найденный пользователь
-     *
      * @throws NotFoundException если пользователь с указанным ID не найден
      */
     public User getUserById(Long id) {
         return userValidator.validateUserExist(id);
     }
 
-
     /**
      * Возвращает список друзей пользователя.
      * @param userId идентификатор пользователя, для которого получаем список друзей
      * @return список друзей пользователя
-     *
      * @throws NotFoundException если пользователь с указанным ID не найден
      */
     @Override
@@ -110,20 +126,24 @@ public class UserServiceImpl implements UserService {
 
         User user = userValidator.validateUserExist(userId);
 
-        return user.getFriends().stream()
+        return Optional.ofNullable(user.getFriendships())
+                .orElse(Collections.emptySet())
+                .stream()
+                .filter(Objects::nonNull)
+                .map(Friendship::getFriendId)
+                .filter(Objects::nonNull)
                 .map(userStorage::getUserById)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
+                .filter(friend -> friend.getId() != null)
                 .collect(Collectors.toList());
     }
-
 
     /**
      * Возвращает список общих друзей двух пользователей.
      * @param userId1 id первого пользователя
      * @param userId2 id второго пользователя
      * @return список общих друзей двух пользователей
-     *
      * @throws NotFoundException если один или оба пользователя не существует
      */
     @Override
@@ -133,8 +153,16 @@ public class UserServiceImpl implements UserService {
         User user1 = userValidator.validateUserExist(userId1);
         User user2 = userValidator.validateUserExist(userId2);
 
-        Set<Long> commonFriendsIds = new HashSet<>(user1.getFriends());
-        commonFriendsIds.retainAll(user2.getFriends());
+        Set<Long> friends1 = user1.getFriendships().stream()
+                .map(Friendship::getFriendId)
+                .collect(Collectors.toSet());
+
+        Set<Long> friends2 = user2.getFriendships().stream()
+                .map(Friendship::getFriendId)
+                .collect(Collectors.toSet());
+
+        Set<Long> commonFriendsIds = new HashSet<>(friends1);
+        commonFriendsIds.retainAll(friends2);
 
         return commonFriendsIds.stream()
                 .map(userStorage::getUserById)
@@ -149,28 +177,25 @@ public class UserServiceImpl implements UserService {
      * Устанавливает имя из логина если имя не указано, выполняет нормализацию данных.
      *
      * @param user пользователь с обновленными данными
-     *
      * @return обновленный пользователь
-     *
-     * @throws NotFoundException  если пользователь с указанным ID не найден
-     * @throws DuplicateException если пользователь с новым email или логином уже существует
+     * @throws NotFoundException если пользователь с указанным ID не найден
      */
     public User updateUser(User user) {
-        log.info("Обновление данных пользователя.");
+        log.info("Обновление данных пользователя с ID: {}", user.getId());
 
         userValidator.validateForUpdate(user);
         normalizeUser(user);
 
-        return userStorage.updateUser(user);
+        User updatedUser = userStorage.updateUser(user);
+        log.info("Пользователь с ID: {} успешно обновлен", updatedUser.getId());
+        return updatedUser;
     }
 
-
     /**
-     * Удаляет пользователей из друзей друг у друга.
+     * Удаляет дружбу между пользователями.
      *
-     * @param userId идентификатор пользователя, у которого удаляем друга
+     * @param userId   идентификатор пользователя, у которого удаляем друга
      * @param friendId идентификатор друга, которого удаляем
-     *
      * @throws NotFoundException если один или оба пользователя не существует
      */
     @Override
@@ -180,10 +205,56 @@ public class UserServiceImpl implements UserService {
         User user = userValidator.validateUserExist(userId);
         User friend = userValidator.validateUserExist(friendId);
 
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
+        boolean removedFromUser = user.getFriendships() != null &&
+                user.getFriendships().removeIf(friendship ->
+                        friendship != null && friendship.getFriendId().equals(friendId));
+
+        boolean removedFromFriend = friend.getFriendships() != null &&
+                friend.getFriendships().removeIf(friendship ->
+                        friendship != null && friendship.getFriendId().equals(userId));
+
+        if (removedFromUser) {
+            userStorage.updateUser(user);
+        }
+        if (removedFromFriend) {
+            userStorage.updateUser(friend);
+        }
 
         log.debug("Пользователи {} и {} больше не друзья.", userId, friendId);
+    }
+
+    /**
+     * Подтверждает дружбу между пользователями.
+     *
+     * @param userId   идентификатор пользователя, который подтверждает дружбу
+     * @param friendId идентификатор друга
+     * @throws NotFoundException если один или оба пользователя не существует
+     */
+    public void confirmFriendship(Long userId, Long friendId) {
+        log.info("Подтверждение дружбы пользователем {} с пользователем {}.", userId, friendId);
+
+        User user = userValidator.validateUserExist(userId);
+        User friend = userValidator.validateUserExist(friendId);
+
+        Optional<Friendship> userFriendship = user.getFriendships().stream()
+                .filter(f -> f.getFriendId().equals(friendId))
+                .findFirst();
+
+        Optional<Friendship> friendFriendship = friend.getFriendships().stream()
+                .filter(f -> f.getFriendId().equals(userId))
+                .findFirst();
+
+        if (userFriendship.isPresent() && friendFriendship.isPresent()) {
+            userFriendship.get().setStatus(FriendshipStatus.CONFIRMED);
+            friendFriendship.get().setStatus(FriendshipStatus.CONFIRMED);
+
+            userStorage.updateUser(user);
+            userStorage.updateUser(friend);
+
+            log.debug("Дружба между пользователями {} и {} подтверждена.", userId, friendId);
+        } else {
+            throw new NotFoundException("Запрос дружбы между пользователями " + userId + " и " + friendId + " не найден");
+        }
     }
 
     private void normalizeUser(User user) {
@@ -191,5 +262,22 @@ public class UserServiceImpl implements UserService {
             user.setName(user.getLogin());
             log.debug("Для пользователя {} установлено имя из логина: {}", user.getLogin(), user.getName());
         }
+
+        if (user.getFriendships() == null) {
+            user.setFriendships(java.util.concurrent.ConcurrentHashMap.newKeySet());
+        }
+    }
+
+    /**
+     * Проверяет, является ли пользователь другом.
+     *
+     * @param user     пользователь для проверки
+     * @param friendId идентификатор потенциального друга
+     * @return true если пользователь является другом
+     */
+    private boolean isFriend(User user, Long friendId) {
+        return user.getFriendships() != null && user.getFriendships().stream()
+                .anyMatch(friendship -> friendship != null &&
+                        friendship.getFriendId().equals(friendId));
     }
 }
