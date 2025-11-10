@@ -121,7 +121,7 @@ ORDER BY f.id;
 #### Получение всех пользователей:
 
 ```sql
-SELECT id, email, login, name, birthday 
+SELECT *
 FROM users 
 ORDER BY id;
 ```
@@ -129,7 +129,7 @@ ORDER BY id;
 #### Получение топ-N самых популярных фильмов:
 
 ```sql
-SELECT f.id, f.name, f.description, f.release_date, f.duration,
+SELECT f.*,
        m.name as mpa_rating,
        COUNT(l.user_id) as likes_count
 FROM films f
@@ -143,7 +143,7 @@ LIMIT 10;
 #### Получение списка общих друзей:
 
 ```sql
-SELECT u.id, u.email, u.login, u.name, u.birthday
+SELECT u.*
 FROM users u
 JOIN friendships f1 ON u.id = f1.friend_id AND f1.user_id = ? AND f1.status = 'CONFIRMED'
 JOIN friendships f2 ON u.id = f2.friend_id AND f2.user_id = ? AND f2.status = 'CONFIRMED'
