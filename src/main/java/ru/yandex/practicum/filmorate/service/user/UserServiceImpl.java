@@ -1,3 +1,12 @@
+/**
+ * Реализация сервисного слоя для работы с пользователями.
+ * Содержит бизнес-логику приложения для операций с пользователями.
+ * Обеспечивает проверку уникальности email и логина, нормализацию данных пользователя.
+ *
+ * @see ru.yandex.practicum.filmorate.service.user.UserService
+ * @see ru.yandex.practicum.filmorate.managment.UserStorage
+ * @see User
+ */
 package ru.yandex.practicum.filmorate.service.user;
 
 import lombok.RequiredArgsConstructor;
@@ -10,10 +19,7 @@ import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorRules;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -74,8 +80,15 @@ public class UserServiceImpl implements UserService {
                 .status(FriendshipStatus.UNCONFIRMED)
                 .build();
 
+        Friendship friendFriendship = Friendship.builder()
+                .userId(friendId)
+                .friendId(userId)
+                .status(FriendshipStatus.UNCONFIRMED)
+                .build();
+
         user.getFriendships().add(friendship);
         userStorage.updateUser(user);
+        userStorage.updateUser(friend);
 
         log.debug("Запрос дружбы отправлен от пользователя {} пользователю {}.", userId, friendId);
     }
@@ -113,11 +126,16 @@ public class UserServiceImpl implements UserService {
 
         User user = userValidator.validateUserExist(userId);
 
-        return user.getFriendships().stream()
+        return Optional.ofNullable(user.getFriendships())
+                .orElse(Collections.emptySet())
+                .stream()
+                .filter(Objects::nonNull)
                 .map(Friendship::getFriendId)
+                .filter(Objects::nonNull)
                 .map(userStorage::getUserById)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
+                .filter(friend -> friend.getId() != null)
                 .collect(Collectors.toList());
     }
 
@@ -187,11 +205,13 @@ public class UserServiceImpl implements UserService {
         User user = userValidator.validateUserExist(userId);
         User friend = userValidator.validateUserExist(friendId);
 
-        boolean removedFromUser = user.getFriendships().removeIf(friendship ->
-                friendship.getFriendId().equals(friendId));
+        boolean removedFromUser = user.getFriendships() != null &&
+                user.getFriendships().removeIf(friendship ->
+                        friendship != null && friendship.getFriendId().equals(friendId));
 
-        boolean removedFromFriend = friend.getFriendships().removeIf(friendship ->
-                friendship.getFriendId().equals(userId));
+        boolean removedFromFriend = friend.getFriendships() != null &&
+                friend.getFriendships().removeIf(friendship ->
+                        friendship != null && friendship.getFriendId().equals(userId));
 
         if (removedFromUser) {
             userStorage.updateUser(user);
@@ -256,7 +276,8 @@ public class UserServiceImpl implements UserService {
      * @return true если пользователь является другом
      */
     private boolean isFriend(User user, Long friendId) {
-        return user.getFriendships().stream()
-                .anyMatch(friendship -> friendship.getFriendId().equals(friendId));
+        return user.getFriendships() != null && user.getFriendships().stream()
+                .anyMatch(friendship -> friendship != null &&
+                        friendship.getFriendId().equals(friendId));
     }
 }

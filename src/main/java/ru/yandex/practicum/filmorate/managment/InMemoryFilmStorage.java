@@ -1,3 +1,12 @@
+/**
+ * Реализация хранилища фильмов в памяти.
+ * Хранит данные о фильмах в ConcurrentHashMap и обеспечивает потокобезопасные операции.
+ * Генерирует уникальные идентификаторы для новых фильмов с помощью AtomicLong.
+ * Использует дополнительный индекс для быстрого поиска фильмов по названию и году выпуска.
+ *
+ * @see ru.yandex.practicum.filmorate.managment.FilmStorage
+ * @see ru.yandex.practicum.filmorate.model.Film
+ */
 package ru.yandex.practicum.filmorate.managment;
 
 import lombok.extern.slf4j.Slf4j;

@@ -1,3 +1,12 @@
+/**
+ * Реализация хранилища пользователей в памяти.
+ * Хранит данные о пользователях в ConcurrentHashMap и обеспечивает потокобезопасные операции.
+ * Поддерживает дополнительные индексы для быстрого поиска по email и логину.
+ * Генерирует уникальные идентификаторы для новых пользователей с помощью AtomicLong.
+ *
+ * @see ru.yandex.practicum.filmorate.managment.UserStorage
+ * @see User
+ */
 package ru.yandex.practicum.filmorate.managment;
 
 import lombok.extern.slf4j.Slf4j;

@@ -1,3 +1,13 @@
+/**
+ * Реализация сервисного слоя для работы с фильмами.
+ * Содержит бизнес-логику приложения для операций с фильмами.
+ * Обеспечивает проверку уникальности фильмов и обработку исключительных ситуаций.
+ * Делегирует операции хранения данных объекту FilmStorage.
+ *
+ * @see ru.yandex.practicum.filmorate.service.film.FilmService
+ * @see ru.yandex.practicum.filmorate.managment.FilmStorage
+ * @see ru.yandex.practicum.filmorate.model.Film
+ */
 package ru.yandex.practicum.filmorate.service.film;
 
 import lombok.RequiredArgsConstructor;
