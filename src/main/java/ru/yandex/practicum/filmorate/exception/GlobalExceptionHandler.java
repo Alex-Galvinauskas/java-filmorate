@@ -46,6 +46,13 @@ public class GlobalExceptionHandler {
         return Map.of("error", "Конфликт данных", "message", e.getMessage());
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleIllegalArgumentException(final IllegalArgumentException e) {
+        log.error("Некорректный аргумент: {}", e.getMessage());
+        return Map.of("error", "Некорректные данные", "message", e.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, String> handleException(final Exception e) {
