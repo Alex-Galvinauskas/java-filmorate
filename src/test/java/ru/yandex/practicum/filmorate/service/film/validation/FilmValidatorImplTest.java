@@ -62,8 +62,8 @@ class FilmValidatorImplTest {
                 .build();
 
         assertDoesNotThrow(() -> filmValidator.validateFilmUniquenessForUpdate(existingFilm, updatedFilm));
-        verify(filmStorage, never()).existsFilmByNameAndReleaseYear(anyString(),
-                anyInt());
+        verify(filmStorage, never())
+                .existsFilmByNameAndReleaseYear(anyString(), anyInt());
     }
 
     @Test

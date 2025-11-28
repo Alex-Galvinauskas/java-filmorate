@@ -156,8 +156,8 @@ class UserServiceImplTest {
 
             assertNotNull(result);
             assertEquals("Updated User", result.getName());
-            verify(userDbStorage, times(1)).
-                    updateUser(any(User.class));
+            verify(userDbStorage, times(1))
+                    .updateUser(any(User.class));
             verify(userValidator, times(1)).validateForUpdate(updatedUser);
         }
 

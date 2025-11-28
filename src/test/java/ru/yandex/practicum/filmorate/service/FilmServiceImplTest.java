@@ -230,10 +230,10 @@ class FilmServiceImplTest {
 
             assertNotNull(result);
             assertEquals("Updated Film", result.getName());
-            verify(filmDbStorage, times(1)).
-                    updateFilm(any(Film.class));
-            verify(filmValidator, times(1)).
-                    validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
+            verify(filmDbStorage, times(1))
+                    .updateFilm(any(Film.class));
+            verify(filmValidator, times(1))
+                    .validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
             verify(mpaService, times(1)).getMpaById(anyInt());
         }
 

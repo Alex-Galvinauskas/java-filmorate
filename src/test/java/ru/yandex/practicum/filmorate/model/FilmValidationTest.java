@@ -64,8 +64,8 @@ class FilmValidationTest {
 
             assertDoesNotThrow(() ->
                     filmValidator.validateFilmUniqueness("New Film", 2000));
-            verify(filmStorage, times(1)).
-                    existsFilmByNameAndReleaseYear("New Film", 2000);
+            verify(filmStorage, times(1))
+                    .existsFilmByNameAndReleaseYear("New Film", 2000);
         }
     }
 
@@ -81,8 +81,8 @@ class FilmValidationTest {
 
             assertDoesNotThrow(() ->
                     filmValidator.validateFilmUniquenessForUpdate(existingFilm, updatedFilm));
-            verify(filmStorage, never()).
-                    existsFilmByNameAndReleaseYear(anyString(), anyInt());
+            verify(filmStorage, never())
+                    .existsFilmByNameAndReleaseYear(anyString(), anyInt());
         }
 
         @Test
@@ -96,8 +96,8 @@ class FilmValidationTest {
 
             assertDoesNotThrow(() ->
                     filmValidator.validateFilmUniquenessForUpdate(existingFilm, updatedFilm));
-            verify(filmStorage, times(1)).
-                    existsFilmByNameAndReleaseYear("New Film", 2000);
+            verify(filmStorage, times(1))
+                    .existsFilmByNameAndReleaseYear("New Film", 2000);
         }
 
         @Test
@@ -111,8 +111,8 @@ class FilmValidationTest {
 
             assertDoesNotThrow(() ->
                     filmValidator.validateFilmUniquenessForUpdate(existingFilm, updatedFilm));
-            verify(filmStorage, times(1)).
-                    existsFilmByNameAndReleaseYear("Test Film", 2001);
+            verify(filmStorage, times(1))
+                    .existsFilmByNameAndReleaseYear("Test Film", 2001);
         }
 
         @Test
@@ -126,8 +126,8 @@ class FilmValidationTest {
 
             assertDoesNotThrow(() ->
                     filmValidator.validateFilmUniquenessForUpdate(existingFilm, updatedFilm));
-            verify(filmStorage, times(1)).
-                    existsFilmByNameAndReleaseYear("New Film", 2001);
+            verify(filmStorage, times(1))
+                    .existsFilmByNameAndReleaseYear("New Film", 2001);
         }
 
         @Test
@@ -144,8 +144,8 @@ class FilmValidationTest {
 
             assertTrue(exception.getMessage().contains("Existing Film"));
             assertTrue(exception.getMessage().contains("2000"));
-            verify(filmStorage, times(1)).
-                    existsFilmByNameAndReleaseYear("Existing Film", 2000);
+            verify(filmStorage, times(1))
+                    .existsFilmByNameAndReleaseYear("Existing Film", 2000);
         }
     }
 
