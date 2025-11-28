@@ -7,14 +7,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.managment.FilmStorage;
+import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.film.FilmServiceImpl;
+import ru.yandex.practicum.filmorate.service.film.MpaService;
 import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorImpl;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
@@ -25,16 +25,15 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Тесты сервиса управления фильмами")
 class FilmServiceImplTest {
 
     @Mock
-    private FilmStorage filmStorage;
+    private FilmDbStorage filmDbStorage;
 
     @Mock
     private FilmValidatorImpl filmValidator;
@@ -42,16 +41,60 @@ class FilmServiceImplTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private MpaService mpaService;
+
     @InjectMocks
     private FilmServiceImpl filmService;
 
     private Film createTestFilm() {
+        Mpa mpa = Mpa.builder()
+                .id(1)
+                .name("G")
+                .description("General Audiences")
+                .build();
+
         return Film.builder()
                 .id(1L)
                 .name("Test Film")
                 .description("Test Description")
                 .releaseDate(LocalDate.of(2000, 1, 1))
                 .duration(120)
+                .mpa(mpa)
+                .build();
+    }
+
+    private Film createTestFilmWithoutId() {
+        Film film = createTestFilm();
+        film.setId(null);
+        return film;
+    }
+
+    private Film createTestFilmWithNullMpaId() {
+        Mpa mpa = Mpa.builder()
+                .id(null)
+                .name("G")
+                .description("General Audiences")
+                .build();
+
+        return Film.builder()
+                .id(null)
+                .name("Test Film")
+                .description("Test Description")
+                .releaseDate(LocalDate.of(2000, 1, 1))
+                .duration(120)
+                .mpa(mpa)
+                .build();
+    }
+
+    private Film createTestFilmWithNullMpa() {
+        return Film.builder()
+                .id(null)
+                .name("Test Film")
+                .description("Test Description")
+                .releaseDate(LocalDate.of(2000, 1, 1))
+                .duration(120)
+                .mpa(null)
                 .build();
     }
 
@@ -72,31 +115,53 @@ class FilmServiceImplTest {
         @Test
         @DisplayName("Создание фильма с валидными данными возвращает созданный фильм")
         void createFilm_ValidFilm_ReturnsCreatedFilmTest() {
-            Film film = createTestFilm();
-            film.setId(null);
+            Film film = createTestFilmWithoutId();
+            Film filmWithId = createTestFilm();
 
-            when(filmStorage.existsFilmByNameAndReleaseYear(any(),
-                    any())).thenReturn(false);
-            when(filmStorage.createFilm(any(Film.class))).thenReturn(film);
+            assertNotNull(film.getMpa().getId(), "MPA ID должен быть не null");
+
+            when(mpaService.getMpaById(1)).thenReturn(film.getMpa());
+            when(filmDbStorage.createFilm(film)).thenReturn(filmWithId);
 
             Film result = filmService.createFilm(film);
 
             assertNotNull(result);
+            assertEquals(1L, result.getId());
             assertEquals("Test Film", result.getName());
-            verify(filmStorage, times(1)).createFilm(any(Film.class));
+            verify(filmDbStorage, times(1)).createFilm(film);
+            verify(mpaService, times(1)).getMpaById(1);
         }
 
         @Test
-        @DisplayName("Создание дублирующего фильма выбрасывает DuplicateException")
-        void createFilm_DuplicateFilm_ThrowsDuplicateExceptionTest() {
-            Film film = createTestFilm();
-            film.setId(null);
+        @DisplayName("Создание фильма без MPA выбрасывает IllegalArgumentException")
+        void createFilm_WithoutMpa_ThrowsIllegalArgumentExceptionTest() {
+            Film film = createTestFilmWithNullMpa();
 
-            doThrow(new DuplicateException("Фильм с таким названием и годом выпуска уже существует"))
-                    .when(filmValidator).validateFilmUniqueness(anyString(), anyInt());
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> filmService.createFilm(film)
+            );
 
-            assertThrows(DuplicateException.class, () -> filmService.createFilm(film));
-            verify(filmStorage, never()).createFilm(any(Film.class));
+            assertTrue(exception.getMessage().contains("MPA"));
+            verify(filmDbStorage, never()).createFilm(any(Film.class));
+            verify(mpaService, never()).getMpaById(anyInt());
+            verify(filmValidator, never()).validateFilmUniqueness(anyString(), anyInt());
+        }
+
+        @Test
+        @DisplayName("Создание фильма без ID MPA выбрасывает IllegalArgumentException")
+        void createFilm_WithoutMpaId_ThrowsIllegalArgumentExceptionTest() {
+            Film film = createTestFilmWithNullMpaId();
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> filmService.createFilm(film)
+            );
+
+            assertTrue(exception.getMessage().contains("MPA"));
+            verify(filmDbStorage, never()).createFilm(any(Film.class));
+            verify(mpaService, never()).getMpaById(anyInt());
+            verify(filmValidator, never()).validateFilmUniqueness(anyString(), anyInt());
         }
     }
 
@@ -108,35 +173,40 @@ class FilmServiceImplTest {
         @DisplayName("Получение всех фильмов возвращает список фильмов")
         void getAllFilms_ReturnsFilmsListTest() {
             Film film = createTestFilm();
-            when(filmStorage.getAllFilms()).thenReturn(List.of(film));
+            when(filmDbStorage.getAllFilms()).thenReturn(List.of(film));
 
             List<Film> result = filmService.getAllFilms();
 
             assertEquals(1, result.size());
             assertEquals("Test Film", result.getFirst().getName());
-            verify(filmStorage, times(1)).getAllFilms();
+            verify(filmDbStorage, times(1)).getAllFilms();
         }
 
         @Test
         @DisplayName("Получение фильма по существующему ID возвращает фильм")
         void getFilmById_ExistingId_ReturnsFilmTest() {
             Film film = createTestFilm();
-            when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(film));
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(film));
 
             Film result = filmService.getFilmById(1L);
 
             assertNotNull(result);
             assertEquals(1L, result.getId());
-            verify(filmStorage, times(1)).getFilmById(1L);
+            verify(filmDbStorage, times(1)).getFilmById(1L);
         }
 
         @Test
         @DisplayName("Получение фильма по несуществующему ID выбрасывает NotFoundException")
         void getFilmById_NonExistingId_ThrowsNotFoundExceptionTest() {
-            when(filmStorage.getFilmById(999L)).thenReturn(Optional.empty());
+            when(filmDbStorage.getFilmById(999L)).thenReturn(Optional.empty());
 
-            assertThrows(NotFoundException.class, () -> filmService.getFilmById(999L));
-            verify(filmStorage, times(1)).getFilmById(999L);
+            NotFoundException exception = assertThrows(
+                    NotFoundException.class,
+                    () -> filmService.getFilmById(999L)
+            );
+
+            assertTrue(exception.getMessage().contains("не найден"));
+            verify(filmDbStorage, times(1)).getFilmById(999L);
         }
     }
 
@@ -151,26 +221,73 @@ class FilmServiceImplTest {
             Film updatedFilm = createTestFilm();
             updatedFilm.setName("Updated Film");
 
-            when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
-            when(filmStorage.existsFilmByNameAndReleaseYear(any(), any()))
-                    .thenReturn(false);
-            when(filmStorage.updateFilm(any(Film.class))).thenReturn(updatedFilm);
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
+            when(mpaService.getMpaById(anyInt())).thenReturn(updatedFilm.getMpa());
+            doNothing().when(filmValidator).validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
+            when(filmDbStorage.updateFilm(any(Film.class))).thenReturn(updatedFilm);
 
             Film result = filmService.updateFilm(updatedFilm);
 
             assertNotNull(result);
             assertEquals("Updated Film", result.getName());
-            verify(filmStorage, times(1)).updateFilm(any(Film.class));
+            verify(filmDbStorage, times(1)).
+                    updateFilm(any(Film.class));
+            verify(filmValidator, times(1)).
+                    validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
+            verify(mpaService, times(1)).getMpaById(anyInt());
+        }
+
+        @Test
+        @DisplayName("Обновление фильма без MPA выбрасывает IllegalArgumentException")
+        void updateFilm_WithoutMpa_ThrowsIllegalArgumentExceptionTest() {
+            Film existingFilm = createTestFilm();
+            Film updatedFilm = createTestFilm();
+            updatedFilm.setMpa(null);
+
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> filmService.updateFilm(updatedFilm)
+            );
+
+            assertTrue(exception.getMessage().contains("MPA"));
+            verify(filmDbStorage, never()).updateFilm(any(Film.class));
+            verify(mpaService, never()).getMpaById(anyInt());
+        }
+
+        @Test
+        @DisplayName("Обновление фильма без ID MPA выбрасывает IllegalArgumentException")
+        void updateFilm_WithoutMpaId_ThrowsIllegalArgumentExceptionTest() {
+            Film existingFilm = createTestFilm();
+            Film updatedFilm = createTestFilm();
+            updatedFilm.getMpa().setId(null);
+
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> filmService.updateFilm(updatedFilm)
+            );
+
+            assertTrue(exception.getMessage().contains("MPA"));
+            verify(filmDbStorage, never()).updateFilm(any(Film.class));
+            verify(mpaService, never()).getMpaById(anyInt());
         }
 
         @Test
         @DisplayName("Обновление несуществующего фильма выбрасывает NotFoundException")
         void updateFilm_NonExistingFilm_ThrowsNotFoundExceptionTest() {
             Film film = createTestFilm();
-            when(filmStorage.getFilmById(1L)).thenReturn(Optional.empty());
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.empty());
 
-            assertThrows(NotFoundException.class, () -> filmService.updateFilm(film));
-            verify(filmStorage, never()).updateFilm(any(Film.class));
+            NotFoundException exception = assertThrows(
+                    NotFoundException.class,
+                    () -> filmService.updateFilm(film)
+            );
+
+            assertTrue(exception.getMessage().contains("не найден"));
+            verify(filmDbStorage, never()).updateFilm(any(Film.class));
         }
 
         @Test
@@ -180,13 +297,20 @@ class FilmServiceImplTest {
             Film updatedFilm = createTestFilm();
             updatedFilm.setName("Different Film");
 
-            when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
+            when(mpaService.getMpaById(anyInt())).thenReturn(updatedFilm.getMpa());
             doThrow(new DuplicateException("Фильм с таким названием и годом выпуска уже существует"))
-                    .when(filmValidator).validateFilmUniquenessForUpdate(any(Film.class),
-                            any(Film.class));
+                    .when(filmValidator).validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
 
-            assertThrows(DuplicateException.class, () -> filmService.updateFilm(updatedFilm));
-            verify(filmStorage, never()).updateFilm(any(Film.class));
+            DuplicateException exception = assertThrows(
+                    DuplicateException.class,
+                    () -> filmService.updateFilm(updatedFilm)
+            );
+
+            assertEquals("Фильм с таким названием и годом выпуска уже существует",
+                    exception.getMessage());
+            verify(filmDbStorage, never()).updateFilm(any(Film.class));
+            verify(mpaService, times(1)).getMpaById(anyInt());
         }
     }
 
@@ -200,68 +324,81 @@ class FilmServiceImplTest {
             Film film = createTestFilm();
             User user = createTestUser();
 
-            when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(film));
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(film));
             when(userService.getUserById(1L)).thenReturn(user);
-            when(filmStorage.updateFilm(any(Film.class))).thenReturn(film);
+            doNothing().when(filmDbStorage).addLike(1L, 1L);
 
             filmService.addLike(1L, 1L);
 
-            assertTrue(film.getLikes().contains(1L));
-            verify(filmStorage, times(1)).updateFilm(film);
+            verify(filmDbStorage, times(1)).addLike(1L, 1L);
+            verify(filmDbStorage, times(1)).getFilmById(1L);
+            verify(userService, times(1)).getUserById(1L);
         }
 
         @Test
         @DisplayName("Добавление лайка - фильм не существует")
         void addLike_FilmNotExist_ThrowsNotFoundExceptionTest() {
-            when(filmStorage.getFilmById(1L)).thenReturn(Optional.empty());
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.empty());
 
-            assertThrows(NotFoundException.class, () -> filmService
-                    .addLike(1L, 1L));
+            NotFoundException exception = assertThrows(
+                    NotFoundException.class,
+                    () -> filmService.addLike(1L, 1L)
+            );
+
+            assertTrue(exception.getMessage().contains("не найден"));
             verify(userService, never()).getUserById(anyLong());
+            verify(filmDbStorage, never()).addLike(anyLong(), anyLong());
         }
 
         @Test
         @DisplayName("Добавление лайка - пользователь не существует")
         void addLike_UserNotExist_ThrowsNotFoundExceptionTest() {
             Film film = createTestFilm();
-            when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(film));
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(film));
             when(userService.getUserById(1L))
                     .thenThrow(new NotFoundException("Пользователь не найден"));
 
-            assertThrows(NotFoundException.class, () -> filmService
-                    .addLike(1L, 1L));
+            NotFoundException exception = assertThrows(
+                    NotFoundException.class,
+                    () -> filmService.addLike(1L, 1L)
+            );
+
+            assertEquals("Пользователь не найден", exception.getMessage());
+            verify(filmDbStorage, never()).addLike(anyLong(), anyLong());
         }
 
         @Test
         @DisplayName("Удаление лайка - лайк существует")
         void removeLike_LikeExists_RemovesLikeTest() {
             Film film = createTestFilm();
-            film.getLikes().add(1L);
             User user = createTestUser();
 
-            when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(film));
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(film));
             when(userService.getUserById(1L)).thenReturn(user);
-            when(filmStorage.updateFilm(any(Film.class))).thenReturn(film);
+            doNothing().when(filmDbStorage).removeLike(1L, 1L);
 
             filmService.removeLike(1L, 1L);
 
-            assertFalse(film.getLikes().contains(1L));
-            verify(filmStorage, times(1)).updateFilm(film);
+            verify(filmDbStorage, times(1)).removeLike(1L, 1L);
+            verify(filmDbStorage, times(1)).getFilmById(1L);
+            verify(userService, times(1)).getUserById(1L);
         }
 
         @Test
-        @DisplayName("Удаление лайка - лайк не существует")
-        void removeLike_LikeNotExists_LogsWarningTest() {
+        @DisplayName("Удаление лайка - пользователь не существует")
+        void removeLike_UserNotExist_ThrowsNotFoundExceptionTest() {
             Film film = createTestFilm();
-            User user = createTestUser();
+            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(film));
+            when(userService.getUserById(1L))
+                    .thenThrow(new NotFoundException("Пользователь не найден"));
 
-            when(filmStorage.getFilmById(1L)).thenReturn(Optional.of(film));
-            when(userService.getUserById(1L)).thenReturn(user);
+            NotFoundException exception = assertThrows(
+                    NotFoundException.class,
+                    () -> filmService.removeLike(1L, 1L)
+            );
 
-            filmService.removeLike(1L, 1L);
-
-            assertFalse(film.getLikes().contains(1L));
-            verify(filmStorage, never()).updateFilm(any(Film.class));
+            assertEquals("Пользователь не найден", exception.getMessage());
+            verify(filmDbStorage, never()).removeLike(anyLong(), anyLong());
         }
     }
 
@@ -274,22 +411,21 @@ class FilmServiceImplTest {
         void getPopularFilms_WithCount_ReturnsLimitedListTest() {
             Film film1 = createTestFilm();
             film1.setId(1L);
-            film1.getLikes().add(1L);
 
             Film film2 = createTestFilm();
             film2.setId(2L);
-            film2.getLikes().addAll(List.of(1L, 2L));
 
             Film film3 = createTestFilm();
             film3.setId(3L);
 
-            when(filmStorage.getAllFilms()).thenReturn(List.of(film1, film2, film3));
+            when(filmDbStorage.getPopularFilms(2)).thenReturn(List.of(film2, film1));
 
             List<Film> result = filmService.getPopularFilms(2);
 
             assertEquals(2, result.size());
             assertEquals(2L, result.get(0).getId());
             assertEquals(1L, result.get(1).getId());
+            verify(filmDbStorage, times(1)).getPopularFilms(2);
         }
 
         @Test
@@ -299,16 +435,16 @@ class FilmServiceImplTest {
                     .mapToObj(i -> {
                         Film film = createTestFilm();
                         film.setId((long) i);
-                        film.getLikes().addAll(List.of(1L, 2L, 3L));
                         return film;
                     })
                     .collect(Collectors.toList());
 
-            when(filmStorage.getAllFilms()).thenReturn(films);
+            when(filmDbStorage.getPopularFilms(10)).thenReturn(films.subList(0, 10));
 
             List<Film> result = filmService.getPopularFilms(null);
 
             assertEquals(10, result.size());
+            verify(filmDbStorage, times(1)).getPopularFilms(10);
         }
 
         @Test
@@ -318,21 +454,23 @@ class FilmServiceImplTest {
                     .mapToObj(i -> createTestFilm())
                     .collect(Collectors.toList());
 
-            when(filmStorage.getAllFilms()).thenReturn(films);
+            when(filmDbStorage.getPopularFilms(10)).thenReturn(films.subList(0, 10));
 
             List<Film> result = filmService.getPopularFilms(-5);
 
             assertEquals(10, result.size());
+            verify(filmDbStorage, times(1)).getPopularFilms(10);
         }
 
         @Test
         @DisplayName("Получение популярных фильмов - пустой список")
         void getPopularFilms_EmptyList_ReturnsEmptyListTest() {
-            when(filmStorage.getAllFilms()).thenReturn(List.of());
+            when(filmDbStorage.getPopularFilms(10)).thenReturn(List.of());
 
             List<Film> result = filmService.getPopularFilms(10);
 
             assertTrue(result.isEmpty());
+            verify(filmDbStorage, times(1)).getPopularFilms(10);
         }
 
         @Test
@@ -340,41 +478,16 @@ class FilmServiceImplTest {
         void getPopularFilms_CountLargerThanList_ReturnsAllFilmsTest() {
             Film film1 = createTestFilm();
             film1.setId(1L);
-            film1.getLikes().add(1L);
 
             Film film2 = createTestFilm();
             film2.setId(2L);
 
-            when(filmStorage.getAllFilms()).thenReturn(List.of(film1, film2));
+            when(filmDbStorage.getPopularFilms(10)).thenReturn(List.of(film1, film2));
 
             List<Film> result = filmService.getPopularFilms(10);
 
             assertEquals(2, result.size());
-        }
-
-        @Test
-        @DisplayName("Получение популярных фильмов - сортировка по количеству лайков")
-        void getPopularFilms_SortedByLikesCountTest() {
-            Film film1 = createTestFilm();
-            film1.setId(1L);
-            film1.getLikes().add(1L);
-
-            Film film2 = createTestFilm();
-            film2.setId(2L);
-            film2.getLikes().addAll(List.of(1L, 2L, 3L));
-
-            Film film3 = createTestFilm();
-            film3.setId(3L);
-            film3.getLikes().addAll(List.of(1L, 2L));
-
-            when(filmStorage.getAllFilms()).thenReturn(List.of(film1, film2, film3));
-
-            List<Film> result = filmService.getPopularFilms(3);
-
-            assertEquals(3, result.size());
-            assertEquals(2L, result.get(0).getId());
-            assertEquals(3L, result.get(1).getId());
-            assertEquals(1L, result.get(2).getId());
+            verify(filmDbStorage, times(1)).getPopularFilms(10);
         }
     }
 }

@@ -7,8 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Data
 @Builder
@@ -38,7 +38,7 @@ public class User {
     private LocalDate birthday;
 
     @Builder.Default
-    private Set<Long> friends = ConcurrentHashMap.newKeySet();
+    private Set<Long> friends = new HashSet<>();
 
     public static User copyWithId(User source, Long newId) {
         return User.builder()
@@ -47,11 +47,11 @@ public class User {
                 .login(source.getLogin())
                 .name(source.getName())
                 .birthday(source.getBirthday())
+                .friends(source.getFriends() != null ? new HashSet<>(source.getFriends()) : new HashSet<>())
                 .build();
     }
 
     public String getName() {
         return name == null || name.isBlank() ? login : name;
     }
-
 }

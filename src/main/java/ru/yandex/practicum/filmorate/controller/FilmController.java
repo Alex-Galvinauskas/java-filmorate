@@ -20,9 +20,8 @@ import java.util.List;
 @Slf4j
 public class FilmController extends AbstractController<Film, FilmService> {
 
-
     public FilmController(FilmService filmService) {
-        super(filmService, "фильма");
+        super(filmService, "фильм");
     }
 
     @Override

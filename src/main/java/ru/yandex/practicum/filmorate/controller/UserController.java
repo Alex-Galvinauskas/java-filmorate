@@ -18,11 +18,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/users")
 @Slf4j
-    public class UserController extends AbstractController<User, UserService> {
-
+public class UserController extends AbstractController<User, UserService> {
 
     public UserController(UserService userService) {
-        super(userService, "пользователя");
+        super(userService, "пользователь");
     }
 
     @Override
@@ -74,6 +73,12 @@ import java.util.List;
         return friends;
     }
 
+    /**
+     * Получает список общих друзей двух пользователей
+     * @param id - id первого пользователя
+     * @param otherId - id второго пользователя
+     * @return - список общих друзей
+     */
     @GetMapping("/{id}/friends/common/{otherId}")
     public List<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
         log.info("Получен запрос на получение общих друзей пользователей {} и {}", id, otherId);

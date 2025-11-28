@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.annotation.MinReleaseDate;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -40,6 +41,10 @@ public class Film {
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Integer duration;
 
+    private Mpa mpa;
+
+    private List<Genre> genres;
+
     @Builder.Default
     private Set<Long> likes = ConcurrentHashMap.newKeySet();
 
@@ -49,12 +54,16 @@ public class Film {
             @JsonProperty("name") String name,
             @JsonProperty("description") String description,
             @JsonProperty("releaseDate") LocalDate releaseDate,
-            @JsonProperty("duration") Integer duration) {
+            @JsonProperty("duration") Integer duration,
+            @JsonProperty("mpa") Mpa mpa,
+            @JsonProperty("genres") List<Genre> genres) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.releaseDate = releaseDate;
         this.duration = duration;
+        this.mpa = mpa;
+        this.genres = genres;
         this.likes = ConcurrentHashMap.newKeySet();
     }
 
@@ -74,6 +83,8 @@ public class Film {
                 .description(source.getDescription())
                 .releaseDate(source.getReleaseDate())
                 .duration(source.getDuration())
+                .mpa(source.getMpa())
+                .genres(source.getGenres())
                 .likes(copiedLikes)
                 .build();
     }

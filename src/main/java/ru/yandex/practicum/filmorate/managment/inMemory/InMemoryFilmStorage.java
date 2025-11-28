@@ -4,10 +4,10 @@
  * Генерирует уникальные идентификаторы для новых фильмов с помощью AtomicLong.
  * Использует дополнительный индекс для быстрого поиска фильмов по названию и году выпуска.
  *
- * @see ru.yandex.practicum.filmorate.managment.FilmStorage
+ * @see ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage
  * @see ru.yandex.practicum.filmorate.model.Film
  */
-package ru.yandex.practicum.filmorate.managment;
+package ru.yandex.practicum.filmorate.managment.inMemory;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -172,6 +172,19 @@ public class InMemoryFilmStorage implements FilmStorage {
             filmIndex.put(newKey, newFilm.getId());
             log.debug("Добавлена новая запись в индекс: {} -> ID {}", newKey, newFilm.getId());
         }
+    }
+
+    @Override
+    public boolean existsFilmByNameAndReleaseYearExcludingId(String name, Integer releaseYear, Long excludedId) {
+        if (name == null || releaseYear == null) {
+            log.debug("Попытка поиска фильма с null названием или годом выпуска");
+            return false;
+        }
+
+        FilmKey key = new FilmKey(name.toLowerCase(), releaseYear);
+        Long foundFilmId = filmIndex.get(key);
+
+        return foundFilmId != null && !foundFilmId.equals(excludedId);
     }
 
     /**

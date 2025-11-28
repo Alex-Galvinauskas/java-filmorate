@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.managment.inMemory.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
