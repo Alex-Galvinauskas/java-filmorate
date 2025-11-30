@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.managment.UserStorage;
+import ru.yandex.practicum.filmorate.managment.inMemory.UserStorage;
 import ru.yandex.practicum.filmorate.model.User;
 
 @Component

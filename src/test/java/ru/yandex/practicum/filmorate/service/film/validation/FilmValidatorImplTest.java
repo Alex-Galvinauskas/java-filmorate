@@ -8,7 +8,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
-import ru.yandex.practicum.filmorate.managment.FilmStorage;
+import ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
@@ -62,8 +62,8 @@ class FilmValidatorImplTest {
                 .build();
 
         assertDoesNotThrow(() -> filmValidator.validateFilmUniquenessForUpdate(existingFilm, updatedFilm));
-        verify(filmStorage, never()).existsFilmByNameAndReleaseYear(anyString(),
-                anyInt());
+        verify(filmStorage, never())
+                .existsFilmByNameAndReleaseYear(anyString(), anyInt());
     }
 
     @Test

@@ -5,7 +5,7 @@
  * Делегирует операции хранения данных объекту FilmStorage.
  *
  * @see ru.yandex.practicum.filmorate.service.film.FilmService
- * @see ru.yandex.practicum.filmorate.managment.FilmStorage
+ * @see ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage
  * @see ru.yandex.practicum.filmorate.model.Film
  */
 package ru.yandex.practicum.filmorate.service.film;
@@ -13,15 +13,17 @@ package ru.yandex.practicum.filmorate.service.film;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.managment.FilmStorage;
+import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
+import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,32 +31,43 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FilmServiceImpl implements FilmService {
 
-    private final FilmStorage filmStorage;
+    private final FilmDbStorage filmDbStorage;
     private final FilmValidatorRules filmValidator;
     private final UserService userService;
+    private final MpaService mpaService;
+    private final GenreService genreService;
+    private final FilmMapper filmMapper;
 
     /**
      * Создает новый фильм с проверкой уникальности.
      * Проверяет, что фильм с таким же названием и годом выпуска не существует.
      * Присваивает фильму уникальный идентификатор.
      *
-     * @param film фильм для создания
+     * @param filmDTO фильм для создания
      *
      * @return созданный фильм с присвоенным ID
      *
      * @throws DuplicateException если фильм с таким названием и годом выпуска уже существует
      */
     @Override
-    public Film createFilm(Film film) {
-        log.info("Создание нового фильма: {}", film);
+    public FilmDTO createFilm(FilmDTO filmDTO) {
+        log.debug("Создание нового фильма с releaseDate: {}", filmDTO.getReleaseDate());
 
-        filmValidator.validateFilmUniqueness(film.getName(), film.getReleaseDate().getYear());
+        validateMpa(filmDTO.getMpa());
 
-        return filmStorage.createFilm(film);
+        Film film = filmMapper.toEntity(filmDTO);
+        validateAndPrepareGenres(film);
+
+        Film createdFilm = filmDbStorage.createFilm(film);
+        FilmDTO result = filmMapper.toDTO(createdFilm);
+
+        log.debug("Создан фильм с ID: {}, releaseDate: {}", result.getId(), result.getReleaseDate());
+        return result;
     }
 
     /**
      * Добавляет лайк фильму.
+     *
      * @param filmId id фильма
      * @param userId id пользователя
      *
@@ -62,15 +75,12 @@ public class FilmServiceImpl implements FilmService {
      */
     @Override
     public void addLike(Long filmId, Long userId) {
-        log.info("Добавление лайка фильму с ID: {} от пользователя {}", filmId, userId);
+        log.debug("Добавление лайка фильму с ID: {} от пользователя {}", filmId, userId);
 
-        Film film = getFilmById(filmId);
+        getFilmById(filmId);
         userService.getUserById(userId);
 
-        film.getLikes().add(userId);
-        Film updatedFilm = filmStorage.updateFilm(film);
-
-        log.debug("Лайк добавлен. Текущее количество лайков: {}", updatedFilm.getLikes().size());
+        filmDbStorage.addLike(filmId, userId);
     }
 
     /**
@@ -80,27 +90,29 @@ public class FilmServiceImpl implements FilmService {
      * @return список всех фильмов
      */
     @Override
-    public List<Film> getAllFilms() {
-        log.info("Получение списка всех фильмов");
-        return filmStorage.getAllFilms();
+    public List<FilmDTO> getAllFilms() {
+        log.debug("Получение списка всех фильмов");
+        return filmDbStorage.getAllFilms().stream()
+                .map(filmMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     /**
      * Возвращает список популярных фильмов.
      * Популярность определяется количеством лайков.
+     *
      * @param count количество фильмов (если null или отрицательное, то по умолчанию)
+     *
      * @return список популярных фильмов, сортированных по количеству лайков по убыванию
      */
     @Override
-    public List<Film> getPopularFilms(Integer count) {
-        log.info("Получение списка популярных фильмов. Количество: {}", count);
+    public List<FilmDTO> getPopularFilms(Integer count) {
+        log.debug("Получение списка популярных фильмов. Количество: {}", count);
 
-        int filmsCount = (count != null) && (count >= 0) ? count : 10;
+        int filmsCount = (count != null) && (count > 0) ? count : 10;
 
-        return filmStorage.getAllFilms().stream()
-                .sorted((Comparator.comparingInt((Film film) ->
-                        film.getLikes().size()).reversed()))
-                .limit(filmsCount)
+        return filmDbStorage.getPopularFilms(filmsCount).stream()
+                .map(filmMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -115,10 +127,11 @@ public class FilmServiceImpl implements FilmService {
      * @throws NotFoundException если фильм с указанным ID не найден
      */
     @Override
-    public Film getFilmById(Long id) {
-        log.info("Получение фильма по ID: {}", id);
-        return filmStorage.getFilmById(id)
+    public FilmDTO getFilmById(Long id) {
+        log.debug("Получение фильма по ID: {}", id);
+        Film film = filmDbStorage.getFilmById(id)
                 .orElseThrow(() -> new NotFoundException("Фильм с ID " + id + " не найден"));
+        return filmMapper.toDTO(film);
     }
 
     /**
@@ -126,7 +139,7 @@ public class FilmServiceImpl implements FilmService {
      * Проверяет существование фильма и уникальность новых значений названия и года выпуска.
      * Разрешает обновление если ключевые поля (название и год) не изменились.
      *
-     * @param film фильм с обновленными данными
+     * @param filmDTO фильм с обновленными данными
      *
      * @return обновленный фильм
      *
@@ -134,14 +147,20 @@ public class FilmServiceImpl implements FilmService {
      * @throws DuplicateException если фильм с новым названием и годом выпуска уже существует
      */
     @Override
-    public Film updateFilm(Film film) {
-        log.info("Обновление фильма с ID: {}", film.getId());
+    public FilmDTO updateFilm(FilmDTO filmDTO) {
+        log.debug("Обновление фильма с ID: {}", filmDTO.getId());
 
-        Film existingFilm = getFilmById(film.getId());
+        FilmDTO existingFilm = getFilmById(filmDTO.getId());
 
-        filmValidator.validateFilmUniquenessForUpdate(existingFilm, film);
+        validateMpa(filmDTO.getMpa());
 
-        return filmStorage.updateFilm(film);
+        Film film = filmMapper.toEntity(filmDTO);
+        validateAndPrepareGenres(film);
+
+        filmValidator.validateFilmUniquenessForUpdate(filmMapper.toEntity(existingFilm), film);
+
+        Film updatedFilm = filmDbStorage.updateFilm(film);
+        return filmMapper.toDTO(updatedFilm);
     }
 
     /**
@@ -155,16 +174,63 @@ public class FilmServiceImpl implements FilmService {
      */
     @Override
     public void removeLike(Long filmId, Long userId) {
-        log.info("Удаление лайка фильму с ID: {} от пользователя {}", filmId, userId);
+        log.debug("Удаление лайка фильму с ID: {} от пользователя {}", filmId, userId);
 
-        Film film = getFilmById(filmId);
+        getFilmById(filmId);
         userService.getUserById(userId);
 
-        if (!film.getLikes().remove(userId)) {
-            log.warn("Попытка удалить несуществующий лайк фильма с ID: {} от пользователя {}", filmId, userId);
-        } else {
-            Film updatedFilm = filmStorage.updateFilm(film);
-            log.debug("Лайк удален. Теперь у фильма с ID: {} {} лайков", updatedFilm.getLikes().size(), filmId);
+        filmDbStorage.removeLike(filmId, userId);
+    }
+
+    /**
+     * Валидирует и подготавливает список жанров для фильма
+     * Убирает дубликаты и проверяет существование жанров
+     */
+    private void validateAndPrepareGenres(Film film) {
+        if (film == null) {
+            log.debug("Film is null, skipping genre validation");
+            return;
         }
+
+        log.debug("Начальная валидация жанров для фильма: {}", film.getGenres());
+
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            List<Genre> distinctGenres = film.getGenres().stream()
+                    .filter(genre -> genre.getId() != null)
+                    .collect(Collectors.toMap(
+                            Genre::getId,
+                            genre -> genre,
+                            (existing, replacement) -> existing
+                    ))
+                    .values()
+                    .stream()
+                    .sorted(Comparator.comparing(Genre::getId))
+                    .collect(Collectors.toList());
+
+            log.debug("Жанры после удаления дубликатов и сортировки: {}", distinctGenres);
+
+            for (Genre genre : distinctGenres) {
+                genreService.getGenreById(genre.getId());
+            }
+
+            film.setGenres(distinctGenres);
+            log.debug("Финальный список жанров для фильма: {}", film.getGenres());
+        } else {
+            log.debug("Жанры не указаны или пусты");
+        }
+    }
+
+    /**
+     * Валидирует MPA рейтинг
+     */
+    private void validateMpa(ru.yandex.practicum.filmorate.dto.MpaDTO mpa) {
+        if (mpa == null) {
+            throw new IllegalArgumentException("MPA рейтинг не может быть null");
+        }
+        if (mpa.getId() == null) {
+            throw new IllegalArgumentException("ID MPA рейтинга не может быть null");
+        }
+
+        mpaService.getMpaById(mpa.getId());
     }
 }

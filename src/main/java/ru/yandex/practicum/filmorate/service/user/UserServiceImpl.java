@@ -4,7 +4,7 @@
  * Обеспечивает проверку уникальности email и логина, нормализацию данных пользователя.
  *
  * @see ru.yandex.practicum.filmorate.service.user.UserService
- * @see ru.yandex.practicum.filmorate.managment.UserStorage
+ * @see ru.yandex.practicum.filmorate.managment.inMemory.UserStorage
  * @see User
  */
 package ru.yandex.practicum.filmorate.service.user;
@@ -12,24 +12,24 @@ package ru.yandex.practicum.filmorate.service.user;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dto.UserDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.managment.UserStorage;
+import ru.yandex.practicum.filmorate.managment.db.UserDbStorage;
+import ru.yandex.practicum.filmorate.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorRules;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
-    private final UserStorage userStorage;
+    private final UserDbStorage userDbStorage;
     private final UserValidatorRules userValidator;
+    private final UserMapper userMapper;
     private static final boolean DEFAULT_NAME_FROM_LOGIN = true;
 
     /**
@@ -37,19 +37,22 @@ public class UserServiceImpl implements UserService {
      * Проверяет уникальность email и логина, устанавливает имя из логина если имя не указано.
      * Выполняет нормализацию данных пользователя.
      *
-     * @param user пользователь для создания
+     * @param userDTO пользователь для создания
      *
      * @return созданный пользователь
      *
      * @throws DuplicateException если пользователь с таким email или логином уже существует
      */
-    public User createUser(User user) {
-        log.info("Создание нового пользователя.");
+    @Override
+    public UserDTO createUser(UserDTO userDTO) {
+        log.debug("Создание нового пользователя");
 
-        userValidator.validateForCreate(user);
+        userValidator.validateForCreate(userMapper.toEntity(userDTO));
+        User user = userMapper.toEntity(userDTO);
         normalizeUser(user);
 
-        return userStorage.createUser(user);
+        User createdUser = userDbStorage.createUser(user);
+        return userMapper.toDTO(createdUser);
     }
 
     /**
@@ -62,15 +65,16 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void addFriend(Long userId, Long friendId) {
-        log.info("Добавление пользователя {} в друзья пользователя {}.", friendId, userId);
+        log.debug("Добавление пользователя {} в друзья пользователя {}", friendId, userId);
 
-        User user = userValidator.validateUserExist(userId);
-        User friend = userValidator.validateUserExist(friendId);
+        userValidator.validateUserExist(userId);
+        userValidator.validateUserExist(friendId);
 
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
+        if (userId.equals(friendId)) {
+            throw new IllegalArgumentException("Нельзя добавить себя в друзья");
+        }
 
-        log.debug("Пользователи {} и {} теперь в друзья.", userId, friendId);
+        userDbStorage.addFriend(userId, friendId);
     }
 
      /**
@@ -78,10 +82,13 @@ public class UserServiceImpl implements UserService {
      *
      * @return список всех пользователей
      */
-    public List<User> getAllUsers() {
-        log.info("Получение списка всех пользователей.");
-        return userStorage.getAllUsers();
-    }
+     @Override
+     public List<UserDTO> getAllUsers() {
+         log.debug("Получение списка всех пользователей");
+         return userDbStorage.getAllUsers().stream()
+                 .map(userMapper::toDTO)
+                 .collect(Collectors.toList());
+     }
 
     /**
      * Находит пользователя по идентификатору.
@@ -92,8 +99,10 @@ public class UserServiceImpl implements UserService {
      *
      * @throws NotFoundException если пользователь с указанным ID не найден
      */
-    public User getUserById(Long id) {
-        return userValidator.validateUserExist(id);
+    @Override
+    public UserDTO getUserById(Long id) {
+        User user = userValidator.validateUserExist(id);
+        return userMapper.toDTO(user);
     }
 
 
@@ -105,15 +114,13 @@ public class UserServiceImpl implements UserService {
      * @throws NotFoundException если пользователь с указанным ID не найден
      */
     @Override
-    public List<User> getFriends(Long userId) {
-        log.info("Получение списка друзей пользователя {}.", userId);
+    public List<UserDTO> getFriends(Long userId) {
+        log.debug("Получение списка друзей пользователя {}", userId);
 
-        User user = userValidator.validateUserExist(userId);
+        userValidator.validateUserExist(userId);
 
-        return user.getFriends().stream()
-                .map(userStorage::getUserById)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+        return userDbStorage.getFriends(userId).stream()
+                .map(userMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -127,19 +134,14 @@ public class UserServiceImpl implements UserService {
      * @throws NotFoundException если один или оба пользователя не существует
      */
     @Override
-    public List<User> getCommonFriends(Long userId1, Long userId2) {
-        log.info("Получение общих друзей пользователей {}, {}.", userId1, userId2);
+    public List<UserDTO> getCommonFriends(Long userId1, Long userId2) {
+        log.debug("Получение общих друзей пользователей {}, {}", userId1, userId2);
 
-        User user1 = userValidator.validateUserExist(userId1);
-        User user2 = userValidator.validateUserExist(userId2);
+        userValidator.validateUserExist(userId1);
+        userValidator.validateUserExist(userId2);
 
-        Set<Long> commonFriendsIds = new HashSet<>(user1.getFriends());
-        commonFriendsIds.retainAll(user2.getFriends());
-
-        return commonFriendsIds.stream()
-                .map(userStorage::getUserById)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+        return userDbStorage.getCommonFriends(userId1, userId2).stream()
+                .map(userMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -148,20 +150,23 @@ public class UserServiceImpl implements UserService {
      * Проверяет существование пользователя, уникальность новых email и логина.
      * Устанавливает имя из логина если имя не указано, выполняет нормализацию данных.
      *
-     * @param user пользователь с обновленными данными
+     * @param userDTO пользователь с обновленными данными
      *
      * @return обновленный пользователь
      *
      * @throws NotFoundException  если пользователь с указанным ID не найден
      * @throws DuplicateException если пользователь с новым email или логином уже существует
      */
-    public User updateUser(User user) {
-        log.info("Обновление данных пользователя.");
+    @Override
+    public UserDTO updateUser(UserDTO userDTO) {
+        log.debug("Обновление данных пользователя");
 
-        userValidator.validateForUpdate(user);
+        userValidator.validateForUpdate(userMapper.toEntity(userDTO));
+        User user = userMapper.toEntity(userDTO);
         normalizeUser(user);
 
-        return userStorage.updateUser(user);
+        User updatedUser = userDbStorage.updateUser(user);
+        return userMapper.toDTO(updatedUser);
     }
 
 
@@ -175,15 +180,12 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void removeFriend(Long userId, Long friendId) {
-        log.info("Удаление пользователя {} из друзей пользователя {}.", friendId, userId);
+        log.debug("Удаление пользователя {} из друзей пользователя {}", friendId, userId);
 
-        User user = userValidator.validateUserExist(userId);
-        User friend = userValidator.validateUserExist(friendId);
+        userValidator.validateUserExist(userId);
+        userValidator.validateUserExist(friendId);
 
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
-
-        log.debug("Пользователи {} и {} больше не друзья.", userId, friendId);
+        userDbStorage.removeFriend(userId, friendId);
     }
 
     private void normalizeUser(User user) {

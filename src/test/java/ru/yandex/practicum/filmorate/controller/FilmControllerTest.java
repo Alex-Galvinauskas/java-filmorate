@@ -12,7 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.service.film.FilmService;
 
 import java.time.LocalDate;
@@ -41,8 +41,8 @@ class FilmControllerTest {
     private FilmController filmController;
 
     private ObjectMapper objectMapper;
-    private Film testFilm;
-    private Film testFilm2;
+    private FilmDTO testFilmDTO;
+    private FilmDTO testFilmDTO2;
 
     @BeforeEach
     void setUp() {
@@ -51,7 +51,7 @@ class FilmControllerTest {
 
         mockMvc = MockMvcBuilders.standaloneSetup(filmController).build();
 
-        testFilm = Film.builder()
+        testFilmDTO = FilmDTO.builder()
                 .id(1L)
                 .name("Test Film")
                 .description("Test Description")
@@ -59,7 +59,7 @@ class FilmControllerTest {
                 .duration(120)
                 .build();
 
-        testFilm2 = Film.builder()
+        testFilmDTO2 = FilmDTO.builder()
                 .id(2L)
                 .name("Another Film")
                 .description("Another Description")
@@ -75,23 +75,24 @@ class FilmControllerTest {
         @Test
         @DisplayName("Создание фильма возвращает созданный фильм")
         void createFilm_ShouldReturnCreatedFilmTest() throws Exception {
-            when(filmService.createFilm(any(Film.class))).thenReturn(testFilm);
+            when(filmService.createFilm(any(FilmDTO.class))).thenReturn(testFilmDTO);
 
             mockMvc.perform(post("/films")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(testFilm)))
+                            .content(objectMapper.writeValueAsString(testFilmDTO)))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id", is(1)))
                     .andExpect(jsonPath("$.name", is("Test Film")))
                     .andExpect(jsonPath("$.description", is("Test Description")));
 
-            verify(filmService, times(1)).createFilm(any(Film.class));
+            verify(filmService, times(1))
+                    .createFilm(any(FilmDTO.class));
         }
 
         @Test
         @DisplayName("Получение всех фильмов возвращает список фильмов")
         void getAllFilms_ShouldReturnListOfFilmsTest() throws Exception {
-            List<Film> films = Arrays.asList(testFilm, testFilm2);
+            List<FilmDTO> films = Arrays.asList(testFilmDTO, testFilmDTO2);
             when(filmService.getAllFilms()).thenReturn(films);
 
             mockMvc.perform(get("/films"))
@@ -106,7 +107,7 @@ class FilmControllerTest {
         @Test
         @DisplayName("Получение фильма по ID возвращает фильм")
         void getFilmById_ShouldReturnFilmTest() throws Exception {
-            when(filmService.getFilmById(1L)).thenReturn(testFilm);
+            when(filmService.getFilmById(1L)).thenReturn(testFilmDTO);
 
             mockMvc.perform(get("/films/1"))
                     .andExpect(status().isOk())
@@ -119,7 +120,7 @@ class FilmControllerTest {
         @Test
         @DisplayName("Обновление фильма возвращает обновленный фильм")
         void updateFilm_ShouldReturnUpdatedFilmTest() throws Exception {
-            Film updatedFilm = Film.builder()
+            FilmDTO updatedFilmDTO = FilmDTO.builder()
                     .id(1L)
                     .name("Updated Film")
                     .description("Updated Description")
@@ -127,16 +128,17 @@ class FilmControllerTest {
                     .duration(130)
                     .build();
 
-            when(filmService.updateFilm(any(Film.class))).thenReturn(updatedFilm);
+            when(filmService.updateFilm(any(FilmDTO.class))).thenReturn(updatedFilmDTO);
 
             mockMvc.perform(put("/films")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(updatedFilm)))
+                            .content(objectMapper.writeValueAsString(updatedFilmDTO)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.name", is("Updated Film")))
                     .andExpect(jsonPath("$.duration", is(130)));
 
-            verify(filmService, times(1)).updateFilm(any(Film.class));
+            verify(filmService, times(1))
+                    .updateFilm(any(FilmDTO.class));
         }
     }
 
@@ -174,7 +176,7 @@ class FilmControllerTest {
         @Test
         @DisplayName("Получение популярных фильмов с указанным количеством возвращает фильмы")
         void getPopularFilms_ShouldReturnPopularFilmsTest() throws Exception {
-            List<Film> popularFilms = Arrays.asList(testFilm2, testFilm);
+            List<FilmDTO> popularFilms = Arrays.asList(testFilmDTO2, testFilmDTO);
             when(filmService.getPopularFilms(2)).thenReturn(popularFilms);
 
             mockMvc.perform(get("/films/popular")
@@ -190,7 +192,7 @@ class FilmControllerTest {
         @Test
         @DisplayName("Получение популярных фильмов без указания количества использует значение по умолчанию")
         void getPopularFilms_WithDefaultCount_ShouldUseDefaultValueTest() throws Exception {
-            List<Film> popularFilms = Collections.singletonList(testFilm);
+            List<FilmDTO> popularFilms = Collections.singletonList(testFilmDTO);
             when(filmService.getPopularFilms(10)).thenReturn(popularFilms);
 
             mockMvc.perform(get("/films/popular"))
@@ -203,7 +205,7 @@ class FilmControllerTest {
         @Test
         @DisplayName("Получение популярных фильмов с нулевым количеством возвращает пустой список")
         void getPopularFilms_WithZeroCount_ShouldReturnEmptyListTest() throws Exception {
-            List<Film> popularFilms = Collections.emptyList();
+            List<FilmDTO> popularFilms = Collections.emptyList();
             when(filmService.getPopularFilms(0)).thenReturn(popularFilms);
 
             mockMvc.perform(get("/films/popular")

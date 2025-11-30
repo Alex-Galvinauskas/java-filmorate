@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import ru.yandex.practicum.filmorate.dto.UserDTO;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -29,14 +30,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с валидными данными не вызывает нарушений валидации")
     void createUser_ValidUser_NoViolations() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login("valid_login")
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertTrue(violations.isEmpty());
     }
@@ -44,14 +45,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с некорректным email вызывает нарушение валидации")
     void createUser_InvalidEmail_Violation() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("invalid-email")
                 .login("valid-login")
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream()
@@ -61,14 +62,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с пустым логином вызывает нарушение валидации")
     void createUser_EmptyLogin_Violation() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login("")
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream()
@@ -79,14 +80,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с слишком коротким логином вызывает нарушение валидации")
     void createUser_TooShortLogin_Violation() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login("abc")
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream()
@@ -97,14 +98,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с недопустимыми символами в логине вызывает нарушение валидации")
     void createUser_InvalidLoginCharacters_Violation() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login("invalid login!")
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream()
@@ -115,14 +116,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с датой рождения в будущем вызывает нарушение валидации")
     void createUser_FutureBirthday_Violation() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login("valid-login")
                 .name("Valid User")
                 .birthday(LocalDate.now().plusDays(1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream()
@@ -133,14 +134,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с null email вызывает нарушение валидации")
     void createUser_NullEmail_Violation() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email(null)
                 .login("valid-login")
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream()
@@ -151,14 +152,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с null логином вызывает нарушение валидации")
     void createUser_NullLogin_Violation() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login(null)
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream()
@@ -169,14 +170,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с слишком длинным логином вызывает нарушение валидации")
     void createUser_TooLongLogin_Violation() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login("thisloginistoolongforthevalidation")
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream()
@@ -187,14 +188,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с кириллическими символами в логине - валидно")
     void createUser_CyrillicLogin_Valid() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login("логин")
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertTrue(violations.isEmpty());
     }
@@ -202,14 +203,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с подчеркиванием в логине - валидно")
     void createUser_LoginWithUnderscore_Valid() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login("user_name")
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertTrue(violations.isEmpty());
     }
@@ -217,14 +218,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с цифрами в логине - валидно")
     void createUser_LoginWithNumbers_Valid() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login("user123")
                 .name("Valid User")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertTrue(violations.isEmpty());
     }
@@ -232,14 +233,14 @@ class UserValidationTest {
     @Test
     @DisplayName("Создание пользователя с null датой рождения - валидно")
     void createUser_NullBirthday_Valid() {
-        User user = User.builder()
+        UserDTO user = UserDTO.builder()
                 .email("valid@example.com")
                 .login("valid_login")
                 .name("Valid User")
                 .birthday(null)
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<UserDTO>> violations = validator.validate(user);
 
         assertTrue(violations.isEmpty());
     }
@@ -525,7 +526,8 @@ class UserValidationTest {
         @Test
         @DisplayName("Пользователь с null ID не равен пользователю с установленным ID")
         void userWithNullId_NotEqualToUserWithIdTest() {
-            User userWithNullId = User.builder().id(null).email("test@example.com").login("login").build();
+            User userWithNullId = User.builder().id(null)
+                    .email("test@example.com").login("login").build();
             User userWithId = User.builder().id(1L).email("test@example.com").login("login").build();
 
             assertNotEquals(userWithNullId, userWithId);

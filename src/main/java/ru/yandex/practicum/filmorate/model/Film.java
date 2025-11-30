@@ -3,17 +3,17 @@ package ru.yandex.practicum.filmorate.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.yandex.practicum.filmorate.annotation.MinReleaseDate;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -25,20 +25,21 @@ public class Film {
 
     private Long id;
 
-    @NotBlank(message = "Название фильма не может быть пустым")
-    @Size(max = 100, message = "Название фильма не может быть длиннее 100 символов")
     private String name;
 
-    @Size(max = 200, message = "Описание фильма не может быть длиннее 200 символов")
     private String description;
 
-    @NotNull(message = "Дата релиза обязательна")
-    @MinReleaseDate
     @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonSerialize(using = LocalDateSerializer.class)
+    @JsonDeserialize(using = LocalDateDeserializer.class)
+    @JsonProperty("releaseDate")
     private LocalDate releaseDate;
 
-    @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Integer duration;
+
+    private Mpa mpa;
+
+    private List<Genre> genres;
 
     @Builder.Default
     private Set<Long> likes = ConcurrentHashMap.newKeySet();
@@ -49,12 +50,16 @@ public class Film {
             @JsonProperty("name") String name,
             @JsonProperty("description") String description,
             @JsonProperty("releaseDate") LocalDate releaseDate,
-            @JsonProperty("duration") Integer duration) {
+            @JsonProperty("duration") Integer duration,
+            @JsonProperty("mpa") Mpa mpa,
+            @JsonProperty("genres") List<Genre> genres) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.releaseDate = releaseDate;
         this.duration = duration;
+        this.mpa = mpa;
+        this.genres = genres;
         this.likes = ConcurrentHashMap.newKeySet();
     }
 
@@ -74,6 +79,8 @@ public class Film {
                 .description(source.getDescription())
                 .releaseDate(source.getReleaseDate())
                 .duration(source.getDuration())
+                .mpa(source.getMpa())
+                .genres(source.getGenres())
                 .likes(copiedLikes)
                 .build();
     }

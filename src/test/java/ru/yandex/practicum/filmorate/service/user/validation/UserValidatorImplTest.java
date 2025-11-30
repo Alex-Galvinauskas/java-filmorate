@@ -9,7 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.managment.UserStorage;
+import ru.yandex.practicum.filmorate.managment.inMemory.UserStorage;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;

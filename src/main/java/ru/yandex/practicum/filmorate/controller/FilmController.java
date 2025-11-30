@@ -1,90 +1,60 @@
-/**
- * Контроллер для управления операциями с фильмами.
- * Обрабатывает HTTP-запросы для создания, получения, обновления и управления фильмами.
- * Предоставляет REST API для работы с сущностью Film.
- *
- * @see ru.yandex.practicum.filmorate.model.Film
- * @see ru.yandex.practicum.filmorate.service.film.FilmService
- */
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.service.film.FilmService;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/films")
-@Slf4j
-public class FilmController extends AbstractController<Film, FilmService> {
-
+public class FilmController extends AbstractController<FilmDTO, FilmService> {
 
     public FilmController(FilmService filmService) {
-        super(filmService, "фильма");
+        super(filmService, "фильм");
     }
 
     @Override
-    protected Film createEntity(Film film) {
-        return service.createFilm(film);
+    protected FilmDTO createEntity(FilmDTO filmDTO) {
+        return service.createFilm(filmDTO);
     }
 
     @Override
-    protected List<Film> getAllEntities() {
+    protected List<FilmDTO> getAllEntities() {
         return service.getAllFilms();
     }
 
     @Override
-    protected Film getEntityById(Long id) {
+    protected FilmDTO getEntityById(Long id) {
         return service.getFilmById(id);
     }
 
     @Override
-    protected Film updateEntity(Film film) {
-        return service.updateFilm(film);
+    protected FilmDTO updateEntity(FilmDTO filmDTO) {
+        return service.updateFilm(filmDTO);
     }
 
-    /**
-     * Добавляет лайк фильму от пользователя.
-     * @param id - id фильма
-     * @param userId - id пользователя
-     */
+    @Override
+    protected Long getEntityId(FilmDTO filmDTO) {
+        return filmDTO.getId();
+    }
+
     @PutMapping("/{id}/like/{userId}")
-    public void addLike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Получен запрос на добавление лайка фильму с id {} от пользователя с id {}", id, userId);
-
+    public ResponseEntity<Void> addLike(@PathVariable Long id, @PathVariable Long userId) {
         service.addLike(id, userId);
-
-        log.info("Лайк фильму с id {} успешно добавлен", id);
+        return ResponseEntity.ok().build();
     }
 
-    /**
-     * Получает список популярных фильмов.
-     * @param count - количество фильмов (опционально)
-     * @return - список популярных фильмов
-     */
     @GetMapping("/popular")
-    public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
-        log.info("Получен запрос на получение популярных фильмов {}", count);
-
-        List<Film> popularFilms = service.getPopularFilms(count);
-
-        log.info("Получен список популярных фильмов {}", popularFilms.size());
-        return popularFilms;
+    public ResponseEntity<List<FilmDTO>> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
+        List<FilmDTO> popularFilms = service.getPopularFilms(count);
+        return ResponseEntity.ok(popularFilms);
     }
 
-    /**
-     * Удаляет лайк фильму от пользователя.
-     * @param id - id фильма
-     * @param userId - id пользователя
-     */
     @DeleteMapping("/{id}/like/{userId}")
-    public void deleteLike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Получен запрос на удаление лайка фильму с id {} от пользователя с id {}", id, userId);
-
+    public ResponseEntity<Void> deleteLike(@PathVariable Long id, @PathVariable Long userId) {
         service.removeLike(id, userId);
-
-        log.info("Лайк фильму с id {} от пользователя с id {} успешно удален", id, userId);
+        return ResponseEntity.ok().build();
     }
 }

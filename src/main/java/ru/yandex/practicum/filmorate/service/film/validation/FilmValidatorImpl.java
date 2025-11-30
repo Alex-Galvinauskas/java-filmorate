@@ -1,14 +1,10 @@
-/**
- * Компонент для валидации фильмов.
- * Может быть внедрен через dependency injection.
- */
 package ru.yandex.practicum.filmorate.service.film.validation;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
-import ru.yandex.practicum.filmorate.managment.FilmStorage;
+import ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage;
 import ru.yandex.practicum.filmorate.model.Film;
 
 @Component
@@ -21,15 +17,18 @@ public class FilmValidatorImpl implements FilmValidatorRules {
     /**
      * Проверяет уникальность фильма при обновлении.
      */
-    public void validateFilmUniquenessForUpdate(Film existingFilm,
-                                                Film updatedFilm) {
+    public void validateFilmUniquenessForUpdate(Film existingFilm, Film updatedFilm) {
+        if (existingFilm.getReleaseDate() == null || updatedFilm.getReleaseDate() == null) {
+            log.warn("ReleaseDate is null for film validation. Existing: {}, Updated: {}",
+                    existingFilm.getReleaseDate(), updatedFilm.getReleaseDate());
+            return;
+        }
 
         boolean nameChanged = !existingFilm.getName().equals(updatedFilm.getName());
         boolean yearChanged = existingFilm.getReleaseDate().getYear() != updatedFilm.getReleaseDate().getYear();
 
         if (nameChanged || yearChanged) {
-            validateFilmUniqueness(updatedFilm.getName(),
-                    updatedFilm.getReleaseDate().getYear());
+            validateFilmUniqueness(updatedFilm.getName(), updatedFilm.getReleaseDate().getYear());
         }
     }
 
@@ -44,8 +43,19 @@ public class FilmValidatorImpl implements FilmValidatorRules {
         }
     }
 
+    /**
+     * Проверяет уникальность фильма по названию и году выпуска, исключая указанный ID.
+     * (Этот метод теперь не используется в validateFilmUniquenessForUpdate)
+     */
+    private void validateFilmUniquenessExcludingId(String name, int releaseYear, Long excludedId) {
+        log.debug("Проверка уникальности фильма: {} ({}), исключая ID: {}", name, releaseYear, excludedId);
+
+        if (filmStorage.existsFilmByNameAndReleaseYearExcludingId(name, releaseYear, excludedId)) {
+            throw new DuplicateException(buildDuplicateErrorMessage(name, releaseYear));
+        }
+    }
+
     public String buildDuplicateErrorMessage(String name, int releaseYear) {
         return String.format("Фильм с названием '%s' и годом выхода '%s' уже существует", name, releaseYear);
     }
-
 }

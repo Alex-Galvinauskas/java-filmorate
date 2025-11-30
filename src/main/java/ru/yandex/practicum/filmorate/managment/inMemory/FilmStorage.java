@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.managment;
+package ru.yandex.practicum.filmorate.managment.inMemory;
 
 import ru.yandex.practicum.filmorate.model.Film;
 
@@ -17,4 +17,6 @@ public interface FilmStorage {
     boolean existsFilmById(Long id);
 
     boolean existsFilmByNameAndReleaseYear(String name, Integer releaseYear);
+
+    boolean existsFilmByNameAndReleaseYearExcludingId(String name, Integer releaseYear, Long excludedId);
 }

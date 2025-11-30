@@ -4,10 +4,10 @@
  * Поддерживает дополнительные индексы для быстрого поиска по email и логину.
  * Генерирует уникальные идентификаторы для новых пользователей с помощью AtomicLong.
  *
- * @see ru.yandex.practicum.filmorate.managment.UserStorage
+ * @see ru.yandex.practicum.filmorate.managment.inMemory.UserStorage
  * @see User
  */
-package ru.yandex.practicum.filmorate.managment;
+package ru.yandex.practicum.filmorate.managment.inMemory;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
