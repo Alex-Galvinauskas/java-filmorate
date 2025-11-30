@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.model;
 
-import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,19 +21,12 @@ public class User {
 
     private Long id;
 
-    @NotBlank(message = "Email не может быть пустым")
-    @Email(message = "Некорректный email")
     private String email;
 
-    @NotBlank(message = "Логин не может быть пустым")
-    @Size(min = LOGIN_MIN_LENGTH, max = LOGIN_MAX_LENGTH, message = "Логин должен быть от 4 до 20 символов")
-    @Pattern(regexp = LOGIN_PATTERN,
-            message = "Логин может содержать только буквы (латинские и русские), цифры и символ подчеркивания")
     private String login;
 
     private String name;
 
-    @Past(message = "Дата рождения не может быть в будущем")
     private LocalDate birthday;
 
     @Builder.Default

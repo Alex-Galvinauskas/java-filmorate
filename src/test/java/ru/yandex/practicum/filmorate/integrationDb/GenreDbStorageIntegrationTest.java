@@ -33,7 +33,7 @@ class GenreDbStorageIntegrationTest {
 
     @Test
     void shouldGetGenreById() {
-        Optional<Genre> genre = genreDbStorage.getGenreById(1);
+        Optional<Genre> genre = genreDbStorage.getGenreById(1L);
 
         assertThat(genre).isPresent();
         assertThat(genre.get().getName()).isEqualTo("Комедия");
@@ -41,7 +41,7 @@ class GenreDbStorageIntegrationTest {
 
     @Test
     void shouldReturnEmptyForNonExistingGenre() {
-        Optional<Genre> genre = genreDbStorage.getGenreById(999);
+        Optional<Genre> genre = genreDbStorage.getGenreById(999L);
 
         assertThat(genre).isEmpty();
     }

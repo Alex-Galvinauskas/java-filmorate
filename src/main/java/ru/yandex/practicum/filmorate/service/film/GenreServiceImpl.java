@@ -3,11 +3,14 @@ package ru.yandex.practicum.filmorate.service.film;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dto.GenreDTO;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.GenreDbStorage;
+import ru.yandex.practicum.filmorate.mapper.GenreMapper;
 import ru.yandex.practicum.filmorate.model.Genre;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -15,17 +18,21 @@ import java.util.List;
 public class GenreServiceImpl implements GenreService {
 
     private final GenreDbStorage genreDbStorage;
+    private final GenreMapper genreMapper;
 
     @Override
-    public List<Genre> getAllGenres() {
-        log.info("Получение всех жанров");
-        return genreDbStorage.getAllGenres();
+    public List<GenreDTO> getAllGenres() {
+        log.debug("Получение всех жанров");
+        return genreDbStorage.getAllGenres().stream()
+                .map(genreMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public Genre getGenreById(Integer id) {
-        log.info("Получение жанра по ID: {}", id);
-        return genreDbStorage.getGenreById(id)
+    public GenreDTO getGenreById(Long id) {
+        log.debug("Получение жанра по ID: {}", id);
+        Genre genre = genreDbStorage.getGenreById(id)
                 .orElseThrow(() -> new NotFoundException("Жанр с ID " + id + " не найден"));
+        return genreMapper.toDTO(genre);
     }
 }

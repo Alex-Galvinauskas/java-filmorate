@@ -18,6 +18,12 @@ public class FilmValidatorImpl implements FilmValidatorRules {
      * Проверяет уникальность фильма при обновлении.
      */
     public void validateFilmUniquenessForUpdate(Film existingFilm, Film updatedFilm) {
+        if (existingFilm.getReleaseDate() == null || updatedFilm.getReleaseDate() == null) {
+            log.warn("ReleaseDate is null for film validation. Existing: {}, Updated: {}",
+                    existingFilm.getReleaseDate(), updatedFilm.getReleaseDate());
+            return;
+        }
+
         boolean nameChanged = !existingFilm.getName().equals(updatedFilm.getName());
         boolean yearChanged = existingFilm.getReleaseDate().getYear() != updatedFilm.getReleaseDate().getYear();
 

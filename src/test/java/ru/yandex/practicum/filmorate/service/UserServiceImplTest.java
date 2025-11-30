@@ -7,9 +7,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ru.yandex.practicum.filmorate.dto.UserDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.UserDbStorage;
+import ru.yandex.practicum.filmorate.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.user.UserServiceImpl;
 import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorRules;
@@ -32,11 +34,24 @@ class UserServiceImplTest {
     @Mock
     private UserValidatorRules userValidator;
 
+    @Mock
+    private UserMapper userMapper;
+
     @InjectMocks
     private UserServiceImpl userService;
 
     private User createTestUser() {
         return User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .login("testlogin")
+                .name("Test User")
+                .birthday(LocalDate.of(1990, 1, 1))
+                .build();
+    }
+
+    private UserDTO createTestUserDTO() {
+        return UserDTO.builder()
                 .id(1L)
                 .email("test@example.com")
                 .login("testlogin")
@@ -52,47 +67,67 @@ class UserServiceImplTest {
         @Test
         @DisplayName("Создание пользователя с валидными данными возвращает созданного пользователя")
         void createUser_ValidUser_ReturnsCreatedUserTest() {
-            User user = createTestUser();
-            user.setId(null);
+            UserDTO inputDTO = createTestUserDTO();
+            inputDTO.setId(null);
+            User inputUser = createTestUser();
+            inputUser.setId(null);
+            User createdUser = createTestUser();
+            UserDTO expectedDTO = createTestUserDTO();
 
-            doNothing().when(userValidator).validateForCreate(user);
-            when(userDbStorage.createUser(any(User.class))).thenReturn(user);
+            when(userMapper.toEntity(inputDTO)).thenReturn(inputUser);
+            when(userMapper.toDTO(createdUser)).thenReturn(expectedDTO);
+            doNothing().when(userValidator).validateForCreate(inputUser);
+            when(userDbStorage.createUser(inputUser)).thenReturn(createdUser);
 
-            User result = userService.createUser(user);
+            UserDTO result = userService.createUser(inputDTO);
 
             assertNotNull(result);
+            assertEquals(expectedDTO.getId(), result.getId());
             assertEquals("test@example.com", result.getEmail());
             assertEquals("Test User", result.getName());
-            verify(userDbStorage, times(1)).createUser(any(User.class));
-            verify(userValidator, times(1)).validateForCreate(user);
+            verify(userDbStorage, times(1)).createUser(inputUser);
+            verify(userValidator, times(1)).validateForCreate(inputUser);
         }
 
         @Test
         @DisplayName("Создание пользователя с пустым именем устанавливает имя из логина")
         void createUser_EmptyName_SetsNameFromLoginTest() {
-            User user = createTestUser();
-            user.setId(null);
-            user.setName("  ");
+            UserDTO inputDTO = createTestUserDTO();
+            inputDTO.setId(null);
+            inputDTO.setName("  ");
+            User inputUser = createTestUser();
+            inputUser.setId(null);
+            inputUser.setName("  ");
+            User createdUser = createTestUser();
+            createdUser.setName("testlogin");
+            UserDTO expectedDTO = createTestUserDTO();
+            expectedDTO.setName("testlogin");
 
-            doNothing().when(userValidator).validateForCreate(user);
-            when(userDbStorage.createUser(any(User.class))).thenReturn(user);
+            when(userMapper.toEntity(inputDTO)).thenReturn(inputUser);
+            when(userMapper.toDTO(createdUser)).thenReturn(expectedDTO);
+            doNothing().when(userValidator).validateForCreate(inputUser);
+            when(userDbStorage.createUser(inputUser)).thenReturn(createdUser);
 
-            User result = userService.createUser(user);
+            UserDTO result = userService.createUser(inputDTO);
 
             assertNotNull(result);
             assertEquals("testlogin", result.getName());
+            verify(userDbStorage, times(1)).createUser(inputUser);
         }
 
         @Test
         @DisplayName("Создание дублирующего пользователя выбрасывает DuplicateException")
         void createUser_DuplicateUser_ThrowsDuplicateExceptionTest() {
+            UserDTO userDTO = createTestUserDTO();
+            userDTO.setId(null);
             User user = createTestUser();
             user.setId(null);
 
+            when(userMapper.toEntity(userDTO)).thenReturn(user);
             doThrow(new DuplicateException("Пользователь с таким email уже существует"))
-                    .when(userValidator).validateForCreate(any(User.class));
+                    .when(userValidator).validateForCreate(user);
 
-            assertThrows(DuplicateException.class, () -> userService.createUser(user));
+            assertThrows(DuplicateException.class, () -> userService.createUser(userDTO));
             verify(userDbStorage, never()).createUser(any(User.class));
         }
     }
@@ -105,27 +140,34 @@ class UserServiceImplTest {
         @DisplayName("Получение всех пользователей возвращает список пользователей")
         void getAllUsers_ReturnsUsersListTest() {
             User user = createTestUser();
-            when(userDbStorage.getAllUsers()).thenReturn(List.of(user));
+            UserDTO userDTO = createTestUserDTO();
 
-            List<User> result = userService.getAllUsers();
+            when(userDbStorage.getAllUsers()).thenReturn(List.of(user));
+            when(userMapper.toDTO(user)).thenReturn(userDTO);
+
+            List<UserDTO> result = userService.getAllUsers();
 
             assertEquals(1, result.size());
             assertEquals("test@example.com", result.getFirst().getEmail());
             verify(userDbStorage, times(1)).getAllUsers();
+            verify(userMapper, times(1)).toDTO(user);
         }
 
         @Test
         @DisplayName("Получение пользователя по существующему ID возвращает пользователя")
         void getUserById_ExistingId_ReturnsUserTest() {
             User user = createTestUser();
+            UserDTO userDTO = createTestUserDTO();
 
             when(userValidator.validateUserExist(1L)).thenReturn(user);
+            when(userMapper.toDTO(user)).thenReturn(userDTO);
 
-            User result = userService.getUserById(1L);
+            UserDTO result = userService.getUserById(1L);
 
             assertNotNull(result);
             assertEquals(1L, result.getId());
             verify(userValidator, times(1)).validateUserExist(1L);
+            verify(userMapper, times(1)).toDTO(user);
         }
 
         @Test
@@ -136,6 +178,7 @@ class UserServiceImplTest {
 
             assertThrows(NotFoundException.class, () -> userService.getUserById(999L));
             verify(userValidator, times(1)).validateUserExist(999L);
+            verify(userMapper, never()).toDTO(any(User.class));
         }
     }
 
@@ -146,30 +189,37 @@ class UserServiceImplTest {
         @Test
         @DisplayName("Обновление валидного пользователя возвращает обновленного пользователя")
         void updateUser_ValidUser_ReturnsUpdatedUserTest() {
+            UserDTO updatedUserDTO = createTestUserDTO();
+            updatedUserDTO.setName("Updated User");
             User updatedUser = createTestUser();
             updatedUser.setName("Updated User");
+            UserDTO expectedDTO = createTestUserDTO();
+            expectedDTO.setName("Updated User");
 
+            when(userMapper.toEntity(updatedUserDTO)).thenReturn(updatedUser);
+            when(userMapper.toDTO(updatedUser)).thenReturn(expectedDTO);
             doNothing().when(userValidator).validateForUpdate(updatedUser);
-            when(userDbStorage.updateUser(any(User.class))).thenReturn(updatedUser);
+            when(userDbStorage.updateUser(updatedUser)).thenReturn(updatedUser);
 
-            User result = userService.updateUser(updatedUser);
+            UserDTO result = userService.updateUser(updatedUserDTO);
 
             assertNotNull(result);
             assertEquals("Updated User", result.getName());
-            verify(userDbStorage, times(1))
-                    .updateUser(any(User.class));
+            verify(userDbStorage, times(1)).updateUser(updatedUser);
             verify(userValidator, times(1)).validateForUpdate(updatedUser);
         }
 
         @Test
         @DisplayName("Обновление несуществующего пользователя выбрасывает NotFoundException")
         void updateUser_NonExistingUser_ThrowsNotFoundExceptionTest() {
+            UserDTO userDTO = createTestUserDTO();
             User user = createTestUser();
 
+            when(userMapper.toEntity(userDTO)).thenReturn(user);
             doThrow(new NotFoundException("Пользователь не найден"))
-                    .when(userValidator).validateForUpdate(any(User.class));
+                    .when(userValidator).validateForUpdate(user);
 
-            assertThrows(NotFoundException.class, () -> userService.updateUser(user));
+            assertThrows(NotFoundException.class, () -> userService.updateUser(userDTO));
             verify(userDbStorage, never()).updateUser(any(User.class));
         }
     }
@@ -282,17 +332,21 @@ class UserServiceImplTest {
             Long userId = 1L;
             User friend = createTestUser();
             friend.setId(2L);
+            UserDTO friendDTO = createTestUserDTO();
+            friendDTO.setId(2L);
             User user1 = createTestUser();
 
             when(userValidator.validateUserExist(userId)).thenReturn(user1);
             when(userDbStorage.getFriends(userId)).thenReturn(List.of(friend));
+            when(userMapper.toDTO(friend)).thenReturn(friendDTO);
 
-            List<User> result = userService.getFriends(userId);
+            List<UserDTO> result = userService.getFriends(userId);
 
             assertEquals(1, result.size());
             assertEquals(2L, result.getFirst().getId());
             verify(userDbStorage, times(1)).getFriends(userId);
             verify(userValidator, times(1)).validateUserExist(userId);
+            verify(userMapper, times(1)).toDTO(friend);
         }
 
         @Test
@@ -314,6 +368,8 @@ class UserServiceImplTest {
             Long userId2 = 2L;
             User commonFriend = createTestUser();
             commonFriend.setId(3L);
+            UserDTO commonFriendDTO = createTestUserDTO();
+            commonFriendDTO.setId(3L);
             User user1 = createTestUser();
             User user2 = createTestUser();
             user2.setId(2L);
@@ -321,8 +377,9 @@ class UserServiceImplTest {
             when(userValidator.validateUserExist(userId1)).thenReturn(user1);
             when(userValidator.validateUserExist(userId2)).thenReturn(user2);
             when(userDbStorage.getCommonFriends(userId1, userId2)).thenReturn(List.of(commonFriend));
+            when(userMapper.toDTO(commonFriend)).thenReturn(commonFriendDTO);
 
-            List<User> result = userService.getCommonFriends(userId1, userId2);
+            List<UserDTO> result = userService.getCommonFriends(userId1, userId2);
 
             assertEquals(1, result.size());
             assertEquals(3L, result.getFirst().getId());
@@ -344,7 +401,7 @@ class UserServiceImplTest {
             when(userValidator.validateUserExist(userId2)).thenReturn(user2);
             when(userDbStorage.getCommonFriends(userId1, userId2)).thenReturn(List.of());
 
-            List<User> result = userService.getCommonFriends(userId1, userId2);
+            List<UserDTO> result = userService.getCommonFriends(userId1, userId2);
 
             assertTrue(result.isEmpty());
             verify(userDbStorage, times(1)).getCommonFriends(userId1, userId2);

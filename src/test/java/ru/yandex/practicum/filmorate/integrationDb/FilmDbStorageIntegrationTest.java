@@ -37,10 +37,10 @@ class FilmDbStorageIntegrationTest {
                 .description("Test Description")
                 .releaseDate(LocalDate.of(2020, 1, 1))
                 .duration(120)
-                .mpa(Mpa.builder().id(1).name("G").build())
+                .mpa(Mpa.builder().id(1L).name("G").build())
                 .genres(List.of(
-                        Genre.builder().id(1).name("Комедия").build(),
-                        Genre.builder().id(2).name("Драма").build()
+                        Genre.builder().id(1L).name("Комедия").build(),
+                        Genre.builder().id(2L).name("Драма").build()
                 ))
                 .build();
     }
@@ -68,8 +68,8 @@ class FilmDbStorageIntegrationTest {
                 .description("Updated Description")
                 .releaseDate(LocalDate.of(2021, 1, 1))
                 .duration(150)
-                .mpa(Mpa.builder().id(2).name("PG").build())
-                .genres(List.of(Genre.builder().id(3).name("Мультфильм").build()))
+                .mpa(Mpa.builder().id(2L).name("PG").build())
+                .genres(List.of(Genre.builder().id(3L).name("Мультфильм").build()))
                 .build();
 
         Film result = filmDbStorage.updateFilm(updatedFilm);
@@ -90,8 +90,8 @@ class FilmDbStorageIntegrationTest {
                 .description("Another Description")
                 .releaseDate(LocalDate.of(2021, 1, 1))
                 .duration(90)
-                .mpa(Mpa.builder().id(3).name("PG-13").build())
-                .genres(List.of(Genre.builder().id(4).name("Триллер").build()))
+                .mpa(Mpa.builder().id(3L).name("PG-13").build())
+                .genres(List.of(Genre.builder().id(4L).name("Триллер").build()))
                 .build();
         filmDbStorage.createFilm(film2);
 

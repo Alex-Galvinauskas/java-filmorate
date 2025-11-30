@@ -25,7 +25,7 @@ public class GenreDbStorage {
         return jdbcTemplate.query(sql, new GenreRowMapper());
     }
 
-    public Optional<Genre> getGenreById(Integer id) {
+    public Optional<Genre> getGenreById(Long id) {
         String sql = "SELECT * FROM genres WHERE id = ?";
         log.debug("Поиск жанра по ID: {}", id);
         List<Genre> result = jdbcTemplate.query(sql, new GenreRowMapper(), id);
@@ -44,7 +44,7 @@ public class GenreDbStorage {
         @Override
         public Genre mapRow(ResultSet rs, int rowNum) throws SQLException {
             return Genre.builder()
-                    .id(rs.getInt("id"))
+                    .id(rs.getLong("id"))
                     .name(rs.getString("name"))
                     .build();
         }

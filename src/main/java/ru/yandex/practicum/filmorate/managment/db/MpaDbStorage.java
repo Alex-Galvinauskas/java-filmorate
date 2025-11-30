@@ -25,7 +25,7 @@ public class MpaDbStorage {
         return jdbcTemplate.query(sql, new MpaRowMapper());
     }
 
-    public Optional<Mpa> getMpaById(Integer id) {
+    public Optional<Mpa> getMpaById(Long id) {
         String sql = "SELECT * FROM mpa_ratings WHERE id = ?";
         log.debug("Поиск рейтинга MPA по ID: {}", id);
         List<Mpa> result = jdbcTemplate.query(sql, new MpaRowMapper(), id);
@@ -36,7 +36,7 @@ public class MpaDbStorage {
         @Override
         public Mpa mapRow(ResultSet rs, int rowNum) throws SQLException {
             return Mpa.builder()
-                    .id(rs.getInt("id"))
+                    .id(rs.getLong("id"))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
                     .build();

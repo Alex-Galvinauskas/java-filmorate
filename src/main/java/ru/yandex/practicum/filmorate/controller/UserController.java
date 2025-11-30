@@ -1,105 +1,66 @@
-/**
- * Контроллер для управления операциями с пользователями.
- * Обрабатывает HTTP-запросы для создания, получения, обновления пользователей.
- * Предоставляет REST API для работы с сущностью User.
- *
- * @see User
- * @see ru.yandex.practicum.filmorate.service.user.UserService
- */
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.dto.UserDTO;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/users")
-@Slf4j
-public class UserController extends AbstractController<User, UserService> {
+public class UserController extends AbstractController<UserDTO, UserService> {
 
     public UserController(UserService userService) {
         super(userService, "пользователь");
     }
 
     @Override
-    protected User createEntity(User user) {
-        return service.createUser(user);
+    protected UserDTO createEntity(UserDTO userDTO) {
+        return service.createUser(userDTO);
     }
 
     @Override
-    protected List<User> getAllEntities() {
+    protected List<UserDTO> getAllEntities() {
         return service.getAllUsers();
     }
 
     @Override
-    protected User getEntityById(Long id) {
+    protected UserDTO getEntityById(Long id) {
         return service.getUserById(id);
     }
 
     @Override
-    protected User updateEntity(User user) {
-        return service.updateUser(user);
+    protected UserDTO updateEntity(UserDTO userDTO) {
+        return service.updateUser(userDTO);
     }
 
-    /**
-     * Добавляет пользователя в друзья
-     * @param id - id пользователя
-     * @param friendId - id друга для добавления
-     */
+    @Override
+    protected Long getEntityId(UserDTO userDTO) {
+        return userDTO.getId();
+    }
+
     @PutMapping("/{id}/friends/{friendId}")
-    public void addFriend(@PathVariable Long id, @PathVariable Long friendId) {
-        log.info("Получен запрос на добавление друга {} к пользователю {}", friendId, id);
-
+    public ResponseEntity<Void> addFriend(@PathVariable Long id, @PathVariable Long friendId) {
         service.addFriend(id, friendId);
-
-        log.info("Пользователь {} успешно добавлен в друзья {}", friendId, id);
+        return ResponseEntity.ok().build();
     }
 
-    /**
-     * Получает список друзей пользователя
-     * @param id - id пользователя
-     * @return - список друзей
-     */
     @GetMapping("/{id}/friends")
-    public List<User> getFriends(@PathVariable Long id) {
-        log.info("Получен запрос на получение списка друзей пользователя {}", id);
-
-        List<User> friends = service.getFriends(id);
-
-        log.info("Список друзей {} пользователя {} получен", friends.size(), id);
-        return friends;
+    public ResponseEntity<List<UserDTO>> getFriends(@PathVariable Long id) {
+        List<UserDTO> friends = service.getFriends(id);
+        return ResponseEntity.ok(friends);
     }
 
-    /**
-     * Получает список общих друзей двух пользователей
-     * @param id - id первого пользователя
-     * @param otherId - id второго пользователя
-     * @return - список общих друзей
-     */
     @GetMapping("/{id}/friends/common/{otherId}")
-    public List<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
-        log.info("Получен запрос на получение общих друзей пользователей {} и {}", id, otherId);
-
-        List<User> commonFriends = service.getCommonFriends(id, otherId);
-
-        log.info("Список общих друзей пользователей {} и {} получен", id, otherId);
-        return commonFriends;
+    public ResponseEntity<List<UserDTO>> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+        List<UserDTO> commonFriends = service.getCommonFriends(id, otherId);
+        return ResponseEntity.ok(commonFriends);
     }
 
-    /**
-     * Удаляет друга из списка друзей
-     * @param id - id пользователя
-     * @param friendId - id друга для удаления
-     */
     @DeleteMapping("/{id}/friends/{friendId}")
-    public void removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
-        log.info("Получен запрос на удаление друга {} из списка друзей пользователя {}", friendId, id);
-
+    public ResponseEntity<Void> removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
         service.removeFriend(id, friendId);
-
-        log.info("Пользователь {} успешно удален из друзей {}", friendId, id);
+        return ResponseEntity.ok().build();
     }
 }

@@ -33,7 +33,7 @@ class MpaDbStorageIntegrationTest {
 
     @Test
     void shouldGetMpaById() {
-        Optional<Mpa> mpa = mpaDbStorage.getMpaById(1);
+        Optional<Mpa> mpa = mpaDbStorage.getMpaById(1L);
 
         assertThat(mpa).isPresent();
         assertThat(mpa.get().getName()).isEqualTo("G");
@@ -41,7 +41,7 @@ class MpaDbStorageIntegrationTest {
 
     @Test
     void shouldReturnEmptyForNonExistingMpa() {
-        Optional<Mpa> mpa = mpaDbStorage.getMpaById(999);
+        Optional<Mpa> mpa = mpaDbStorage.getMpaById(999L);
 
         assertThat(mpa).isEmpty();
     }

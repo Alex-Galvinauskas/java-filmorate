@@ -17,6 +17,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,9 +41,12 @@ public class FilmDbStorage implements FilmStorage {
             PreparedStatement stmt = connection.prepareStatement(sql, new String[]{"id"});
             stmt.setString(1, film.getName());
             stmt.setString(2, film.getDescription());
-            stmt.setDate(3, Date.valueOf(film.getReleaseDate()));
+            LocalDate releaseDate = film.getReleaseDate() != null ? film.getReleaseDate() : LocalDate.now();
+            stmt.setDate(3, Date.valueOf(releaseDate));
             stmt.setInt(4, film.getDuration());
-            stmt.setInt(5, film.getMpa().getId());
+            long mpaId = (film.getMpa() != null && film.getMpa().getId() != null) ? film.getMpa().getId() : 1L;
+            stmt.setLong(5, mpaId);
+
             return stmt;
         }, keyHolder);
 
@@ -96,12 +100,14 @@ public class FilmDbStorage implements FilmStorage {
         String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, " +
                 "duration = ?, mpa_rating_id = ? WHERE id = ?";
 
+        LocalDate releaseDate = film.getReleaseDate() != null ? film.getReleaseDate() : LocalDate.now();
+
         int updated = jdbcTemplate.update(sql,
                 film.getName(),
                 film.getDescription(),
-                Date.valueOf(film.getReleaseDate()),
+                Date.valueOf(releaseDate),
                 film.getDuration(),
-                film.getMpa().getId(),
+                film.getMpa() != null ? film.getMpa().getId() : null,
                 film.getId());
 
         if (updated == 0) {
@@ -194,16 +200,18 @@ public class FilmDbStorage implements FilmStorage {
         @Override
         public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
             Mpa mpa = Mpa.builder()
-                    .id(rs.getInt("mpa_rating_id"))
+                    .id(rs.getLong("mpa_rating_id"))
                     .name(rs.getString("mpa_name"))
                     .description(rs.getString("mpa_description"))
                     .build();
+
+            LocalDate releaseDate = rs.getDate("release_date").toLocalDate();
 
             return Film.builder()
                     .id(rs.getLong("id"))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
-                    .releaseDate(rs.getDate("release_date").toLocalDate())
+                    .releaseDate(releaseDate)
                     .duration(rs.getInt("duration"))
                     .mpa(mpa)
                     .likes(new HashSet<>())
@@ -212,7 +220,8 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public boolean existsFilmByNameAndReleaseYearExcludingId(String name, Integer releaseYear, Long excludedId) {
+    public boolean existsFilmByNameAndReleaseYearExcludingId(String name, Integer releaseYear,
+                                                             Long excludedId) {
         String sql = "SELECT COUNT(*) FROM films WHERE LOWER(name) = LOWER(?) AND YEAR(release_date) = ? AND id != ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class,
                 name.toLowerCase(), releaseYear, excludedId);

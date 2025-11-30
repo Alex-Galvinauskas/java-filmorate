@@ -12,7 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.dto.UserDTO;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.time.LocalDate;
@@ -41,9 +41,9 @@ class UserControllerTest {
     private UserController userController;
 
     private ObjectMapper objectMapper;
-    private User testUser;
-    private User testUser2;
-    private User testUser3;
+    private UserDTO testUserDTO;
+    private UserDTO testUserDTO2;
+    private UserDTO testUserDTO3;
 
     @BeforeEach
     void setUp() {
@@ -52,7 +52,7 @@ class UserControllerTest {
 
         mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
 
-        testUser = User.builder()
+        testUserDTO = UserDTO.builder()
                 .id(1L)
                 .email("user@test.com")
                 .login("user1")
@@ -60,7 +60,7 @@ class UserControllerTest {
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        testUser2 = User.builder()
+        testUserDTO2 = UserDTO.builder()
                 .id(2L)
                 .email("user2@test.com")
                 .login("user2")
@@ -68,7 +68,7 @@ class UserControllerTest {
                 .birthday(LocalDate.of(1995, 1, 1))
                 .build();
 
-        testUser3 = User.builder()
+        testUserDTO3 = UserDTO.builder()
                 .id(3L)
                 .email("user3@test.com")
                 .login("user3")
@@ -84,24 +84,25 @@ class UserControllerTest {
         @Test
         @DisplayName("Создание пользователя возвращает созданного пользователя")
         void createUser_ShouldReturnCreatedUserTest() throws Exception {
-            when(userService.createUser(any(User.class))).thenReturn(testUser);
+            when(userService.createUser(any(UserDTO.class))).thenReturn(testUserDTO);
 
             mockMvc.perform(post("/users")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(testUser)))
+                            .content(objectMapper.writeValueAsString(testUserDTO)))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id", is(1)))
                     .andExpect(jsonPath("$.email", is("user@test.com")))
                     .andExpect(jsonPath("$.login", is("user1")))
                     .andExpect(jsonPath("$.name", is("User One")));
 
-            verify(userService, times(1)).createUser(any(User.class));
+            verify(userService, times(1))
+                    .createUser(any(UserDTO.class));
         }
 
         @Test
         @DisplayName("Получение всех пользователей возвращает список пользователей")
         void getAllUsers_ShouldReturnListOfUsersTest() throws Exception {
-            List<User> users = Arrays.asList(testUser, testUser2);
+            List<UserDTO> users = Arrays.asList(testUserDTO, testUserDTO2);
             when(userService.getAllUsers()).thenReturn(users);
 
             mockMvc.perform(get("/users"))
@@ -116,7 +117,7 @@ class UserControllerTest {
         @Test
         @DisplayName("Получение пользователя по ID возвращает пользователя")
         void getUserById_ShouldReturnUserTest() throws Exception {
-            when(userService.getUserById(1L)).thenReturn(testUser);
+            when(userService.getUserById(1L)).thenReturn(testUserDTO);
 
             mockMvc.perform(get("/users/1"))
                     .andExpect(status().isOk())
@@ -129,7 +130,7 @@ class UserControllerTest {
         @Test
         @DisplayName("Обновление пользователя возвращает обновленного пользователя")
         void updateUser_ShouldReturnUpdatedUserTest() throws Exception {
-            User updatedUser = User.builder()
+            UserDTO updatedUserDTO = UserDTO.builder()
                     .id(1L)
                     .email("updated@test.com")
                     .login("updatedUser")
@@ -137,16 +138,17 @@ class UserControllerTest {
                     .birthday(LocalDate.of(1990, 1, 1))
                     .build();
 
-            when(userService.updateUser(any(User.class))).thenReturn(updatedUser);
+            when(userService.updateUser(any(UserDTO.class))).thenReturn(updatedUserDTO);
 
             mockMvc.perform(put("/users")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(updatedUser)))
+                            .content(objectMapper.writeValueAsString(updatedUserDTO)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.email", is("updated@test.com")))
                     .andExpect(jsonPath("$.login", is("updatedUser")));
 
-            verify(userService, times(1)).updateUser(any(User.class));
+            verify(userService, times(1))
+                    .updateUser(any(UserDTO.class));
         }
     }
 
@@ -179,7 +181,7 @@ class UserControllerTest {
         @Test
         @DisplayName("Получение списка друзей возвращает список друзей")
         void getFriends_ShouldReturnFriendsListTest() throws Exception {
-            List<User> friends = Collections.singletonList(testUser2);
+            List<UserDTO> friends = Collections.singletonList(testUserDTO2);
             when(userService.getFriends(1L)).thenReturn(friends);
 
             mockMvc.perform(get("/users/1/friends"))
@@ -193,7 +195,7 @@ class UserControllerTest {
         @Test
         @DisplayName("Получение общих друзей возвращает список общих друзей")
         void getCommonFriends_ShouldReturnCommonFriendsTest() throws Exception {
-            List<User> commonFriends = Collections.singletonList(testUser3);
+            List<UserDTO> commonFriends = Collections.singletonList(testUserDTO3);
             when(userService.getCommonFriends(1L, 2L)).thenReturn(commonFriends);
 
             mockMvc.perform(get("/users/1/friends/common/2"))

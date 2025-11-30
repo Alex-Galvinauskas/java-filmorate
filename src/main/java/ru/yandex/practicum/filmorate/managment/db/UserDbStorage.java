@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.managment.db;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.core.ArgumentPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -15,10 +16,8 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Repository
 @Primary
@@ -45,9 +44,7 @@ public class UserDbStorage implements UserStorage {
         Long userId = Objects.requireNonNull(keyHolder.getKey()).longValue();
         user.setId(userId);
 
-        if (user.getFriends() == null) {
-            user.setFriends(new HashSet<>());
-        }
+        user.setFriends(new HashSet<>());
 
         log.info("Создан новый пользователь в БД: {} (ID: {})", user.getLogin(), userId);
         return user;
@@ -57,7 +54,9 @@ public class UserDbStorage implements UserStorage {
     public List<User> getAllUsers() {
         String sql = "SELECT * FROM users ORDER BY id";
         log.debug("Получение всех пользователей из БД");
-        return jdbcTemplate.query(sql, new UserRowMapper());
+        List<User> users = jdbcTemplate.query(sql, new UserRowMapper());
+        loadFriendsForUsers(users);
+        return users;
     }
 
     @Override
@@ -65,7 +64,14 @@ public class UserDbStorage implements UserStorage {
         String sql = "SELECT * FROM users WHERE id = ?";
         log.debug("Поиск пользователя по ID: {}", id);
         List<User> result = jdbcTemplate.query(sql, new UserRowMapper(), id);
-        return result.stream().findFirst();
+
+        if (result.isEmpty()) {
+            return Optional.empty();
+        }
+
+        User user = result.getFirst();
+        loadFriendsForUsers(Collections.singletonList(user));
+        return Optional.of(user);
     }
 
     @Override
@@ -73,7 +79,14 @@ public class UserDbStorage implements UserStorage {
         String sql = "SELECT * FROM users WHERE email = ?";
         log.debug("Поиск пользователя по email: {}", email);
         List<User> result = jdbcTemplate.query(sql, new UserRowMapper(), email);
-        return result.stream().findFirst();
+
+        if (result.isEmpty()) {
+            return Optional.empty();
+        }
+
+        User user = result.getFirst();
+        loadFriendsForUsers(Collections.singletonList(user));
+        return Optional.of(user);
     }
 
     @Override
@@ -81,7 +94,14 @@ public class UserDbStorage implements UserStorage {
         String sql = "SELECT * FROM users WHERE login = ?";
         log.debug("Поиск пользователя по логину: {}", login);
         List<User> result = jdbcTemplate.query(sql, new UserRowMapper(), login);
-        return result.stream().findFirst();
+
+        if (result.isEmpty()) {
+            return Optional.empty();
+        }
+
+        User user = result.getFirst();
+        loadFriendsForUsers(Collections.singletonList(user));
+        return Optional.of(user);
     }
 
     @Override
@@ -151,6 +171,39 @@ public class UserDbStorage implements UserStorage {
                 "WHERE f1.user_id = ? AND f2.user_id = ?";
         log.debug("Получение общих друзей пользователей {} и {}", userId1, userId2);
         return jdbcTemplate.query(sql, new UserRowMapper(), userId1, userId2);
+    }
+
+    /**
+            * Загружает друзей для списка пользователей
+     */
+    private void loadFriendsForUsers(List<User> users) {
+        if (users == null || users.isEmpty()) {
+            return;
+        }
+
+        List<Long> userIds = users.stream()
+                .map(User::getId)
+                .toList();
+
+        String sql = "SELECT user_id, friend_id FROM friendships WHERE user_id IN (" +
+                userIds.stream().map(id -> "?")
+                        .collect(Collectors.joining(",")) + ")";
+
+        Map<Long, Set<Long>> friendsMap = new HashMap<>();
+
+        jdbcTemplate.query(sql,
+                new ArgumentPreparedStatementSetter(userIds.toArray()),
+                (rs) -> {
+                    Long userId = rs.getLong("user_id");
+                    Long friendId = rs.getLong("friend_id");
+                    friendsMap.computeIfAbsent(userId, k -> new HashSet<>()).add(friendId);
+                });
+
+        for (User user : users) {
+            Set<Long> friends = friendsMap.getOrDefault(user.getId(), new HashSet<>());
+            user.setFriends(friends);
+            log.debug("Загружено {} друзей для пользователя {}", friends.size(), user.getId());
+        }
     }
 
     private static class UserRowMapper implements RowMapper<User> {
