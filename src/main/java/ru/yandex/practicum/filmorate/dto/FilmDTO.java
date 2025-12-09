@@ -55,4 +55,7 @@ public class FilmDTO {
 
     @Builder.Default
     private Set<Long> likes = new HashSet<>();
+
+    @Builder.Default
+    private List<DirectorDTO> directors = new ArrayList<>();
 }
