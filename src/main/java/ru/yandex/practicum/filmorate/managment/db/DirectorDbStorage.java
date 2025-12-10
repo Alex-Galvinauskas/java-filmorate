@@ -13,6 +13,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Repository
@@ -32,7 +33,7 @@ public class DirectorDbStorage {
             return stmt;
         } , keyHolder);
 
-        Long id = keyHolder.getKey().longValue();
+        Long id = Objects.requireNonNull(keyHolder.getKey()).longValue();
         director.setId(id);
 
         log.info("Создан режиссер: {} (ID: {})", director.getName(), id);

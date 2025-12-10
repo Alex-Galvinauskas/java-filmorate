@@ -16,7 +16,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.annotation.MinReleaseDate;
 
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
