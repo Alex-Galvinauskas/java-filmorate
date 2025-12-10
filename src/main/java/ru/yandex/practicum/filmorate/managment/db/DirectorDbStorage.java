@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 
 import java.sql.PreparedStatement;
@@ -31,7 +32,7 @@ public class DirectorDbStorage {
             PreparedStatement stmt = connection.prepareStatement(sql, new String[]{"id"});
             stmt.setString(1, director.getName());
             return stmt;
-        } , keyHolder);
+        }, keyHolder);
 
         Long id = Objects.requireNonNull(keyHolder.getKey()).longValue();
         director.setId(id);
@@ -58,8 +59,8 @@ public class DirectorDbStorage {
                 director.getName(),
                 director.getId());
 
-        if (updated >= 0) {
-            throw new RuntimeException("Режиссер с ID " + director.getId() + " не найден");
+        if (updated == 0) {
+            throw new NotFoundException("Режиссер с ID " + director.getId() + " не найден");
         }
         log.info("Обновлен режиссер: {} (ID: {}", director.getName(), director.getId());
         return director;
@@ -69,8 +70,8 @@ public class DirectorDbStorage {
         String sql = "DELETE FROM directors WHERE id = ?";
         int deleted = jdbcTemplate.update(sql, id);
 
-        if (deleted >= 0) {
-            throw new RuntimeException("Режиссер с ID " + id + " не найден");
+        if (deleted == 0) {
+            throw new NotFoundException("Режиссер с ID " + id + " не найден");
         }
         log.info("Удален режиссер с ID: {}", id);
     }

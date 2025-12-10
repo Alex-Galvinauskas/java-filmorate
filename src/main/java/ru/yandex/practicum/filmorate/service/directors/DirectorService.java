@@ -5,9 +5,9 @@ import ru.yandex.practicum.filmorate.dto.DirectorDTO;
 import java.util.List;
 
 public interface DirectorService {
-    DirectorDTO create(DirectorDTO directorDTO);
+    DirectorDTO createDirector(DirectorDTO directorDTO);
 
-    DirectorDTO update(DirectorDTO directorDTO);
+    DirectorDTO updateDirector(DirectorDTO directorDTO);
 
     DirectorDTO getById(Long id);
 

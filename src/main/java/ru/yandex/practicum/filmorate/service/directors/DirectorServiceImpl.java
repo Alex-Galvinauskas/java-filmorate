@@ -21,7 +21,7 @@ public class DirectorServiceImpl implements DirectorService {
     private final DirectorMapper directorMapper;
 
     @Override
-    public DirectorDTO create(DirectorDTO directorDTO) {
+    public DirectorDTO createDirector(DirectorDTO directorDTO) {
         log.debug("Создание режиссера: {}", directorDTO.getName());
 
         Director director = directorMapper.toEntity(directorDTO);
@@ -31,8 +31,8 @@ public class DirectorServiceImpl implements DirectorService {
     }
 
     @Override
-    public DirectorDTO update(DirectorDTO directorDTO) {
-        log.debug("Обновление режиссера c ID: {} {}", directorDTO.getName(), directorDTO.getId());
+    public DirectorDTO updateDirector(DirectorDTO directorDTO) {
+        log.debug("Обновление режиссера с ID: {}", directorDTO.getId());
 
         validateDirectorExists(directorDTO.getId());
 
