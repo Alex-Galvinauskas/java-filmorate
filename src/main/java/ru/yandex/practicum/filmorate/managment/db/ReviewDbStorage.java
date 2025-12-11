@@ -43,7 +43,7 @@ public class ReviewDbStorage implements ReviewStorage {
         Long reviewId = Objects.requireNonNull(keyHolder.getKey()).longValue();
         review.setReviewId(reviewId);
 
-        log.info("Создан новый отзыв в БД: ID: {}, фильм: {}, пользователь: {}", 
+        log.info("Создан новый отзыв в БД: ID: {}, фильм: {}, пользователь: {}",
                 reviewId, review.getFilmId(), review.getUserId());
         return getReviewById(reviewId).orElse(review);
     }
@@ -114,16 +114,13 @@ public class ReviewDbStorage implements ReviewStorage {
     public void addLike(Long reviewId, Long userId) {
         String deleteDislikeSql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = false";
         jdbcTemplate.update(deleteDislikeSql, reviewId, userId);
-        
         String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = true";
         Integer existingCount = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
-        
         if (existingCount == null || existingCount == 0) {
             String sql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, true)";
             jdbcTemplate.update(sql, reviewId, userId);
             log.debug("Добавлен лайк отзыву {} от пользователя {}", reviewId, userId);
         }
-        
         updateUsefulRating(reviewId);
     }
 
@@ -131,16 +128,13 @@ public class ReviewDbStorage implements ReviewStorage {
     public void addDislike(Long reviewId, Long userId) {
         String deleteLikeSql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = true";
         jdbcTemplate.update(deleteLikeSql, reviewId, userId);
-        
         String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = false";
         Integer existingCount = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
-        
         if (existingCount == null || existingCount == 0) {
             String sql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, false)";
             jdbcTemplate.update(sql, reviewId, userId);
             log.debug("Добавлен дизлайк отзыву {} от пользователя {}", reviewId, userId);
         }
-        
         updateUsefulRating(reviewId);
     }
 
