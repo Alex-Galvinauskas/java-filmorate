@@ -28,9 +28,8 @@ public class RecommendationServiceImpl implements RecommendationService {
         log.debug("Получение рекомендаций для пользователя {}", userId);
 
         /**
-         * Проверяем существование пользователя
+         *  Проверяем существование пользователя
           */
-
         User user = userDbStorage.getUserById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
 
@@ -45,27 +44,36 @@ public class RecommendationServiceImpl implements RecommendationService {
         Set<Long> currentUserLikes = likesByUser.getOrDefault(userId, new HashSet<>());
 
         /**
-         * Если у пользователя нет лайков, возвращаем популярные фильмы
+         * Если у пользователя нет лайков, возвращаем пустой список
           */
         if (currentUserLikes.isEmpty()) {
-            log.debug("У пользователя {} нет лайков, возвращаем популярные фильмы", userId);
-            return filmDbStorage.getPopularFilms(10).stream()
-                    .map(filmMapper::toDTO)
-                    .collect(Collectors.toList());
+            log.debug("У пользователя {} нет лайков, возвращаем пустой список", userId);
+            return Collections.emptyList();
         }
 
         /**
-         * Находим пользователя с максимальным пересечением по лайкам
+         * Если в системе меньше 2 пользователей или только один пользователь с лайками
           */
-        Long bestMatchUserId = null;
-        int maxCommonLikes = 0;
+        long usersWithLikesCount = likesByUser.entrySet().stream()
+                .filter(entry -> !entry.getValue().isEmpty())
+                .count();
+
+        if (usersWithLikesCount < 2) {
+            log.debug("Недостаточно пользователей с лайками для рекомендаций (только {})", usersWithLikesCount);
+            return Collections.emptyList();
+        }
+
+        /**
+         * Находим пользователей с максимальным пересечением по лайкам
+          */
+        Map<Long, Integer> commonLikesMap = new HashMap<>();
 
         for (Map.Entry<Long, Set<Long>> entry : likesByUser.entrySet()) {
             Long otherUserId = entry.getKey();
 
             /**
              * Пропускаем текущего пользователя
-             */
+              */
             if (otherUserId.equals(userId)) {
                 continue;
             }
@@ -73,58 +81,94 @@ public class RecommendationServiceImpl implements RecommendationService {
             Set<Long> otherUserLikes = entry.getValue();
 
             /**
+             * Если у другого пользователя нет лайков, пропускаем
+              */
+            if (otherUserLikes.isEmpty()) {
+                continue;
+            }
+
+            /**
              * Находим пересечение лайков
               */
             Set<Long> commonLikes = new HashSet<>(currentUserLikes);
             commonLikes.retainAll(otherUserLikes);
 
-            if (commonLikes.size() > maxCommonLikes) {
-                maxCommonLikes = commonLikes.size();
-                bestMatchUserId = otherUserId;
+            if (!commonLikes.isEmpty()) {
+                commonLikesMap.put(otherUserId, commonLikes.size());
             }
         }
 
         /**
-         * Если не нашли пользователя с общими лайками, возвращаем популярные фильмы
-         */
-        if (bestMatchUserId == null) {
+         * Если не нашли пользователей с общими лайками, возвращаем пустой список
+          */
+        if (commonLikesMap.isEmpty()) {
             log.debug("Не найдено пользователей с общими лайками для пользователя {}", userId);
-            return filmDbStorage.getPopularFilms(10).stream()
-                    .map(filmMapper::toDTO)
-                    .collect(Collectors.toList());
+            return Collections.emptyList();
         }
 
-        log.debug("Найден пользователь {} с {} общими лайками для пользователя {}",
-                bestMatchUserId, maxCommonLikes, userId);
-
         /**
-         * Получаем лайки похожего пользователя
+         * Находим лучших совпадений (пользователей с максимальным количеством общих лайков)
           */
-        Set<Long> bestMatchUserLikes = likesByUser.get(bestMatchUserId);
+        int maxCommonLikes = commonLikesMap.values().stream()
+                .max(Integer::compareTo)
+                .orElse(0);
+
+        List<Long> bestMatchUserIds = commonLikesMap.entrySet().stream()
+                .filter(entry -> entry.getValue() == maxCommonLikes)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        log.debug("Найдено {} пользователей с {} общими лайками для пользователя {}",
+                bestMatchUserIds.size(), maxCommonLikes, userId);
 
         /**
-         * Находим фильмы, которые понравились похожему пользователю, но не текущему
+         * Собираем рекомендованные фильмы от всех лучших совпадений
           */
-        Set<Long> recommendedFilmIds = new HashSet<>(bestMatchUserLikes);
-        recommendedFilmIds.removeAll(currentUserLikes);
+        Set<Long> recommendedFilmIds = new HashSet<>();
+
+        for (Long bestMatchUserId : bestMatchUserIds) {
+            Set<Long> bestMatchUserLikes = likesByUser.get(bestMatchUserId);
+
+            /**
+             * Находим фильмы, которые понравились похожему пользователю, но не текущему
+              */
+            Set<Long> uniqueFilmIds = new HashSet<>(bestMatchUserLikes);
+            uniqueFilmIds.removeAll(currentUserLikes);
+
+            recommendedFilmIds.addAll(uniqueFilmIds);
+        }
 
         /**
-         * Если нет рекомендованных фильмов, возвращаем популярные
+         * Если нет рекомендованных фильмов, возвращаем пустой список
           */
         if (recommendedFilmIds.isEmpty()) {
-            log.debug("Нет уникальных фильмов для рекомендации, возвращаем популярные фильмы");
-            return filmDbStorage.getPopularFilms(10).stream()
-                    .map(filmMapper::toDTO)
-                    .collect(Collectors.toList());
+            log.debug("Нет уникальных фильмов для рекомендации пользователю {}", userId);
+            return Collections.emptyList();
         }
 
         /**
-         *  Получаем информацию о рекомендованных фильмах
+         * Получаем информацию о рекомендованных фильмах
           */
-
         List<Film> recommendedFilms = filmDbStorage.getFilmsByIds(recommendedFilmIds);
 
-        log.debug("Найдено {} рекомендованных фильмов для пользователя {}",
+        /**
+         * Сортируем по популярности (количеству лайков)
+          */
+        recommendedFilms.sort((f1, f2) -> {
+            int likes1 = filmDbStorage.getLikesByFilmId(f1.getId()).size();
+            int likes2 = filmDbStorage.getLikesByFilmId(f2.getId()).size();
+            return Integer.compare(likes2, likes1); // по убыванию
+        });
+
+        /**
+         * Ограничиваем количество рекомендаций
+          */
+        int limit = 10;
+        if (recommendedFilms.size() > limit) {
+            recommendedFilms = recommendedFilms.subList(0, limit);
+        }
+
+        log.debug("Возвращаем {} рекомендованных фильмов для пользователя {}",
                 recommendedFilms.size(), userId);
 
         return recommendedFilms.stream()
