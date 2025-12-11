@@ -6,7 +6,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.DirectorDTO;
+import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.service.directors.DirectorService;
+import ru.yandex.practicum.filmorate.service.film.FilmService;
 
 import java.util.List;
 
@@ -16,6 +18,7 @@ import java.util.List;
 public class DirectorController {
 
     private final DirectorService directorService;
+    private final FilmService filmService;
 
     @GetMapping
     public ResponseEntity<List<DirectorDTO>> getAll() {
@@ -45,5 +48,18 @@ public class DirectorController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         directorService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/films")
+    public ResponseEntity<List<FilmDTO>> getFilmsByDirector(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "likes") String sortBy) {
+
+        if (!sortBy.equals("year") && !sortBy.equals("likes")) {
+            throw new IllegalArgumentException("Параметр sortBy может быть только 'year' или 'likes'");
+        }
+
+        List<FilmDTO> films = filmService.getFilmsByDirector(id, sortBy);
+        return ResponseEntity.ok(films);
     }
 }

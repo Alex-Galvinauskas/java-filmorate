@@ -78,17 +78,27 @@ public class DirectorDbStorage {
 
     public List<Director> getDirectorsByFilmId(Long filmId) {
         String sql = """
-               SELECT d.* FROM directors d
-            JOIN film_directors fd ON d.id = fd.director_id
-            WHERE fd.film_id = ?
-            ORDER BY d.name
-            """;
+        SELECT d.* FROM directors d
+        JOIN film_directors fd ON d.id = fd.director_id
+        WHERE fd.film_id = ?
+        ORDER BY d.name
+    """;
         return jdbcTemplate.query(sql, new DirectorRowMapper(), filmId);
     }
 
     public void addDirectorToFilm(Long directorId, Long filmId) {
-        String sql = "INSERT INTO film_directors (film_id, director_id) VALUES (?, ?)";
-        jdbcTemplate.update(sql, filmId, directorId);
+        if (!existsById(directorId)) {
+            throw new NotFoundException("Режиссер с ID " + directorId + " не найден");
+        }
+
+        String checkSql = "SELECT COUNT(*) FROM film_directors WHERE film_id = ? AND director_id = ?";
+        Integer existing = jdbcTemplate.queryForObject(checkSql, Integer.class, filmId, directorId);
+
+        if (existing != null && existing == 0) {
+            String sql = "INSERT INTO film_directors (film_id, director_id) VALUES (?, ?)";
+            jdbcTemplate.update(sql, filmId, directorId);
+            log.debug("Добавлен режиссер {} к фильму {}", directorId, filmId);
+        }
     }
 
     public void removeDirectorFromFilm(Long filmId) {
