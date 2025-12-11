@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.dto;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -56,8 +55,6 @@ public class FilmDTO {
     @Builder.Default
     private Set<Long> likes = new HashSet<>();
 
-    @JsonProperty("director")
-    @JsonAlias("directors")
     @Builder.Default
     private List<DirectorDTO> directors = new ArrayList<>();
 }
