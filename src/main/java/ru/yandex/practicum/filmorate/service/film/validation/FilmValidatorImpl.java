@@ -14,9 +14,6 @@ public class FilmValidatorImpl implements FilmValidatorRules {
 
     private final FilmStorage filmStorage;
 
-    /**
-     * Проверяет уникальность фильма при обновлении.
-     */
     public void validateFilmUniquenessForUpdate(Film existingFilm, Film updatedFilm) {
         if (existingFilm.getReleaseDate() == null || updatedFilm.getReleaseDate() == null) {
             log.warn("ReleaseDate is null for film validation. Existing: {}, Updated: {}",
@@ -32,9 +29,6 @@ public class FilmValidatorImpl implements FilmValidatorRules {
         }
     }
 
-    /**
-     * Проверяет уникальность фильма по названию и году выпуска.
-     */
     public void validateFilmUniqueness(String name, int releaseYear) {
         log.debug("Проверка уникальности фильма: {} ({})", name, releaseYear);
 
@@ -43,10 +37,6 @@ public class FilmValidatorImpl implements FilmValidatorRules {
         }
     }
 
-    /**
-     * Проверяет уникальность фильма по названию и году выпуска, исключая указанный ID.
-     * (Этот метод теперь не используется в validateFilmUniquenessForUpdate)
-     */
     private void validateFilmUniquenessExcludingId(String name, int releaseYear, Long excludedId) {
         log.debug("Проверка уникальности фильма: {} ({}), исключая ID: {}", name, releaseYear, excludedId);
 
