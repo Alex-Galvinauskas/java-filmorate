@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
@@ -9,6 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/films")
+@Slf4j
 public class FilmController extends AbstractController<FilmDTO, FilmService> {
 
     public FilmController(FilmService filmService) {
@@ -47,8 +49,13 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
     }
 
     @GetMapping("/popular")
-    public ResponseEntity<List<FilmDTO>> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
-        List<FilmDTO> popularFilms = service.getPopularFilms(count);
+    public ResponseEntity<List<FilmDTO>> getPopularFilms(
+            @RequestParam(defaultValue = "10") Integer count,
+            @RequestParam(required = false) Integer genreId,
+            @RequestParam(required = false) Integer year) {
+
+        log.debug("Запрос популярных фильмов: count={}, genreId={}, year={}", count, genreId, year);
+        List<FilmDTO> popularFilms = service.getPopularFilms(count, genreId, year);
         return ResponseEntity.ok(popularFilms);
     }
 

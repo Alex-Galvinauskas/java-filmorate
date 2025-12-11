@@ -13,7 +13,8 @@ public interface FilmService {
 
     List<FilmDTO> getAllFilms();
 
-    List<FilmDTO> getPopularFilms(Integer count);
+    // ИЗМЕНЕНИЕ: добавляем параметры genreId и year
+    List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year);
 
     void addLike(Long filmId, Long userId);
 

@@ -153,18 +153,51 @@ public class FilmDbStorage implements FilmStorage {
         return new HashSet<>(likes);
     }
 
-    public List<Film> getPopularFilms(int count) {
-        String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
-                "COUNT(l.user_id) as likes_count " +
-                "FROM films f " +
-                "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                "LEFT JOIN likes l ON f.id = l.film_id " +
-                "GROUP BY f.id, m.name, m.description " +
-                "ORDER BY likes_count DESC " +
-                "LIMIT ?";
+    /**
+     * Получает популярные фильмы с фильтрацией по жанру и году.
+     */
+    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
+        // Начинаем построение SQL-запроса
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
+                        "COUNT(l.user_id) as likes_count " +
+                        "FROM films f " +
+                        "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                        "LEFT JOIN likes l ON f.id = l.film_id "
+        );
 
-        log.debug("Получение {} популярных фильмов", count);
-        List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), count);
+        List<Object> params = new ArrayList<>();
+
+        // Добавляем JOIN для фильтрации по жанру, если передан genreId
+        if (genreId != null) {
+            sql.append("JOIN film_genres fg ON f.id = fg.film_id ");
+        }
+
+        // Начинаем WHERE часть
+        sql.append("WHERE 1=1 ");
+
+        // Добавляем условие для жанра
+        if (genreId != null) {
+            sql.append("AND fg.genre_id = ? ");
+            params.add(genreId);
+        }
+
+        // Добавляем условие для года
+        if (year != null) {
+            sql.append("AND EXTRACT(YEAR FROM f.release_date) = ? ");
+            params.add(year);
+        }
+
+        // Завершаем запрос
+        sql.append("GROUP BY f.id, m.name, m.description ");
+        sql.append("ORDER BY likes_count DESC ");
+        sql.append("LIMIT ?");
+        params.add(count);
+
+        log.debug("Выполнение SQL запроса для популярных фильмов: {}", sql.toString());
+        log.debug("Параметры: genreId={}, year={}, count={}", genreId, year, count);
+
+        List<Film> films = jdbcTemplate.query(sql.toString(), new FilmRowMapper(), params.toArray());
 
         return films.stream()
                 .peek(film -> film.setGenres(genreDbStorage.getGenresByFilmId(film.getId())))
@@ -226,5 +259,9 @@ public class FilmDbStorage implements FilmStorage {
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class,
                 name.toLowerCase(), releaseYear, excludedId);
         return count != null && count > 0;
+    }
+
+    public List<Film> getPopularFilms(int count) {
+        return getPopularFilms(count, null, null);
     }
 }
