@@ -157,7 +157,6 @@ public class FilmDbStorage implements FilmStorage {
      * Получает популярные фильмы с фильтрацией по жанру и году.
      */
     public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
-        // Начинаем построение SQL-запроса
         StringBuilder sql = new StringBuilder(
                 "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
                         "COUNT(l.user_id) as likes_count " +
@@ -168,33 +167,29 @@ public class FilmDbStorage implements FilmStorage {
 
         List<Object> params = new ArrayList<>();
 
-        // Добавляем JOIN для фильтрации по жанру, если передан genreId
         if (genreId != null) {
             sql.append("JOIN film_genres fg ON f.id = fg.film_id ");
         }
 
-        // Начинаем WHERE часть
         sql.append("WHERE 1=1 ");
 
-        // Добавляем условие для жанра
         if (genreId != null) {
             sql.append("AND fg.genre_id = ? ");
             params.add(genreId);
         }
 
-        // Добавляем условие для года
         if (year != null) {
-            sql.append("AND EXTRACT(YEAR FROM f.release_date) = ? ");
+            // Используем YEAR() для совместимости с H2
+            sql.append("AND YEAR(f.release_date) = ? ");
             params.add(year);
         }
 
-        // Завершаем запрос
         sql.append("GROUP BY f.id, m.name, m.description ");
         sql.append("ORDER BY likes_count DESC ");
         sql.append("LIMIT ?");
         params.add(count);
 
-        log.debug("Выполнение SQL запроса для популярных фильмов: {}", sql.toString());
+        log.debug("Выполнение SQL запроса для популярных фильмов: {}", sql);
         log.debug("Параметры: genreId={}, year={}, count={}", genreId, year, count);
 
         List<Film> films = jdbcTemplate.query(sql.toString(), new FilmRowMapper(), params.toArray());

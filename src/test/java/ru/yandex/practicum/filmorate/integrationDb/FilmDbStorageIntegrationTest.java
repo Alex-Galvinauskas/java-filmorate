@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.Rollback;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.managment.db.GenreDbStorage;
 import ru.yandex.practicum.filmorate.managment.db.MpaDbStorage;
@@ -24,14 +27,35 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase
 @Import({FilmDbStorage.class, GenreDbStorage.class, MpaDbStorage.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
+@Transactional
+@Rollback
 class FilmDbStorageIntegrationTest {
 
     private final FilmDbStorage filmDbStorage;
+    private final JdbcTemplate jdbcTemplate;
 
     private Film testFilm;
 
     @BeforeEach
     void setUp() {
+        // Очистка базы перед каждым тестом
+        jdbcTemplate.execute("DELETE FROM film_genres");
+        jdbcTemplate.execute("DELETE FROM likes");
+        jdbcTemplate.execute("DELETE FROM films");
+        jdbcTemplate.execute("DELETE FROM users");
+        jdbcTemplate.execute("DELETE FROM genres");
+        jdbcTemplate.execute("DELETE FROM mpa_ratings");
+
+        // Восстановление исходных данных
+        jdbcTemplate.execute("INSERT INTO mpa_ratings (id, name, description) VALUES (1, 'G', 'Нет возрастных ограничений')");
+        jdbcTemplate.execute("INSERT INTO mpa_ratings (id, name, description) VALUES (2, 'PG', 'Детям рекомендуется смотреть с родителями')");
+        jdbcTemplate.execute("INSERT INTO mpa_ratings (id, name, description) VALUES (3, 'PG-13', 'Детям до 13 лет просмотр не желателен')");
+
+        jdbcTemplate.execute("INSERT INTO genres (id, name) VALUES (1, 'Комедия')");
+        jdbcTemplate.execute("INSERT INTO genres (id, name) VALUES (2, 'Драма')");
+        jdbcTemplate.execute("INSERT INTO genres (id, name) VALUES (3, 'Мультфильм')");
+        jdbcTemplate.execute("INSERT INTO genres (id, name) VALUES (4, 'Триллер')");
+
         testFilm = Film.builder()
                 .name("Test Film")
                 .description("Test Description")
