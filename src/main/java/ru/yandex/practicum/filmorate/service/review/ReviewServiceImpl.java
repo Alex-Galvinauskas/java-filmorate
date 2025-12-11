@@ -26,7 +26,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public ReviewDTO createReview(ReviewDTO reviewDTO) {
-        log.debug("Создание нового отзыва для фильма {} от пользователя {}", 
+        log.debug("Создание нового отзыва для фильма {} от пользователя {}",
                 reviewDTO.getFilmId(), reviewDTO.getUserId());
 
         filmService.getFilmById(reviewDTO.getFilmId());
