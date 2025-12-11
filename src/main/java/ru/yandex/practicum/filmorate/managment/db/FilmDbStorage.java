@@ -227,4 +227,48 @@ public class FilmDbStorage implements FilmStorage {
                 name.toLowerCase(), releaseYear, excludedId);
         return count != null && count > 0;
     }
+
+    /**
+     * Получает лайки всех пользователей
+     */
+    public Map<Long, Set<Long>> getLikesByUsers() {
+        String sql = "SELECT user_id, film_id FROM likes";
+        Map<Long, Set<Long>> likesByUser = new HashMap<>();
+
+        jdbcTemplate.query(sql, (rs) -> {
+            Long userId = rs.getLong("user_id");
+            Long filmId = rs.getLong("film_id");
+            likesByUser.computeIfAbsent(userId, k -> new HashSet<>()).add(filmId);
+        });
+
+        log.debug("Получены лайки для {} пользователей", likesByUser.size());
+        return likesByUser;
+    }
+
+    /**
+     * Получает фильмы по списку ID
+     */
+    public List<Film> getFilmsByIds(Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description " +
+                "FROM films f " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                "WHERE f.id IN (" +
+                ids.stream().map(id -> "?").collect(Collectors.joining(",")) +
+                ")";
+
+        List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), ids.toArray());
+
+        // Загружаем жанры для каждого фильма
+        for (Film film : films) {
+            film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
+            film.setLikes(getLikesByFilmId(film.getId()));
+        }
+
+        log.debug("Получено {} фильмов по ID", films.size());
+        return films;
+    }
 }

@@ -23,4 +23,6 @@ public interface UserStorage {
     boolean existsByEmail(String email);
 
     boolean existsByLogin(String login);
+
+    boolean hasLikes(Long userId);
 }

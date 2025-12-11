@@ -12,15 +12,20 @@ package ru.yandex.practicum.filmorate.service.user;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.dto.UserDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.UserDbStorage;
 import ru.yandex.practicum.filmorate.mapper.UserMapper;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorRules;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,9 +43,7 @@ public class UserServiceImpl implements UserService {
      * Выполняет нормализацию данных пользователя.
      *
      * @param userDTO пользователь для создания
-     *
      * @return созданный пользователь
-     *
      * @throws DuplicateException если пользователь с таким email или логином уже существует
      */
     @Override
@@ -58,10 +61,10 @@ public class UserServiceImpl implements UserService {
     /**
      * Добавляет обоих пользователей в список друзей.
      *
-     * @param userId индентификатор пользователя, который добавляется в друзья
+     * @param userId   индентификатор пользователя, который добавляется в друзья
      * @param friendId идентификатор друга, который добавляется в друзья
-     *
-     *throws NotFoundException если один или оба пользователя не существует
+     *                 <p>
+     *                 throws NotFoundException если один или оба пользователя не существует
      */
     @Override
     public void addFriend(Long userId, Long friendId) {
@@ -77,26 +80,24 @@ public class UserServiceImpl implements UserService {
         userDbStorage.addFriend(userId, friendId);
     }
 
-     /**
+    /**
      * Возвращает список всех пользователей.
      *
      * @return список всех пользователей
      */
-     @Override
-     public List<UserDTO> getAllUsers() {
-         log.debug("Получение списка всех пользователей");
-         return userDbStorage.getAllUsers().stream()
-                 .map(userMapper::toDTO)
-                 .collect(Collectors.toList());
-     }
+    @Override
+    public List<UserDTO> getAllUsers() {
+        log.debug("Получение списка всех пользователей");
+        return userDbStorage.getAllUsers().stream()
+                .map(userMapper::toDTO)
+                .collect(Collectors.toList());
+    }
 
     /**
      * Находит пользователя по идентификатору.
      *
      * @param id идентификатор пользователя
-     *
      * @return найденный пользователь
-     *
      * @throws NotFoundException если пользователь с указанным ID не найден
      */
     @Override
@@ -108,9 +109,9 @@ public class UserServiceImpl implements UserService {
 
     /**
      * Возвращает список друзей пользователя.
+     *
      * @param userId идентификатор пользователя, для которого получаем список друзей
      * @return список друзей пользователя
-     *
      * @throws NotFoundException если пользователь с указанным ID не найден
      */
     @Override
@@ -127,10 +128,10 @@ public class UserServiceImpl implements UserService {
 
     /**
      * Возвращает список общих друзей двух пользователей.
+     *
      * @param userId1 id первого пользователя
      * @param userId2 id второго пользователя
      * @return список общих друзей двух пользователей
-     *
      * @throws NotFoundException если один или оба пользователя не существует
      */
     @Override
@@ -151,9 +152,7 @@ public class UserServiceImpl implements UserService {
      * Устанавливает имя из логина если имя не указано, выполняет нормализацию данных.
      *
      * @param userDTO пользователь с обновленными данными
-     *
      * @return обновленный пользователь
-     *
      * @throws NotFoundException  если пользователь с указанным ID не найден
      * @throws DuplicateException если пользователь с новым email или логином уже существует
      */
@@ -173,9 +172,8 @@ public class UserServiceImpl implements UserService {
     /**
      * Удаляет пользователей из друзей друг у друга.
      *
-     * @param userId идентификатор пользователя, у которого удаляем друга
+     * @param userId   идентификатор пользователя, у которого удаляем друга
      * @param friendId идентификатор друга, которого удаляем
-     *
      * @throws NotFoundException если один или оба пользователя не существует
      */
     @Override
