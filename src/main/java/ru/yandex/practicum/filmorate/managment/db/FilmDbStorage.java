@@ -179,7 +179,9 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         if (year != null) {
-            // Используем YEAR() для совместимости с H2
+            /**
+             *  Используем YEAR() для совместимости с H2
+             */
             sql.append("AND YEAR(f.release_date) = ? ");
             params.add(year);
         }

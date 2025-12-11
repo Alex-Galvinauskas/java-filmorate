@@ -13,7 +13,9 @@ public interface FilmService {
 
     List<FilmDTO> getAllFilms();
 
-    // ИЗМЕНЕНИЕ: добавляем параметры genreId и year
+    /**
+     * добавляем параметры genreId и year
+      */
     List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year);
 
     void addLike(Long filmId, Long userId);
