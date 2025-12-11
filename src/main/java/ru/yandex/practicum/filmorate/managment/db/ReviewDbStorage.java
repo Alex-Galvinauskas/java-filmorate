@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.inMemory.ReviewStorage;
 import ru.yandex.practicum.filmorate.model.Review;
 
@@ -44,7 +45,8 @@ public class ReviewDbStorage implements ReviewStorage {
 
         log.info("Создан новый отзыв в БД: ID: {}, фильм: {}, пользователь: {}",
                 reviewId, review.getFilmId(), review.getUserId());
-        return getReviewById(reviewId).orElse(review);
+        return getReviewById(reviewId)
+                .orElseThrow(() -> new NotFoundException("Отзыв с ID " + reviewId + " не найден после создания"));
     }
 
     @Override
@@ -72,11 +74,12 @@ public class ReviewDbStorage implements ReviewStorage {
                 review.getReviewId());
 
         if (updated == 0) {
-            throw new RuntimeException("Отзыв с ID " + review.getReviewId() + " не найден");
+            throw new NotFoundException("Отзыв с ID " + review.getReviewId() + " не найден");
         }
 
         log.info("Обновлен отзыв в БД: ID: {}", review.getReviewId());
-        return getReviewById(review.getReviewId()).orElse(review);
+        return getReviewById(review.getReviewId())
+                .orElseThrow(() -> new NotFoundException("Отзыв с ID " + review.getReviewId() + " не найден"));
     }
 
     @Override
@@ -84,7 +87,7 @@ public class ReviewDbStorage implements ReviewStorage {
         String sql = "DELETE FROM reviews WHERE review_id = ?";
         int deleted = jdbcTemplate.update(sql, id);
         if (deleted == 0) {
-            throw new RuntimeException("Отзыв с ID " + id + " не найден");
+            throw new NotFoundException("Отзыв с ID " + id + " не найден");
         }
         log.info("Удален отзыв из БД: ID: {}", id);
     }
@@ -115,7 +118,7 @@ public class ReviewDbStorage implements ReviewStorage {
         jdbcTemplate.update(deleteDislikeSql, reviewId, userId);
         String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = true";
         Integer existingCount = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
-        if (existingCount == null || existingCount == 0) {
+        if (existingCount != null && existingCount == 0) {
             String sql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, true)";
             jdbcTemplate.update(sql, reviewId, userId);
             log.debug("Добавлен лайк отзыву {} от пользователя {}", reviewId, userId);
@@ -129,7 +132,7 @@ public class ReviewDbStorage implements ReviewStorage {
         jdbcTemplate.update(deleteLikeSql, reviewId, userId);
         String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = false";
         Integer existingCount = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
-        if (existingCount == null || existingCount == 0) {
+        if (existingCount != null && existingCount == 0) {
             String sql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, false)";
             jdbcTemplate.update(sql, reviewId, userId);
             log.debug("Добавлен дизлайк отзыву {} от пользователя {}", reviewId, userId);
@@ -162,7 +165,10 @@ public class ReviewDbStorage implements ReviewStorage {
                 "(SELECT COALESCE(SUM(CASE WHEN is_like THEN 1 ELSE -1 END), 0) " +
                 "FROM review_likes WHERE review_id = ?) " +
                 "WHERE review_id = ?";
-        jdbcTemplate.update(sql, reviewId, reviewId);
+        int updated = jdbcTemplate.update(sql, reviewId, reviewId);
+        if (updated == 0) {
+            log.warn("Не удалось обновить рейтинг полезности для отзыва с ID: {}", reviewId);
+        }
     }
 
     private void loadLikesAndDislikes(Review review) {
@@ -170,14 +176,17 @@ public class ReviewDbStorage implements ReviewStorage {
         Set<Long> likes = new HashSet<>();
         Set<Long> dislikes = new HashSet<>();
 
-        jdbcTemplate.query(sql, (rs) -> {
-            Long userId = rs.getLong("user_id");
-            boolean isLike = rs.getBoolean("is_like");
-            if (isLike) {
-                likes.add(userId);
-            } else {
-                dislikes.add(userId);
+        jdbcTemplate.query(sql, (ResultSet rs) -> {
+            while (rs.next()) {
+                Long userId = rs.getLong("user_id");
+                boolean isLike = rs.getBoolean("is_like");
+                if (isLike) {
+                    likes.add(userId);
+                } else {
+                    dislikes.add(userId);
+                }
             }
+            return null;
         }, review.getReviewId());
 
         review.setLikes(likes);
