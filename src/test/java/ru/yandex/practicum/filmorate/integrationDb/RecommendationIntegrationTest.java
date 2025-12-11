@@ -1,4 +1,3 @@
-// RecommendationIntegrationTest.java
 package ru.yandex.practicum.filmorate.integrationDb;
 
 import lombok.RequiredArgsConstructor;
