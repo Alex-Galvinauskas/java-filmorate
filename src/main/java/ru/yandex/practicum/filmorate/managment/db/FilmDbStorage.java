@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -251,9 +252,17 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        if (!directorDbStorage.existsById(directorId)) {
+            throw new NotFoundException("Режиссер с ID " + directorId + " не найден");
+        }
+
         String sql = buildDirectorFilmsQuery(sortBy);
 
+        log.debug("SQL запрос для режиссера {}: {}", directorId, sql);
+
         List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), directorId);
+        log.debug("Найдено фильмов для режиссера {}: {}", directorId, films.size());
+
         return films.stream()
                 .peek(film -> {
                     film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
@@ -265,22 +274,22 @@ public class FilmDbStorage implements FilmStorage {
 
     private String buildDirectorFilmsQuery(String sortBy) {
         StringBuilder sql = new StringBuilder("""
-                SELECT f.*, m.name as mpa_name, m.description as mpa_description
-                FROM films f
-                LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id
-                JOIN film_directors fd ON f.id = fd.film_id
-                WHERE fd.director_id = ?
-                """);
+            SELECT f.*, m.name as mpa_name, m.description as mpa_description
+            FROM films f
+            LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id
+            JOIN film_directors fd ON f.id = fd.film_id
+            WHERE fd.director_id = ?
+            """);
 
         if ("year".equalsIgnoreCase(sortBy)) {
             sql.append(" ORDER BY f.release_date");
         } else if ("likes".equalsIgnoreCase(sortBy)) {
             sql.append("""
-                    ORDER BY (
-                        SELECT COUNT(*) FROM likes l
-                        WHERE l.film_id = f.id
-                    ) DESC
-                    """);
+                LEFT JOIN likes l ON f.id = l.film_id
+                GROUP BY f.id, m.name, m.description, f.name, f.description,
+                         f.release_date, f.duration, f.mpa_rating_id
+                ORDER BY COUNT(l.user_id) DESC
+                """);
         } else {
             sql.append(" ORDER BY f.id");
         }
