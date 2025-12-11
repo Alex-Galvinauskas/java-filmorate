@@ -269,22 +269,17 @@ public class FilmDbStorage implements FilmStorage {
 
     private String buildDirectorFilmsQuery(String sortBy) {
         StringBuilder sql = new StringBuilder("""
-            SELECT f.*, m.name as mpa_name, m.description as mpa_description
-            FROM films f
-            LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id
-            JOIN film_directors fd ON f.id = fd.film_id
-            WHERE fd.director_id = ?
-            """);
+        SELECT DISTINCT f.*, m.name as mpa_name, m.description as mpa_description
+        FROM films f
+        LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id
+        JOIN film_directors fd ON f.id = fd.film_id
+        WHERE fd.director_id = ?
+        """);
 
         if ("year".equalsIgnoreCase(sortBy)) {
             sql.append(" ORDER BY f.release_date");
         } else if ("likes".equalsIgnoreCase(sortBy)) {
-            sql.append("""
-                ORDER BY (
-                    SELECT COUNT(*) FROM likes l
-                    WHERE l.film_id = f.id
-                ) DESC
-                """);
+            sql.append(" ORDER BY (SELECT COUNT(*) FROM likes WHERE film_id = f.id) DESC, f.id");
         } else {
             sql.append(" ORDER BY f.id");
         }
