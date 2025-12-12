@@ -71,7 +71,7 @@ public class FilmValidatorImpl implements FilmValidatorRules {
     /**
      * Проверяет уникальность фильма по названию и году выпуска, исключая указанный ID.
      */
-    private void validateFilmUniquenessExcludingId(String name, int releaseYear, Long excludedId) {
+    public void validateFilmUniquenessExcludingId(String name, int releaseYear, Long excludedId) {
         log.debug("Проверка уникальности фильма: {} ({}), исключая ID: {}", name, releaseYear, excludedId);
 
         if (filmStorage.existsFilmByNameAndReleaseYearExcludingId(name, releaseYear, excludedId)) {
