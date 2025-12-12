@@ -98,7 +98,7 @@ class RecommendationServiceImplTest {
         assertTrue(result.isEmpty(), "Должен возвращаться пустой список при отсутствии лайков");
         assertEquals(0, result.size());
         verify(filmDbStorage, times(1)).getLikesByUsers();
-        verify(filmDbStorage, never()).getPopularFilms(anyInt(), any(), any());
+        verify(filmDbStorage, never()).getPopularFilms(anyInt());
     }
 
     @Test
@@ -156,7 +156,7 @@ class RecommendationServiceImplTest {
 
         assertTrue(result.isEmpty(), "Должен возвращаться пустой список при отсутствии общих лайков");
         assertEquals(0, result.size());
-        verify(filmDbStorage, never()).getPopularFilms(anyInt(), any(), any());
+        verify(filmDbStorage, never()).getPopularFilms(anyInt());
     }
 
     @Test
@@ -181,7 +181,7 @@ class RecommendationServiceImplTest {
 
         assertTrue(result.isEmpty(), "Должен возвращаться пустой список при отсутствии уникальных фильмов");
         assertEquals(0, result.size());
-        verify(filmDbStorage, never()).getPopularFilms(anyInt(), any(), any());
+        verify(filmDbStorage, never()).getPopularFilms(anyInt());
     }
 
     @Test
