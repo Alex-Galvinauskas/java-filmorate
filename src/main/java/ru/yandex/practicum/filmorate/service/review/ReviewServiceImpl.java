@@ -46,6 +46,10 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewDTO updateReview(ReviewDTO reviewDTO) {
         log.debug("Обновление отзыва с ID: {}", reviewDTO.getReviewId());
 
+        if (reviewDTO.getReviewId() == null) {
+            throw new NotFoundException("ID отзыва не может быть null при обновлении");
+        }
+
         getReviewById(reviewDTO.getReviewId());
 
         Review review = reviewMapper.toEntity(reviewDTO);
