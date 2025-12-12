@@ -47,12 +47,8 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
     }
 
     @GetMapping("/popular")
-    public ResponseEntity<List<FilmDTO>> getPopularFilms(
-            @RequestParam(defaultValue = "10") Integer count,
-            @RequestParam(required = false) Integer genreId,
-            @RequestParam(required = false) Integer year) {
-
-        List<FilmDTO> popularFilms = service.getPopularFilms(count, genreId, year);
+    public ResponseEntity<List<FilmDTO>> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
+        List<FilmDTO> popularFilms = service.getPopularFilms(count);
         return ResponseEntity.ok(popularFilms);
     }
 

@@ -95,7 +95,3 @@ CREATE INDEX IF NOT EXISTS idx_likes_film_id ON likes(film_id);
 CREATE INDEX IF NOT EXISTS idx_likes_user_id ON likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
-
--- Индекс для фильтрации по жанру
-CREATE INDEX IF NOT EXISTS idx_film_genres_genre_film ON film_genres (genre_id, film_id);
-

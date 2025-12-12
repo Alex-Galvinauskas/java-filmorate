@@ -153,48 +153,18 @@ public class FilmDbStorage implements FilmStorage {
         return new HashSet<>(likes);
     }
 
-    /**
-     * Получает популярные фильмы с фильтрацией по жанру и году.
-     */
-    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
-        StringBuilder sql = new StringBuilder(
-                "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
-                        "COUNT(l.user_id) as likes_count " +
-                        "FROM films f " +
-                        "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                        "LEFT JOIN likes l ON f.id = l.film_id "
-        );
+    public List<Film> getPopularFilms(int count) {
+        String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
+                "COUNT(l.user_id) as likes_count " +
+                "FROM films f " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                "LEFT JOIN likes l ON f.id = l.film_id " +
+                "GROUP BY f.id, m.name, m.description " +
+                "ORDER BY likes_count DESC " +
+                "LIMIT ?";
 
-        List<Object> params = new ArrayList<>();
-
-        if (genreId != null) {
-            sql.append("JOIN film_genres fg ON f.id = fg.film_id ");
-        }
-
-        sql.append("WHERE 1=1 ");
-
-        if (genreId != null) {
-            sql.append("AND fg.genre_id = ? ");
-            params.add(genreId);
-        }
-
-        if (year != null) {
-            /**
-             *  Используем YEAR() для совместимости с H2
-             */
-            sql.append("AND YEAR(f.release_date) = ? ");
-            params.add(year);
-        }
-
-        sql.append("GROUP BY f.id, m.name, m.description ");
-        sql.append("ORDER BY likes_count DESC ");
-        sql.append("LIMIT ?");
-        params.add(count);
-
-        log.debug("Выполнение SQL запроса для популярных фильмов: {}", sql);
-        log.debug("Параметры: genreId={}, year={}, count={}", genreId, year, count);
-
-        List<Film> films = jdbcTemplate.query(sql.toString(), new FilmRowMapper(), params.toArray());
+        log.debug("Получение {} популярных фильмов", count);
+        List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), count);
 
         return films.stream()
                 .peek(film -> film.setGenres(genreDbStorage.getGenresByFilmId(film.getId())))

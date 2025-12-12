@@ -177,7 +177,7 @@ class FilmControllerTest {
         @DisplayName("Получение популярных фильмов с указанным количеством возвращает фильмы")
         void getPopularFilms_ShouldReturnPopularFilmsTest() throws Exception {
             List<FilmDTO> popularFilms = Arrays.asList(testFilmDTO2, testFilmDTO);
-            when(filmService.getPopularFilms(2, null, null)).thenReturn(popularFilms);
+            when(filmService.getPopularFilms(2)).thenReturn(popularFilms);
 
             mockMvc.perform(get("/films/popular")
                             .param("count", "2"))
@@ -186,79 +186,34 @@ class FilmControllerTest {
                     .andExpect(jsonPath("$[0].name", is("Another Film")))
                     .andExpect(jsonPath("$[1].name", is("Test Film")));
 
-            verify(filmService, times(1)).getPopularFilms(2, null, null);
+            verify(filmService, times(1)).getPopularFilms(2);
         }
 
         @Test
         @DisplayName("Получение популярных фильмов без указания количества использует значение по умолчанию")
         void getPopularFilms_WithDefaultCount_ShouldUseDefaultValueTest() throws Exception {
             List<FilmDTO> popularFilms = Collections.singletonList(testFilmDTO);
-            when(filmService.getPopularFilms(10, null, null)).thenReturn(popularFilms);
+            when(filmService.getPopularFilms(10)).thenReturn(popularFilms);
 
             mockMvc.perform(get("/films/popular"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)));
 
-            verify(filmService, times(1)).getPopularFilms(10, null, null);
+            verify(filmService, times(1)).getPopularFilms(10);
         }
 
         @Test
         @DisplayName("Получение популярных фильмов с нулевым количеством возвращает пустой список")
         void getPopularFilms_WithZeroCount_ShouldReturnEmptyListTest() throws Exception {
             List<FilmDTO> popularFilms = Collections.emptyList();
-            when(filmService.getPopularFilms(0, null, null)).thenReturn(popularFilms);
+            when(filmService.getPopularFilms(0)).thenReturn(popularFilms);
 
             mockMvc.perform(get("/films/popular")
                             .param("count", "0"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(0)));
 
-            verify(filmService, times(1)).getPopularFilms(0, null, null);
-        }
-
-        @Test
-        @DisplayName("Получение популярных фильмов с фильтрацией по жанру возвращает фильмы")
-        void getPopularFilms_WithGenreFilter_ReturnsFilteredFilms() throws Exception {
-            List<FilmDTO> popularFilms = Arrays.asList(testFilmDTO2, testFilmDTO);
-            when(filmService.getPopularFilms(2, 1, null)).thenReturn(popularFilms);
-
-            mockMvc.perform(get("/films/popular")
-                            .param("count", "2")
-                            .param("genreId", "1"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(2)));
-
-            verify(filmService, times(1)).getPopularFilms(2, 1, null);
-        }
-
-        @Test
-        @DisplayName("Получение популярных фильмов с фильтрацией по году возвращает фильмы")
-        void getPopularFilms_WithYearFilter_ReturnsFilteredFilms() throws Exception {
-            List<FilmDTO> popularFilms = Collections.singletonList(testFilmDTO);
-            when(filmService.getPopularFilms(5, null, 2020)).thenReturn(popularFilms);
-
-            mockMvc.perform(get("/films/popular")
-                            .param("count", "5")
-                            .param("year", "2020"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(1)));
-
-            verify(filmService, times(1)).getPopularFilms(5, null, 2020);
-        }
-
-        @Test
-        @DisplayName("Получение популярных фильмов с фильтрацией по жанру и году возвращает фильмы")
-        void getPopularFilms_WithGenreAndYearFilter_ReturnsFilteredFilms() throws Exception {
-            List<FilmDTO> popularFilms = Collections.singletonList(testFilmDTO);
-            when(filmService.getPopularFilms(10, 2, 2020)).thenReturn(popularFilms);
-
-            mockMvc.perform(get("/films/popular")
-                            .param("genreId", "2")
-                            .param("year", "2020"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(1)));
-
-            verify(filmService, times(1)).getPopularFilms(10, 2, 2020);
+            verify(filmService, times(1)).getPopularFilms(0);
         }
     }
 
