@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 
@@ -20,6 +21,7 @@ import java.util.Optional;
 @Repository
 @Slf4j
 @RequiredArgsConstructor
+@Transactional
 public class DirectorDbStorage {
 
     private final JdbcTemplate jdbcTemplate;

@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 @Primary
 @Slf4j
 @RequiredArgsConstructor
+@Transactional
 public class FilmDbStorage implements FilmStorage {
 
     private final JdbcTemplate jdbcTemplate;
@@ -65,20 +67,26 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getAllFilms() {
-        String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description " +
-                "FROM films f " +
-                "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                "ORDER BY f.id";
+        String sql = """
+    SELECT
+        f.*,
+        m.name as mpa_name,
+        m.description as mpa_description,
+        GROUP_CONCAT(DISTINCT g.id ORDER BY g.id) as genre_ids,
+        GROUP_CONCAT(DISTINCT g.name ORDER BY g.id) as genre_names,
+        GROUP_CONCAT(DISTINCT d.id) as director_ids,
+        GROUP_CONCAT(DISTINCT d.name) as director_names
+    FROM films f
+    LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id
+    LEFT JOIN film_genres fg ON f.id = fg.film_id
+    LEFT JOIN genres g ON fg.genre_id = g.id
+    LEFT JOIN film_directors fd ON f.id = fd.film_id
+    LEFT JOIN directors d ON fd.director_id = d.id
+    GROUP BY f.id, m.name, m.description
+    ORDER BY f.id
+    """;
 
-        log.debug("Получение всех фильмов из БД");
-        List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper());
-
-        return films.stream()
-                .peek(film -> {
-                    film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
-                    film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
-                })
-                .collect(Collectors.toList());
+        return jdbcTemplate.query(sql, new FilmRowMapper());
     }
 
     @Override
