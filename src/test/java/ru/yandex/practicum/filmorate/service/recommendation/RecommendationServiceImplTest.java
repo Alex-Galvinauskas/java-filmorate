@@ -25,13 +25,7 @@ import static org.mockito.Mockito.*;
 
 @JdbcTest
 @AutoConfigureTestDatabase
-@Import({
-    FilmDbStorage.class, 
-    UserDbStorage.class, 
-    GenreDbStorage.class,
-    MpaDbStorage.class,
-    DirectorDbStorage.class
-})
+@Import({FilmDbStorage.class, UserDbStorage.class, GenreDbStorage.class, MpaDbStorage.class, DirectorDbStorage.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 @DisplayName("Тесты сервиса рекомендаций")
 class RecommendationServiceImplTest {
