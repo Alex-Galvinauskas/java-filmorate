@@ -2,7 +2,9 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.dto.UserDTO;
+import ru.yandex.practicum.filmorate.service.recommendation.RecommendationService;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.util.List;
@@ -11,8 +13,11 @@ import java.util.List;
 @RequestMapping("/users")
 public class UserController extends AbstractController<UserDTO, UserService> {
 
-    public UserController(UserService userService) {
+    private final RecommendationService recommendationService;
+
+    public UserController(UserService userService, RecommendationService recommendationService) {
         super(userService, "пользователь");
+        this.recommendationService = recommendationService;
     }
 
     @Override
@@ -62,5 +67,11 @@ public class UserController extends AbstractController<UserDTO, UserService> {
     public ResponseEntity<Void> removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
         service.removeFriend(id, friendId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public ResponseEntity<List<FilmDTO>> getRecommendations(@PathVariable Long id) {
+        List<FilmDTO> recommendations = recommendationService.getRecommendations(id);
+        return ResponseEntity.ok(recommendations);
     }
 }

@@ -114,3 +114,11 @@ CREATE INDEX IF NOT EXISTS idx_directors_name ON directors(name);
 CREATE INDEX IF NOT EXISTS idx_film_directors_film_id ON film_directors(film_id);
 CREATE INDEX IF NOT EXISTS idx_film_directors_director_id ON film_directors(director_id);
 CREATE INDEX IF NOT EXISTS idx_film_genres_genre_film ON film_genres (genre_id, film_id);
+
+-- Добавляем индексы для ускорения запросов рекомендаций
+CREATE INDEX IF NOT EXISTS idx_likes_user_film ON likes(user_id, film_id);
+CREATE INDEX IF NOT EXISTS idx_likes_film_user ON likes(film_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_likes_created_at ON likes(created_at DESC);
+
+-- Индекс для поиска похожих пользователей
+CREATE INDEX IF NOT EXISTS idx_friendships_user_friend ON friendships(user_id, friend_id);

@@ -176,7 +176,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     /**
-            * Загружает друзей для списка пользователей
+     * Загружает друзей для списка пользователей
      */
     private void loadFriendsForUsers(List<User> users) {
         if (users == null || users.isEmpty()) {
@@ -221,5 +221,13 @@ public class UserDbStorage implements UserStorage {
                     .friends(new HashSet<>())
                     .build();
         }
+    }
+
+    @Override
+    public boolean hasLikes(Long userId) {
+        // Проверяем, есть ли лайки у пользователя
+        String sql = "SELECT COUNT(*) FROM likes WHERE user_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        return count != null && count > 0;
     }
 }
