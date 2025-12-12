@@ -18,6 +18,8 @@ public interface FilmService {
       */
     List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year);
 
+    List<FilmDTO> getFilmsByDirector(Long directorId, String sortBy);
+
     void addLike(Long filmId, Long userId);
 
     void removeLike(Long filmId, Long userId);
