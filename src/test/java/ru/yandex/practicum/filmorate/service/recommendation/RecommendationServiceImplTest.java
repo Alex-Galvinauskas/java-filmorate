@@ -21,7 +21,16 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
+@JdbcTest
+@AutoConfigureTestDatabase
+@Import({
+    FilmDbStorage.class, 
+    UserDbStorage.class, 
+    GenreDbStorage.class, 
+    MpaDbStorage.class, 
+    DirectorDbStorage.class
+})
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @DisplayName("Тесты сервиса рекомендаций")
 class RecommendationServiceImplTest {
 
