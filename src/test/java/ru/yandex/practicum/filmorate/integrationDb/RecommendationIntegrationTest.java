@@ -25,10 +25,10 @@ class RecommendationIntegrationTest {
 
     @Autowired
     private FilmDbStorage filmDbStorage;
-    
+
     @Autowired
     private UserDbStorage userDbStorage;
-    
+
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -43,7 +43,7 @@ class RecommendationIntegrationTest {
         jdbcTemplate.update("DELETE FROM genres");
         jdbcTemplate.update("DELETE FROM mpa_ratings");
         jdbcTemplate.update("DELETE FROM directors");
-        
+
         jdbcTemplate.update("INSERT INTO mpa_ratings (id, name, description) VALUES " +
                 "(1, 'G', 'General Audiences'), " +
                 "(2, 'PG', 'Parental Guidance Suggested'), " +
@@ -51,7 +51,7 @@ class RecommendationIntegrationTest {
                 "(4, 'R', 'Restricted'), " +
                 "(5, 'NC-17', 'Adults Only') " +
                 "ON CONFLICT DO NOTHING");
-        
+
         jdbcTemplate.update("INSERT INTO genres (id, name) VALUES " +
                 "(1, 'Комедия'), " +
                 "(2, 'Драма'), " +
