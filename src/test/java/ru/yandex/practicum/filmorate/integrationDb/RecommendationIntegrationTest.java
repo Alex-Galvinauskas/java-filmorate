@@ -44,22 +44,21 @@ class RecommendationIntegrationTest {
         jdbcTemplate.update("DELETE FROM mpa_ratings");
         jdbcTemplate.update("DELETE FROM directors");
 
-        jdbcTemplate.update("INSERT INTO mpa_ratings (id, name, description) VALUES " +
+        // Используем MERGE для H2 вместо ON CONFLICT DO NOTHING
+        jdbcTemplate.update("MERGE INTO mpa_ratings KEY (id) VALUES " +
                 "(1, 'G', 'General Audiences'), " +
                 "(2, 'PG', 'Parental Guidance Suggested'), " +
                 "(3, 'PG-13', 'Parents Strongly Cautioned'), " +
                 "(4, 'R', 'Restricted'), " +
-                "(5, 'NC-17', 'Adults Only') " +
-                "ON CONFLICT DO NOTHING");
+                "(5, 'NC-17', 'Adults Only')");
 
-        jdbcTemplate.update("INSERT INTO genres (id, name) VALUES " +
+        jdbcTemplate.update("MERGE INTO genres KEY (id) VALUES " +
                 "(1, 'Комедия'), " +
                 "(2, 'Драма'), " +
                 "(3, 'Мультфильм'), " +
                 "(4, 'Триллер'), " +
                 "(5, 'Документальный'), " +
-                "(6, 'Боевик') " +
-                "ON CONFLICT DO NOTHING");
+                "(6, 'Боевик')");
     }
 
     @Test
