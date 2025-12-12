@@ -237,9 +237,26 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public boolean existsFilmByNameAndReleaseYearExcludingId(String name, Integer releaseYear,
                                                              Long excludedId) {
-        String sql = "SELECT COUNT(*) FROM films WHERE LOWER(name) = LOWER(?) AND YEAR(release_date) = ? AND id != ?";
+        String sql = """
+        SELECT COUNT(*)
+        FROM films f
+        WHERE LOWER(f.name) = LOWER(?)
+          AND YEAR(f.release_date) = ?
+          AND f.id != ?
+          AND NOT EXISTS (
+              SELECT 1
+              FROM film_directors fd1
+              WHERE fd1.film_id = f.id
+                AND fd1.director_id IN (
+                    SELECT fd2.director_id
+                    FROM film_directors fd2
+                    WHERE fd2.film_id = ?
+                )
+          )
+        """;
+
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class,
-                name.toLowerCase(), releaseYear, excludedId);
+                name.toLowerCase(), releaseYear, excludedId, excludedId);
         return count != null && count > 0;
     }
 
