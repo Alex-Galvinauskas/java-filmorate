@@ -13,11 +13,10 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
 
+import java.sql.*;
 import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -246,6 +245,42 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     /**
+     * Получает лайки пользователей с ограничением по количеству
+     */
+    public Map<Long, Set<Long>> getRecentLikesByUsers(int limit) {
+        String sql = "SELECT user_id, film_id FROM likes " +
+                "ORDER BY created_at DESC LIMIT ?";
+
+        Map<Long, Set<Long>> likesByUser = new HashMap<>();
+
+        jdbcTemplate.query(sql, (rs) -> {
+            Long userId = rs.getLong("user_id");
+            Long filmId = rs.getLong("film_id");
+            likesByUser.computeIfAbsent(userId, k -> new HashSet<>()).add(filmId);
+        }, limit);
+
+        log.debug("Получены последние {} лайков для {} пользователей", limit, likesByUser.size());
+        return likesByUser;
+    }
+
+    public Map<Long, Set<Long>> getLikesByUsersSince(LocalDateTime since) {
+        String sql = "SELECT user_id, film_id FROM likes " +
+                "WHERE created_at >= ? " +
+                "ORDER BY created_at DESC";
+
+        Map<Long, Set<Long>> likesByUser = new HashMap<>();
+
+        jdbcTemplate.query(sql, (rs) -> {
+            Long userId = rs.getLong("user_id");
+            Long filmId = rs.getLong("film_id");
+            likesByUser.computeIfAbsent(userId, k -> new HashSet<>()).add(filmId);
+        }, Timestamp.valueOf(since));
+
+        log.debug("Получены лайки с {} для {} пользователей", since, likesByUser.size());
+        return likesByUser;
+    }
+
+    /**
      * Получает фильмы по списку ID
      */
     public List<Film> getFilmsByIds(Set<Long> ids) {
@@ -269,6 +304,50 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         log.debug("Получено {} фильмов по ID", films.size());
+        return films;
+    }
+
+    /**
+     * Получает рекомендации для пользователя одним запросом
+     */
+    public List<Film> getRecommendationsForUser(Long userId, int limit) {
+        String sql =
+                "WITH user_likes AS (" +
+                        "    SELECT film_id FROM likes WHERE user_id = ?" +
+                        "), " +
+                        "similar_users AS (" +
+                        "    SELECT l2.user_id, COUNT(DISTINCT l2.film_id) AS common_likes " +
+                        "    FROM likes l1 " +
+                        "    JOIN likes l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
+                        "    WHERE l1.user_id = ? " +
+                        "    GROUP BY l2.user_id " +
+                        "    ORDER BY common_likes DESC " +
+                        "    LIMIT 5" +
+                        "), " +
+                        "recommended_films AS (" +
+                        "    SELECT DISTINCT l.film_id " +
+                        "    FROM similar_users su " +
+                        "    JOIN likes l ON su.user_id = l.user_id " +
+                        "    WHERE l.film_id NOT IN (SELECT film_id FROM user_likes) " +
+                        ") " +
+                        "SELECT f.*, m.name as mpa_name, m.description as mpa_description " +
+                        "FROM films f " +
+                        "JOIN recommended_films rf ON f.id = rf.film_id " +
+                        "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                        "ORDER BY (" +
+                        "    SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id" +
+                        ") DESC " +
+                        "LIMIT ?";
+
+        List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), userId, userId, limit);
+
+        // Загружаем жанры для каждого фильма
+        for (Film film : films) {
+            film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
+            film.setLikes(getLikesByFilmId(film.getId()));
+        }
+
+        log.debug("Получено {} рекомендаций для пользователя {}", films.size(), userId);
         return films;
     }
 }

@@ -95,3 +95,11 @@ CREATE INDEX IF NOT EXISTS idx_likes_film_id ON likes(film_id);
 CREATE INDEX IF NOT EXISTS idx_likes_user_id ON likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+
+-- Добавляем индекс для ускорения запросов рекомендаций
+CREATE INDEX IF NOT EXISTS idx_likes_user_film ON likes(user_id, film_id);
+CREATE INDEX IF NOT EXISTS idx_likes_film_user ON likes(film_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_likes_created_at ON likes(created_at DESC);
+
+-- Индекс для поиска похожих пользователей
+CREATE INDEX IF NOT EXISTS idx_friendships_user_friend ON friendships(user_id, friend_id);

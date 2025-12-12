@@ -19,7 +19,6 @@ import java.time.LocalDate;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -82,127 +81,109 @@ class RecommendationServiceImplTest {
 
         assertTrue(exception.getMessage().contains("не найден"));
         verify(userDbStorage, times(1)).getUserById(userId);
+        verify(filmDbStorage, never()).getRecommendationsForUser(anyLong(), anyInt());
     }
 
     @Test
-    @DisplayName("Получение рекомендаций - пользователь без лайков")
-    void getRecommendations_UserWithoutLikes_ReturnsEmptyList() {
+    @DisplayName("Получение рекомендаций - пользователь без рекомендаций")
+    void getRecommendations_UserWithoutRecommendations_ReturnsEmptyList() {
         Long userId = 1L;
         User user = createTestUser(userId);
 
         when(userDbStorage.getUserById(userId)).thenReturn(Optional.of(user));
-        when(filmDbStorage.getLikesByUsers()).thenReturn(new HashMap<>());
+        when(filmDbStorage.getRecommendationsForUser(userId, 10)).thenReturn(Collections.emptyList());
 
         List<FilmDTO> result = recommendationService.getRecommendations(userId);
 
-        assertTrue(result.isEmpty(), "Должен возвращаться пустой список при отсутствии лайков");
+        assertTrue(result.isEmpty(), "Должен возвращаться пустой список при отсутствии рекомендаций");
         assertEquals(0, result.size());
-        verify(filmDbStorage, times(1)).getLikesByUsers();
-        verify(filmDbStorage, never()).getPopularFilms(anyInt());
+        verify(filmDbStorage, times(1)).getRecommendationsForUser(userId, 10);
     }
 
     @Test
     @DisplayName("Получение рекомендаций - найдены рекомендации")
     void getRecommendations_FoundRecommendations_ReturnsFilms() {
-        Long userId1 = 1L;
-        Long userId2 = 2L;
-        User user1 = createTestUser(userId1);
+        Long userId = 1L;
+        User user = createTestUser(userId);
 
         Film film3 = createTestFilm(3L);
         FilmDTO filmDTO3 = createTestFilmDTO(3L);
 
-        when(userDbStorage.getUserById(userId1)).thenReturn(Optional.of(user1));
-
-        Map<Long, Set<Long>> likesByUser = new HashMap<>();
-        /**
-         * Пользователь 1 лайкнул фильмы 1 и 2
-          */
-        likesByUser.put(userId1, new HashSet<>(Arrays.asList(1L, 2L)));
-        /**
-         *   Пользователь 2 лайкнул фильмы 1, 2 и 3
-          */
-        likesByUser.put(userId2, new HashSet<>(Arrays.asList(1L, 2L, 3L)));
-
-        when(filmDbStorage.getLikesByUsers()).thenReturn(likesByUser);
-        when(filmDbStorage.getFilmsByIds(anySet())).thenReturn(Collections.singletonList(film3));
+        when(userDbStorage.getUserById(userId)).thenReturn(Optional.of(user));
+        when(filmDbStorage.getRecommendationsForUser(userId, 10)).thenReturn(Collections.singletonList(film3));
         when(filmMapper.toDTO(film3)).thenReturn(filmDTO3);
 
-        List<FilmDTO> result = recommendationService.getRecommendations(userId1);
+        List<FilmDTO> result = recommendationService.getRecommendations(userId);
 
         assertEquals(1, result.size(), "Должен вернуться один рекомендованный фильм");
         assertEquals(3L, result.get(0).getId(), "Должен вернуться фильм с ID 3");
-        verify(filmDbStorage, times(1)).getFilmsByIds(anySet());
+        verify(filmDbStorage, times(1)).getRecommendationsForUser(userId, 10);
     }
 
     @Test
-    @DisplayName("Получение рекомендаций - нет общих лайков")
-    void getRecommendations_NoCommonLikes_ReturnsEmptyList() {
-        Long userId1 = 1L;
-        Long userId2 = 2L;
-        User user1 = createTestUser(userId1);
-
-        when(userDbStorage.getUserById(userId1)).thenReturn(Optional.of(user1));
-
-        Map<Long, Set<Long>> likesByUser = new HashMap<>();
-        /**
-         *  У пользователей нет общих лайков
-          */
-        likesByUser.put(userId1, new HashSet<>(Collections.singletonList(1L)));
-        likesByUser.put(userId2, new HashSet<>(Collections.singletonList(2L)));
-
-        when(filmDbStorage.getLikesByUsers()).thenReturn(likesByUser);
-
-        List<FilmDTO> result = recommendationService.getRecommendations(userId1);
-
-        assertTrue(result.isEmpty(), "Должен возвращаться пустой список при отсутствии общих лайков");
-        assertEquals(0, result.size());
-        verify(filmDbStorage, never()).getPopularFilms(anyInt());
-    }
-
-    @Test
-    @DisplayName("Получение рекомендаций - нет уникальных фильмов для рекомендации")
-    void getRecommendations_NoUniqueFilms_ReturnsEmptyList() {
-        Long userId1 = 1L;
-        Long userId2 = 2L;
-        User user1 = createTestUser(userId1);
-
-        when(userDbStorage.getUserById(userId1)).thenReturn(Optional.of(user1));
-
-        Map<Long, Set<Long>> likesByUser = new HashMap<>();
-        /**
-         * У пользователей одинаковые лайки
-          */
-        likesByUser.put(userId1, new HashSet<>(Arrays.asList(1L, 2L)));
-        likesByUser.put(userId2, new HashSet<>(Arrays.asList(1L, 2L)));
-
-        when(filmDbStorage.getLikesByUsers()).thenReturn(likesByUser);
-
-        List<FilmDTO> result = recommendationService.getRecommendations(userId1);
-
-        assertTrue(result.isEmpty(), "Должен возвращаться пустой список при отсутствии уникальных фильмов");
-        assertEquals(0, result.size());
-        verify(filmDbStorage, never()).getPopularFilms(anyInt());
-    }
-
-    @Test
-    @DisplayName("Получение рекомендаций - недостаточно пользователей с лайками")
-    void getRecommendations_InsufficientUsers_ReturnsEmptyList() {
+    @DisplayName("Получение рекомендаций - нет рекомендаций")
+    void getRecommendations_NoRecommendations_ReturnsEmptyList() {
         Long userId = 1L;
         User user = createTestUser(userId);
 
         when(userDbStorage.getUserById(userId)).thenReturn(Optional.of(user));
-
-        Map<Long, Set<Long>> likesByUser = new HashMap<>();
-        /**
-         * Только один пользователь с лайками
-          */
-        likesByUser.put(userId, new HashSet<>(Arrays.asList(1L, 2L)));
-
-        when(filmDbStorage.getLikesByUsers()).thenReturn(likesByUser);
+        when(filmDbStorage.getRecommendationsForUser(userId, 10)).thenReturn(Collections.emptyList());
 
         List<FilmDTO> result = recommendationService.getRecommendations(userId);
 
-        assertTrue(result.isEmpty(), "Должен возвращаться пустой список при недостаточном количестве пользователей");
+        assertTrue(result.isEmpty(), "Должен возвращаться пустой список при отсутствии рекомендаций");
         assertEquals(0, result.size());
+        verify(filmDbStorage, times(1)).getRecommendationsForUser(userId, 10);
+    }
+
+    @Test
+    @DisplayName("Получение рекомендаций - несколько рекомендаций")
+    void getRecommendations_MultipleRecommendations_ReturnsFilms() {
+        Long userId = 1L;
+        User user = createTestUser(userId);
+
+        Film film1 = createTestFilm(1L);
+        Film film2 = createTestFilm(2L);
+        FilmDTO filmDTO1 = createTestFilmDTO(1L);
+        FilmDTO filmDTO2 = createTestFilmDTO(2L);
+
+        List<Film> films = Arrays.asList(film1, film2);
+
+        when(userDbStorage.getUserById(userId)).thenReturn(Optional.of(user));
+        when(filmDbStorage.getRecommendationsForUser(userId, 10)).thenReturn(films);
+        when(filmMapper.toDTO(film1)).thenReturn(filmDTO1);
+        when(filmMapper.toDTO(film2)).thenReturn(filmDTO2);
+
+        List<FilmDTO> result = recommendationService.getRecommendations(userId);
+
+        assertEquals(2, result.size(), "Должен вернуться два рекомендованных фильма");
+        verify(filmDbStorage, times(1)).getRecommendationsForUser(userId, 10);
+    }
+
+    @Test
+    @DisplayName("Получение рекомендаций - ограничение количества рекомендаций")
+    void getRecommendations_WithLimit_ReturnsLimitedFilms() {
+        Long userId = 1L;
+        User user = createTestUser(userId);
+
+        // Создаем только 10 фильмов, которые действительно вернет метод
+        List<Film> films = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            films.add(createTestFilm((long) i));
+        }
+
+        when(userDbStorage.getUserById(userId)).thenReturn(Optional.of(user));
+        when(filmDbStorage.getRecommendationsForUser(userId, 10)).thenReturn(films);
+
+        // Используем общую заглушку для всех фильмов
+        when(filmMapper.toDTO(any(Film.class))).thenAnswer(invocation -> {
+            Film film = invocation.getArgument(0);
+            return createTestFilmDTO(film.getId());
+        });
+
+        List<FilmDTO> result = recommendationService.getRecommendations(userId);
+
+        assertEquals(10, result.size(), "Должен вернуться ограниченное количество фильмов");
+        verify(filmDbStorage, times(1)).getRecommendationsForUser(userId, 10);
     }
 }
