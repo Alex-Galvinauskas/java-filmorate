@@ -103,20 +103,16 @@ public class FilmServiceImpl implements FilmService {
     }
 
     /**
-     * Возвращает список популярных фильмов.
-     * Популярность определяется количеством лайков.
-     *
-     * @param count количество фильмов (если null или отрицательное, то по умолчанию)
-     *
-     * @return список популярных фильмов, сортированных по количеству лайков по убыванию
+     * Возвращает список популярных фильмов с фильтрацией по жанру и году.
      */
     @Override
-    public List<FilmDTO> getPopularFilms(Integer count) {
-        log.debug("Получение списка популярных фильмов. Количество: {}", count);
+    public List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year) {
+        log.debug("Получение списка популярных фильмов. Количество: {}, жанр: {}, год: {}",
+                count, genreId, year);
 
         int filmsCount = (count != null) && (count > 0) ? count : 10;
 
-        return filmDbStorage.getPopularFilms(filmsCount).stream()
+        return filmDbStorage.getPopularFilms(filmsCount, genreId, year).stream()
                 .map(filmMapper::toDTO)
                 .collect(Collectors.toList());
     }

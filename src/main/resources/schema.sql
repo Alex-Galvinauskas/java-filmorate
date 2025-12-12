@@ -113,4 +113,4 @@ CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
 CREATE INDEX IF NOT EXISTS idx_directors_name ON directors(name);
 CREATE INDEX IF NOT EXISTS idx_film_directors_film_id ON film_directors(film_id);
 CREATE INDEX IF NOT EXISTS idx_film_directors_director_id ON film_directors(director_id);
-CREATE INDEX IF NOT EXISTS idx_films_release_date ON films(release_date);
+CREATE INDEX IF NOT EXISTS idx_film_genres_genre_film ON film_genres (genre_id, film_id);
