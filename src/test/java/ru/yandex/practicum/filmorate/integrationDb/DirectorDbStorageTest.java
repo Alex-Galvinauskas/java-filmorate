@@ -231,10 +231,12 @@ public class DirectorDbStorageTest {
         String existsLinkSql = "SELECT COUNT(*) FROM film_directors WHERE film_id = ? AND director_id = ?";
         String insertSql = "INSERT INTO film_directors (film_id, director_id) VALUES (?, ?)";
 
-        when(jdbcTemplate.queryForObject(eq(existsDirectorSql), eq(Integer.class), eq(1L)))
+        when(jdbcTemplate.queryForObject(eq(existsDirectorSql),
+                eq(Integer.class), eq(1L)))
                 .thenReturn(1);
 
-        when(jdbcTemplate.queryForObject(eq(existsLinkSql), eq(Integer.class), eq(100L), eq(1L)))
+        when(jdbcTemplate.queryForObject(eq(existsLinkSql),
+                eq(Integer.class), eq(100L), eq(1L)))
                 .thenReturn(0);
 
         when(jdbcTemplate.update(eq(insertSql), eq(100L), eq(1L)))
@@ -243,10 +245,12 @@ public class DirectorDbStorageTest {
         directorDbStorage.addDirectorToFilm(1L, 100L);
 
         verify(jdbcTemplate, times(1))
-                .queryForObject(eq(existsDirectorSql), eq(Integer.class), eq(1L));
+                .queryForObject(eq(existsDirectorSql), eq(Integer.class),
+                        eq(1L));
 
         verify(jdbcTemplate, times(1))
-                .queryForObject(eq(existsLinkSql), eq(Integer.class), eq(100L), eq(1L));
+                .queryForObject(eq(existsLinkSql), eq(Integer.class),
+                        eq(100L), eq(1L));
 
         verify(jdbcTemplate, times(1))
                 .update(eq(insertSql), eq(100L), eq(1L));
