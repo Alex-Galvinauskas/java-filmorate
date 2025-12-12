@@ -1,15 +1,17 @@
 package ru.yandex.practicum.filmorate.service.recommendation;
 
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
-import ru.yandex.practicum.filmorate.managment.db.UserDbStorage;
+import ru.yandex.practicum.filmorate.managment.db.*;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Mpa;
@@ -26,8 +28,8 @@ import static org.mockito.Mockito.*;
 @Import({
     FilmDbStorage.class, 
     UserDbStorage.class, 
-    GenreDbStorage.class, 
-    MpaDbStorage.class, 
+    GenreDbStorage.class,
+    MpaDbStorage.class,
     DirectorDbStorage.class
 })
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
