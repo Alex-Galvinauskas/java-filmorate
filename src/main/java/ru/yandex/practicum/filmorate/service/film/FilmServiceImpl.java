@@ -13,7 +13,6 @@ package ru.yandex.practicum.filmorate.service.film;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.dto.DirectorDTO;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
@@ -21,12 +20,10 @@ import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.service.directors.DirectorService;
 import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,7 +37,6 @@ public class FilmServiceImpl implements FilmService {
     private final MpaService mpaService;
     private final GenreService genreService;
     private final FilmMapper filmMapper;
-    private final DirectorService directorService;
 
     /**
      * Создает новый фильм с проверкой уникальности.
@@ -61,7 +57,6 @@ public class FilmServiceImpl implements FilmService {
 
         Film film = filmMapper.toEntity(filmDTO);
         validateAndPrepareGenres(film);
-        validateAndPrepareDirectors(filmDTO);
 
         Film createdFilm = filmDbStorage.createFilm(film);
         FilmDTO result = filmMapper.toDTO(createdFilm);
@@ -121,17 +116,6 @@ public class FilmServiceImpl implements FilmService {
                 .collect(Collectors.toList());
     }
 
-    public List<FilmDTO> getFilmsByDirector(Long directorId, String sortBy) {
-        log.debug("Получение фильмов режиссера {} с сортировкой: {}", directorId, sortBy);
-
-        directorService.getById(directorId);
-
-        List<Film> films = filmDbStorage.getFilmsByDirector(directorId, sortBy);
-        return films.stream()
-                .map(filmMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
     /**
      * Находит фильм по идентификатору.
      * Выполняет проверку существования фильма и генерирует исключение если фильм не найден.
@@ -172,7 +156,6 @@ public class FilmServiceImpl implements FilmService {
 
         Film film = filmMapper.toEntity(filmDTO);
         validateAndPrepareGenres(film);
-        validateAndPrepareDirectors(filmDTO);
 
         filmValidator.validateFilmUniquenessForUpdate(filmMapper.toEntity(existingFilm), film);
 
@@ -264,27 +247,6 @@ public class FilmServiceImpl implements FilmService {
         } catch (Exception e) {
             log.error("Ошибка при удалении фильма с ID {}: {}", filmId, e.getMessage(), e);
             throw new RuntimeException("Не удалось удалить фильм", e);
-    private void validateAndPrepareDirectors(FilmDTO filmDTO) {
-        if (filmDTO.getDirectors() != null && !filmDTO.getDirectors().isEmpty()) {
-            for (DirectorDTO directorDTO : filmDTO.getDirectors()) {
-                if (directorDTO.getId() == null) {
-                    throw new IllegalArgumentException("ID режиссера не может быть null");
-                }
-                directorService.getById(directorDTO.getId());
-            }
-
-            List<DirectorDTO> uniqueDirectors = filmDTO.getDirectors().stream()
-                    .collect(Collectors.toMap(
-                            DirectorDTO::getId,
-                            d -> d,
-                            (d1, d2) -> d1
-                    ))
-                    .values()
-                    .stream()
-                    .sorted(Comparator.comparing(DirectorDTO::getId))
-                    .collect(Collectors.toList());
-
-            filmDTO.setDirectors(uniqueDirectors);
         }
     }
 }

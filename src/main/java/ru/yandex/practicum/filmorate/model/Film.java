@@ -13,7 +13,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,9 +44,6 @@ public class Film {
     @Builder.Default
     private Set<Long> likes = ConcurrentHashMap.newKeySet();
 
-    @Builder.Default
-    private List<Director> directors = new ArrayList<>();
-
     @JsonCreator
     public Film(
             @JsonProperty("id") Long id,
@@ -56,8 +52,7 @@ public class Film {
             @JsonProperty("releaseDate") LocalDate releaseDate,
             @JsonProperty("duration") Integer duration,
             @JsonProperty("mpa") Mpa mpa,
-            @JsonProperty("genres") List<Genre> genres,
-            @JsonProperty("directors") List<Director> directors) {
+            @JsonProperty("genres") List<Genre> genres) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -65,7 +60,6 @@ public class Film {
         this.duration = duration;
         this.mpa = mpa;
         this.genres = genres;
-        this.directors = directors;
         this.likes = ConcurrentHashMap.newKeySet();
     }
 
@@ -79,11 +73,6 @@ public class Film {
             copiedLikes.addAll(source.getLikes());
         }
 
-        List<Director> copiedDirectors = new ArrayList<>();
-        if (source.getDirectors() != null) {
-            copiedDirectors.addAll(source.getDirectors());
-        }
-
         return Film.builder()
                 .id(newId)
                 .name(source.getName())
@@ -93,7 +82,6 @@ public class Film {
                 .mpa(source.getMpa())
                 .genres(source.getGenres())
                 .likes(copiedLikes)
-                .directors(copiedDirectors)
                 .build();
     }
 }

@@ -12,11 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.dto.UserDTO;
-import ru.yandex.practicum.filmorate.exception.GlobalExceptionHandler;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.service.recommendation.RecommendationService;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.time.LocalDate;
@@ -41,34 +37,20 @@ class UserControllerTest {
     @Mock
     private UserService userService;
 
-    @Mock
-    private RecommendationService recommendationService;
-
     @InjectMocks
     private UserController userController;
-
-    @InjectMocks
-    private GlobalExceptionHandler globalExceptionHandler;
 
     private ObjectMapper objectMapper;
     private UserDTO testUserDTO;
     private UserDTO testUserDTO2;
     private UserDTO testUserDTO3;
 
-
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
         objectMapper.findAndRegisterModules();
 
-        userController = new UserController(userService, recommendationService);
-
-        globalExceptionHandler = new GlobalExceptionHandler();
-
-        mockMvc = MockMvcBuilders
-                .standaloneSetup(userController)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+        mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
 
         testUserDTO = UserDTO.builder()
                 .id(1L)
@@ -227,53 +209,6 @@ class UserControllerTest {
     }
 
     @Nested
-    @DisplayName("Тесты рекомендательной системы")
-    class RecommendationTests {
-
-        @Test
-        @DisplayName("Получение рекомендаций возвращает список фильмов")
-        void getRecommendations_ShouldReturnRecommendedFilmsTest() throws Exception {
-            FilmDTO film1 = FilmDTO.builder()
-                    .id(1L)
-                    .name("Recommended Film 1")
-                    .description("Recommended Description 1")
-                    .releaseDate(LocalDate.of(2020, 1, 1))
-                    .duration(120)
-                    .build();
-
-            FilmDTO film2 = FilmDTO.builder()
-                    .id(2L)
-                    .name("Recommended Film 2")
-                    .description("Recommended Description 2")
-                    .releaseDate(LocalDate.of(2021, 1, 1))
-                    .duration(150)
-                    .build();
-
-            when(recommendationService.getRecommendations(1L)).thenReturn(Arrays.asList(film1, film2));
-
-            mockMvc.perform(get("/users/1/recommendations"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(2)))
-                    .andExpect(jsonPath("$[0].name", is("Recommended Film 1")))
-                    .andExpect(jsonPath("$[1].name", is("Recommended Film 2")));
-
-            verify(recommendationService, times(1)).getRecommendations(1L);
-        }
-
-        @Test
-        @DisplayName("Получение рекомендаций для несуществующего пользователя возвращает ошибку")
-        void getRecommendations_NonExistingUser_ReturnsNotFoundTest() throws Exception {
-            when(recommendationService.getRecommendations(999L))
-                    .thenThrow(new NotFoundException("Пользователь с ID 999 не найден"));
-
-            mockMvc.perform(get("/users/999/recommendations"))
-                    .andExpect(status().isNotFound());
-
-            verify(recommendationService, times(1)).getRecommendations(999L);
-        }
-    }
-
-    @Nested
     @DisplayName("Тесты валидации endpoints")
     class EndpointValidationTests {
 
@@ -281,21 +216,21 @@ class UserControllerTest {
         @DisplayName("Некорректный ID пользователя в пути возвращает ошибку")
         void getUserById_InvalidId_ReturnsBadRequestTest() throws Exception {
             mockMvc.perform(get("/users/invalid"))
-                    .andExpect(status().isInternalServerError());
+                    .andExpect(status().isBadRequest());
         }
 
         @Test
         @DisplayName("Некорректные ID для операций с друзьями возвращают ошибку")
         void addFriend_InvalidIds_ReturnsBadRequestTest() throws Exception {
             mockMvc.perform(put("/users/invalid/friends/invalid"))
-                    .andExpect(status().isInternalServerError());
+                    .andExpect(status().isBadRequest());
         }
 
         @Test
         @DisplayName("Некорректные ID для получения общих друзей возвращают ошибку")
         void getCommonFriends_InvalidIds_ReturnsBadRequestTest() throws Exception {
             mockMvc.perform(get("/users/invalid/friends/common/invalid"))
-                    .andExpect(status().isInternalServerError());
+                    .andExpect(status().isBadRequest());
         }
 
         @Test

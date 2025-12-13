@@ -18,7 +18,6 @@ import ru.yandex.practicum.filmorate.model.User;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -30,12 +29,9 @@ public class InMemoryUserStorage implements UserStorage {
     private final Map<String, Long> loginToUserId = new ConcurrentHashMap<>();
     private final AtomicLong nextUserId;
     private static final long INITIAL_USER_ID = 1L;
-    private final FilmStorage filmStorage;
 
-    public InMemoryUserStorage(@Value("${app.storage.user.id.initial:1}") long initialId,
-                               FilmStorage filmStorage) {
+    public InMemoryUserStorage(@Value("${app.storage.user.id.initial:1}") long initialId) {
         this.nextUserId = new AtomicLong(INITIAL_USER_ID);
-        this.filmStorage = filmStorage;
     }
 
     /**
@@ -43,6 +39,7 @@ public class InMemoryUserStorage implements UserStorage {
      * Присваивает пользователю уникальный идентификатор и обновляет индексы.
      *
      * @param user пользователь для создания
+     *
      * @return созданный пользователь с присвоенным идентификатором
      */
     public User createUser(User user) {
@@ -71,6 +68,7 @@ public class InMemoryUserStorage implements UserStorage {
      * Находит пользователя по его идентификатору.
      *
      * @param id идентификатор пользователя
+     *
      * @return Optional с найденным пользователем или пустой Optional если пользователь не найден
      */
     public Optional<User> getUserById(Long id) {
@@ -84,6 +82,7 @@ public class InMemoryUserStorage implements UserStorage {
      * Поиск выполняется без учета регистра.
      *
      * @param email email пользователя
+     *
      * @return Optional с найденным пользователем или пустой Optional если пользователь не найден
      */
     public Optional<User> getUserByEmail(String email) {
@@ -97,6 +96,7 @@ public class InMemoryUserStorage implements UserStorage {
      * Находит пользователя по логину.
      *
      * @param login логин пользователя
+     *
      * @return Optional с найденным пользователем или пустой Optional если пользователь не найден
      */
     public Optional<User> getUserByLogin(String login) {
@@ -111,7 +111,9 @@ public class InMemoryUserStorage implements UserStorage {
      * Обновляет индексы email и логина при их изменении.
      *
      * @param user пользователь с обновленными данными
+     *
      * @return обновленный пользователь
+     *
      * @throws NotFoundException если пользователь с указанным ID не найден
      */
     public User updateUser(User user) {
@@ -143,6 +145,7 @@ public class InMemoryUserStorage implements UserStorage {
      * Проверяет существование пользователя по идентификатору.
      *
      * @param id идентификатор пользователя
+     *
      * @return true если пользователь существует, false в противном случае
      */
     public boolean existsById(Long id) {
@@ -154,6 +157,7 @@ public class InMemoryUserStorage implements UserStorage {
      * Поиск выполняется без учета регистра.
      *
      * @param email email пользователя
+     *
      * @return true если пользователь с таким email существует, false в противном случае
      */
     public boolean existsByEmail(String email) {
@@ -164,6 +168,7 @@ public class InMemoryUserStorage implements UserStorage {
      * Проверяет существование пользователя по логину.
      *
      * @param login логин пользователя
+     *
      * @return true если пользователь с таким логином существует, false в противном случае
      */
     public boolean existsByLogin(String login) {
@@ -175,12 +180,5 @@ public class InMemoryUserStorage implements UserStorage {
             throw new RuntimeException("Пользователь с ID " + userId + " не найден");
         }
         users.remove(userId);
-    @Override
-    public boolean hasLikes(Long userId) {
-        /**
-         * Получаем лайки всех пользователей из FilmStorage
-          */
-        Map<Long, Set<Long>> likesByUser = filmStorage.getLikesByUsers();
-        return likesByUser.containsKey(userId) && !likesByUser.get(userId).isEmpty();
     }
 }
