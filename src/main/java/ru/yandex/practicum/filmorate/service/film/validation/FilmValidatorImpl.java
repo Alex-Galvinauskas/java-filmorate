@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class FilmValidatorImpl implements FilmValidatorRules {
 
     private final FilmStorage filmStorage;
-  
+
     public void validateFilmUniquenessForUpdate(Film existingFilm, Film updatedFilm) {
         log.debug("Валидация уникальности для обновления. Существующий: ID={}, name={}, year={}. Обновляемый: name={}, year={}",
                 existingFilm.getId(), existingFilm.getName(),

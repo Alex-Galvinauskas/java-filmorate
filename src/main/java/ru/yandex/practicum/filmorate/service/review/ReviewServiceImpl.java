@@ -52,7 +52,7 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         ReviewDTO existingReview = getReviewById(reviewDTO.getReviewId());
-        
+
         if (!existingReview.getUserId().equals(reviewDTO.getUserId())) {
             throw new ForbiddenException("Пользователь может редактировать только свои отзывы");
         }
@@ -68,7 +68,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public void deleteReview(Long id, Long userId) {
         ReviewDTO existingReview = getReviewById(id);
-        
+
         if (userId != null) {
             log.debug("Удаление отзыва с ID: {} пользователем {}", id, userId);
             if (!existingReview.getUserId().equals(userId)) {
@@ -151,5 +151,3 @@ public class ReviewServiceImpl implements ReviewService {
         log.info("Удален дизлайк отзыву {} от пользователя {}", reviewId, userId);
     }
 }
-
-
