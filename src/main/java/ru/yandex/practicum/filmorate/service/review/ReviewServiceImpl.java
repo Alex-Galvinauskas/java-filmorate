@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.ReviewDTO;
+import ru.yandex.practicum.filmorate.exception.ForbiddenException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.ReviewDbStorage;
 import ru.yandex.practicum.filmorate.mapper.ReviewMapper;
@@ -50,7 +51,11 @@ public class ReviewServiceImpl implements ReviewService {
             throw new NotFoundException("ID отзыва не может быть null при обновлении");
         }
 
-        getReviewById(reviewDTO.getReviewId());
+        ReviewDTO existingReview = getReviewById(reviewDTO.getReviewId());
+        
+        if (!existingReview.getUserId().equals(reviewDTO.getUserId())) {
+            throw new ForbiddenException("Пользователь может редактировать только свои отзывы");
+        }
 
         Review review = reviewMapper.toEntity(reviewDTO);
         Review updatedReview = reviewDbStorage.updateReview(review);
@@ -61,13 +66,21 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public void deleteReview(Long id) {
-        log.debug("Удаление отзыва с ID: {}", id);
-
-        getReviewById(id);
+    public void deleteReview(Long id, Long userId) {
+        ReviewDTO existingReview = getReviewById(id);
+        
+        if (userId != null) {
+            log.debug("Удаление отзыва с ID: {} пользователем {}", id, userId);
+            if (!existingReview.getUserId().equals(userId)) {
+                throw new ForbiddenException("Пользователь может удалять только свои отзывы");
+            }
+            log.info("Удален отзыв с ID: {} пользователем {}", id, userId);
+        } else {
+            log.warn("Удаление отзыва с ID: {} без указания userId (обратная совместимость)", id);
+            log.info("Удален отзыв с ID: {}", id);
+        }
 
         reviewDbStorage.deleteReview(id);
-        log.info("Удален отзыв с ID: {}", id);
     }
 
     @Override

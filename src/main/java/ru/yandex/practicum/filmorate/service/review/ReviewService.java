@@ -9,7 +9,7 @@ public interface ReviewService {
 
     ReviewDTO updateReview(ReviewDTO reviewDTO);
 
-    void deleteReview(Long id);
+    void deleteReview(Long id, Long userId);
 
     ReviewDTO getReviewById(Long id);
 

@@ -47,6 +47,13 @@ public class GlobalExceptionHandler {
         return Map.of("error", "Конфликт данных", "message", e.getMessage());
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Map<String, String> handleForbiddenException(final ForbiddenException e) {
+        log.error("Доступ запрещен: {}", e.getMessage());
+        return Map.of("error", "Доступ запрещен", "message", e.getMessage());
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, String> handleDataIntegrityViolationException(final DataIntegrityViolationException e) {

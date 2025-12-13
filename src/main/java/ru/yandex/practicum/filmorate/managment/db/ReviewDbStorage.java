@@ -98,7 +98,7 @@ public class ReviewDbStorage implements ReviewStorage {
         String sql = "SELECT * FROM reviews WHERE film_id = ? ORDER BY useful DESC LIMIT ?";
         log.debug("Получение отзывов для фильма {} (лимит: {})", filmId, limit);
         List<Review> reviews = jdbcTemplate.query(sql, new ReviewRowMapper(), filmId, limit);
-        reviews.forEach(this::loadLikesAndDislikes);
+        loadLikesAndDislikesForReviews(reviews);
         return reviews;
     }
 
@@ -108,7 +108,7 @@ public class ReviewDbStorage implements ReviewStorage {
         String sql = "SELECT * FROM reviews ORDER BY useful DESC LIMIT ?";
         log.debug("Получение всех отзывов (лимит: {})", limit);
         List<Review> reviews = jdbcTemplate.query(sql, new ReviewRowMapper(), limit);
-        reviews.forEach(this::loadLikesAndDislikes);
+        loadLikesAndDislikesForReviews(reviews);
         return reviews;
     }
 
@@ -192,6 +192,46 @@ public class ReviewDbStorage implements ReviewStorage {
         review.setLikes(likes);
         review.setDislikes(dislikes);
         review.setUseful(likes.size() - dislikes.size());
+    }
+
+    private void loadLikesAndDislikesForReviews(List<Review> reviews) {
+        if (reviews.isEmpty()) {
+            return;
+        }
+
+        Map<Long, Review> reviewMap = new HashMap<>();
+        for (Review review : reviews) {
+            reviewMap.put(review.getReviewId(), review);
+        }
+
+        String placeholders = String.join(",", Collections.nCopies(reviews.size(), "?"));
+        String sql = "SELECT review_id, user_id, is_like FROM review_likes WHERE review_id IN (" + placeholders + ")";
+        
+        List<Long> reviewIds = reviews.stream()
+                .map(Review::getReviewId)
+                .toList();
+
+        jdbcTemplate.query(sql, (ResultSet rs) -> {
+            while (rs.next()) {
+                Long reviewId = rs.getLong("review_id");
+                Long userId = rs.getLong("user_id");
+                boolean isLike = rs.getBoolean("is_like");
+
+                Review review = reviewMap.get(reviewId);
+                if (review != null) {
+                    if (isLike) {
+                        review.getLikes().add(userId);
+                    } else {
+                        review.getDislikes().add(userId);
+                    }
+                }
+            }
+            return null;
+        }, reviewIds.toArray());
+
+        for (Review review : reviews) {
+            review.setUseful(review.getLikes().size() - review.getDislikes().size());
+        }
     }
 
     private static class ReviewRowMapper implements RowMapper<Review> {
