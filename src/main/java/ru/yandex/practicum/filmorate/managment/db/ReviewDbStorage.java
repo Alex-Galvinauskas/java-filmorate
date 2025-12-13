@@ -206,7 +206,6 @@ public class ReviewDbStorage implements ReviewStorage {
 
         String placeholders = String.join(",", Collections.nCopies(reviews.size(), "?"));
         String sql = "SELECT review_id, user_id, is_like FROM review_likes WHERE review_id IN (" + placeholders + ")";
-        
         List<Long> reviewIds = reviews.stream()
                 .map(Review::getReviewId)
                 .toList();
