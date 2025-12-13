@@ -174,4 +174,11 @@ public class InMemoryUserStorage implements UserStorage {
     public boolean existsByLogin(String login) {
         return loginToUserId.containsKey(login);
     }
+
+    public void deleteUser(Long userId) {
+        if (!users.containsKey(userId)) {
+            throw new RuntimeException("Пользователь с ID " + userId + " не найден");
+        }
+        users.remove(userId);
+    }
 }

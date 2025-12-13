@@ -57,4 +57,10 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
         service.removeLike(id, userId);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{filmId}")
+    public ResponseEntity<Void> deleteFilm(@PathVariable Long filmId) {
+        service.deleteFilm(filmId);
+        return ResponseEntity.noContent().build();
+    }
 }

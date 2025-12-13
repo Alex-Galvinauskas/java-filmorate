@@ -8,4 +8,6 @@ public interface GenreService {
     List<GenreDTO> getAllGenres();
 
     GenreDTO getGenreById(Long id);
+
+    void deleteAllGenresByFilmId(Long filmId);
 }

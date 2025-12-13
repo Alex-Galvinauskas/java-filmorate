@@ -63,4 +63,10 @@ public class UserController extends AbstractController<UserDTO, UserService> {
         service.removeFriend(id, friendId);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
+        service.deleteUser(userId);
+        return ResponseEntity.noContent().build();
+    }
 }

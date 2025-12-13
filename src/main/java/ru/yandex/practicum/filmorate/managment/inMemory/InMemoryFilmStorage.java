@@ -196,4 +196,14 @@ public class InMemoryFilmStorage implements FilmStorage {
      */
     private record FilmKey(String nameLowercase, int releaseYear) {
     }
+
+    public void deleteFilm(Long filmId) {
+        log.debug("Удаление фильма с ID: {} из памяти", filmId);
+        if (!films.containsKey(filmId)) {
+            log.warn("Попытка удаления несуществующего фильма с ID: {}", filmId);
+            throw new RuntimeException("Фильм с ID " + filmId + " не найден");
+        }
+        films.remove(filmId);
+        log.info("Фильм с ID {} успешно удален из памяти", filmId);
+    }
 }

@@ -23,4 +23,6 @@ public interface UserStorage {
     boolean existsByEmail(String email);
 
     boolean existsByLogin(String login);
+
+    void deleteUser(Long userId);
 }
