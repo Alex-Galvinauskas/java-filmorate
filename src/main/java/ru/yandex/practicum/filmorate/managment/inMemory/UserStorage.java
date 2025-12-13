@@ -25,4 +25,5 @@ public interface UserStorage {
     boolean existsByLogin(String login);
 
     void deleteUser(Long userId);
+    boolean hasLikes(Long userId);
 }

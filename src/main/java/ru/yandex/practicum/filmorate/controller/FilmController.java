@@ -62,5 +62,17 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
     public ResponseEntity<Void> deleteFilm(@PathVariable Long filmId) {
         service.deleteFilm(filmId);
         return ResponseEntity.noContent().build();
+      
+    @GetMapping("/director/{directorId}")
+    public ResponseEntity<List<FilmDTO>> getFilmsByDirector(
+            @PathVariable Long directorId,
+            @RequestParam(defaultValue = "likes") String sortBy) {
+
+        if (!sortBy.equals("year") && !sortBy.equals("likes")) {
+            throw new IllegalArgumentException("Параметр sortBy может быть только 'year' или 'likes'");
+        }
+
+        List<FilmDTO> films = service.getFilmsByDirector(directorId, sortBy);
+        return ResponseEntity.ok(films);
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.managment.db.GenreDbStorage;
 import ru.yandex.practicum.filmorate.managment.db.MpaDbStorage;
+import ru.yandex.practicum.filmorate.managment.db.DirectorDbStorage;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
@@ -22,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
 @AutoConfigureTestDatabase
-@Import({FilmDbStorage.class, GenreDbStorage.class, MpaDbStorage.class})
+@Import({FilmDbStorage.class, GenreDbStorage.class, MpaDbStorage.class, DirectorDbStorage.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class FilmDbStorageIntegrationTest {
 
@@ -46,7 +47,7 @@ class FilmDbStorageIntegrationTest {
     }
 
     @Test
-    void shouldCreateAndFindFilm() {
+    void shouldCreateAndFindFilmTest() {
         Film createdFilm = filmDbStorage.createFilm(testFilm);
 
         assertThat(createdFilm.getId()).isNotNull();
@@ -59,7 +60,7 @@ class FilmDbStorageIntegrationTest {
     }
 
     @Test
-    void shouldUpdateFilm() {
+    void shouldUpdateFilmTest() {
         Film createdFilm = filmDbStorage.createFilm(testFilm);
 
         Film updatedFilm = Film.builder()
@@ -81,7 +82,7 @@ class FilmDbStorageIntegrationTest {
     }
 
     @Test
-    void shouldFindAllFilms() {
+    void shouldFindAllFilmsTest() {
         Film film1 = filmDbStorage.createFilm(testFilm);
 
         Film film2;

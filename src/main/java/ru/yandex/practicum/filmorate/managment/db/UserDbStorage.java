@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.managment.inMemory.UserStorage;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 @Primary
 @Slf4j
 @RequiredArgsConstructor
+@Transactional
 public class UserDbStorage implements UserStorage {
 
     private final JdbcTemplate jdbcTemplate;
@@ -174,7 +176,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     /**
-            * Загружает друзей для списка пользователей
+     * Загружает друзей для списка пользователей
      */
     private void loadFriendsForUsers(List<User> users) {
         if (users == null || users.isEmpty()) {
@@ -262,5 +264,12 @@ public class UserDbStorage implements UserStorage {
         int rowsDeleted = jdbcTemplate.update(sql, userId);
         log.debug("Пользователь с ID {} удален из друзей у {} других пользователей",
                 userId, rowsDeleted);
+    }
+}
+    public boolean hasLikes(Long userId) {
+        // Проверяем, есть ли лайки у пользователя
+        String sql = "SELECT COUNT(*) FROM likes WHERE user_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        return count != null && count > 0;
     }
 }
