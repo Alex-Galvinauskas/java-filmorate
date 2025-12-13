@@ -16,7 +16,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.annotation.MinReleaseDate;
 
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -55,4 +54,7 @@ public class FilmDTO {
 
     @Builder.Default
     private Set<Long> likes = new HashSet<>();
+
+    @Builder.Default
+    private List<DirectorDTO> directors = new ArrayList<>();
 }

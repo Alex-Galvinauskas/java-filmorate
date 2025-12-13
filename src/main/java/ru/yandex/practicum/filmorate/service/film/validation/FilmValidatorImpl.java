@@ -5,7 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -13,19 +17,38 @@ import ru.yandex.practicum.filmorate.model.Film;
 public class FilmValidatorImpl implements FilmValidatorRules {
 
     private final FilmStorage filmStorage;
-
+  
     public void validateFilmUniquenessForUpdate(Film existingFilm, Film updatedFilm) {
-        if (existingFilm.getReleaseDate() == null || updatedFilm.getReleaseDate() == null) {
-            log.warn("ReleaseDate is null for film validation. Existing: {}, Updated: {}",
-                    existingFilm.getReleaseDate(), updatedFilm.getReleaseDate());
-            return;
-        }
+        log.debug("Валидация уникальности для обновления. Существующий: ID={}, name={}, year={}. Обновляемый: name={}, year={}",
+                existingFilm.getId(), existingFilm.getName(),
+                existingFilm.getReleaseDate() != null ? existingFilm.getReleaseDate().getYear() : "null",
+                updatedFilm.getName(),
+                updatedFilm.getReleaseDate() != null ? updatedFilm.getReleaseDate().getYear() : "null");
 
         boolean nameChanged = !existingFilm.getName().equals(updatedFilm.getName());
         boolean yearChanged = existingFilm.getReleaseDate().getYear() != updatedFilm.getReleaseDate().getYear();
 
         if (nameChanged || yearChanged) {
-            validateFilmUniqueness(updatedFilm.getName(), updatedFilm.getReleaseDate().getYear());
+            Set<Long> existingDirectors = existingFilm.getDirectors().stream()
+                    .map(Director::getId)
+                    .collect(Collectors.toSet());
+
+            Set<Long> updatedDirectors = updatedFilm.getDirectors().stream()
+                    .map(Director::getId)
+                    .collect(Collectors.toSet());
+
+            if (!existingDirectors.isEmpty() && !updatedDirectors.isEmpty() &&
+                    existingDirectors.equals(updatedDirectors)) {
+                validateFilmUniquenessExcludingId(
+                        updatedFilm.getName(),
+                        updatedFilm.getReleaseDate().getYear(),
+                        existingFilm.getId()
+                );
+            } else {
+                log.debug("Режиссеры изменились или разные, разрешаем обновление");
+            }
+        } else {
+            log.debug("Название и год не изменились, пропускаем проверку уникальности");
         }
     }
 
