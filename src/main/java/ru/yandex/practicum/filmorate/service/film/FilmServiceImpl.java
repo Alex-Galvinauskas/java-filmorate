@@ -13,15 +13,20 @@ package ru.yandex.practicum.filmorate.service.film;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.dto.DirectorDTO;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
+import ru.yandex.practicum.filmorate.dto.UserDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Operation;
 import ru.yandex.practicum.filmorate.service.directors.DirectorService;
+import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
@@ -41,6 +46,7 @@ public class FilmServiceImpl implements FilmService {
     private final GenreService genreService;
     private final FilmMapper filmMapper;
     private final DirectorService directorService;
+    private final FeedService feedService;
 
     /**
      * Создает новый фильм с проверкой уникальности.
@@ -79,6 +85,7 @@ public class FilmServiceImpl implements FilmService {
      * @throws NotFoundException если фильм с указанным ID не найден
      */
     @Override
+    @Transactional
     public void addLike(Long filmId, Long userId) {
         log.debug("Добавление лайка фильму с ID: {} от пользователя {}", filmId, userId);
 
@@ -86,6 +93,21 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.addLike(filmId, userId);
+
+        try {
+            List<Long> friendIds = userService.getFriends(userId).stream()
+                    .map(UserDTO::getId)
+                    .collect(Collectors.toList());
+
+            friendIds.add(userId);
+
+            for (Long friendId : friendIds) {
+                feedService.recordEvent(friendId, userId, EventType.LIKE, Operation.ADD, filmId);
+            }
+            log.debug("Событие лайка записано в ленту для {} пользователей", friendIds.size());
+        } catch (Exception e) {
+            log.error("Ошибка при записи события лайка в ленту: {}", e.getMessage());
+        }
     }
 
     /**
@@ -190,6 +212,7 @@ public class FilmServiceImpl implements FilmService {
      * @throws NotFoundException если фильм с указанными ID не найдены
      */
     @Override
+    @Transactional
     public void removeLike(Long filmId, Long userId) {
         log.debug("Удаление лайка фильму с ID: {} от пользователя {}", filmId, userId);
 
@@ -197,6 +220,20 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.removeLike(filmId, userId);
+
+        try {
+            List<Long> friendIds = userService.getFriends(userId).stream()
+                    .map(user -> user.getId())
+                    .collect(Collectors.toList());
+            friendIds.add(userId);
+
+            for (Long friendId : friendIds) {
+                feedService.recordEvent(friendId, userId, EventType.LIKE, Operation.REMOVE, filmId);
+            }
+            log.debug("Событие удаления лайка записано в ленту для {} пользователей", friendIds.size());
+        } catch (Exception e) {
+            log.error("Ошибка при записи события удаления лайка в ленту: {}", e.getMessage());
+        }
     }
 
     /**

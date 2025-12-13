@@ -225,9 +225,19 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public boolean hasLikes(Long userId) {
-        // Проверяем, есть ли лайки у пользователя
         String sql = "SELECT COUNT(*) FROM likes WHERE user_id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
         return count != null && count > 0;
+    }
+
+    public boolean userExists(Long userId) {
+        String sql = "SELECT COUNT(*) FROM users WHERE id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        return count != null && count > 0;
+    }
+
+    public List<Long> getFriendIds(Long userId) {
+        String sql = "SELECT friend_id FROM friends WHERE user_id = ? AND status = 'accepted'";
+        return jdbcTemplate.queryForList(sql, Long.class, userId);
     }
 }
