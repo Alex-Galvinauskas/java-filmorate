@@ -18,10 +18,6 @@ public class FilmValidatorImpl implements FilmValidatorRules {
 
     private final FilmStorage filmStorage;
 
-    /**
-     * Проверяет уникальность фильма при обновлении.
-     * Проверяет только если изменилось название ИЛИ год, учитывает режиссеров.
-     */
     public void validateFilmUniquenessForUpdate(Film existingFilm, Film updatedFilm) {
         log.debug("Валидация уникальности для обновления. Существующий: ID={}, name={}, year={}. Обновляемый: name={}, year={}",
                 existingFilm.getId(), existingFilm.getName(),
@@ -56,10 +52,6 @@ public class FilmValidatorImpl implements FilmValidatorRules {
         }
     }
 
-    /**
-     * Проверяет уникальность фильма по названию и году выпуска.
-     * Вызывается только при создании нового фильма.
-     */
     public void validateFilmUniqueness(String name, int releaseYear) {
         log.debug("Проверка уникальности фильма: {} ({})", name, releaseYear);
 
@@ -68,9 +60,6 @@ public class FilmValidatorImpl implements FilmValidatorRules {
         }
     }
 
-    /**
-     * Проверяет уникальность фильма по названию и году выпуска, исключая указанный ID.
-     */
     private void validateFilmUniquenessExcludingId(String name, int releaseYear, Long excludedId) {
         log.debug("Проверка уникальности фильма: {} ({}), исключая ID: {}", name, releaseYear, excludedId);
 
