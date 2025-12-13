@@ -8,7 +8,10 @@ import ru.yandex.practicum.filmorate.exception.ForbiddenException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.ReviewDbStorage;
 import ru.yandex.practicum.filmorate.mapper.ReviewMapper;
+import ru.yandex.practicum.filmorate.model.EventType;
+import ru.yandex.practicum.filmorate.model.Operation;
 import ru.yandex.practicum.filmorate.model.Review;
+import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.film.FilmService;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
@@ -24,6 +27,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewMapper reviewMapper;
     private final FilmService filmService;
     private final UserService userService;
+    private final FeedService feedService;
 
     @Override
     public ReviewDTO createReview(ReviewDTO reviewDTO) {
@@ -39,9 +43,18 @@ public class ReviewServiceImpl implements ReviewService {
         Review createdReview = reviewDbStorage.createReview(review);
         ReviewDTO result = reviewMapper.toDTO(createdReview);
 
+        feedService.recordEvent(
+                reviewDTO.getUserId(),
+                reviewDTO.getUserId(),
+                EventType.REVIEW,
+                Operation.ADD,
+                result.getReviewId()
+        );
+
         log.info("Создан отзыв с ID: {}", result.getReviewId());
         return result;
     }
+
 
     @Override
     public ReviewDTO updateReview(ReviewDTO reviewDTO) {
@@ -61,6 +74,14 @@ public class ReviewServiceImpl implements ReviewService {
         Review updatedReview = reviewDbStorage.updateReview(review);
         ReviewDTO result = reviewMapper.toDTO(updatedReview);
 
+        feedService.recordEvent(
+                reviewDTO.getUserId(),
+                reviewDTO.getUserId(),
+                EventType.REVIEW,
+                Operation.UPDATE,
+                reviewDTO.getReviewId()
+        );
+
         log.info("Обновлен отзыв с ID: {}", result.getReviewId());
         return result;
     }
@@ -78,9 +99,18 @@ public class ReviewServiceImpl implements ReviewService {
         } else {
             log.warn("Удаление отзыва с ID: {} без указания userId (обратная совместимость)", id);
             log.info("Удален отзыв с ID: {}", id);
+            userId = existingReview.getUserId();  // Используем ID из отзыва
         }
 
         reviewDbStorage.deleteReview(id);
+
+        feedService.recordEvent(
+                userId,
+                userId,
+                EventType.REVIEW,
+                Operation.REMOVE,
+                id
+        );
     }
 
     @Override

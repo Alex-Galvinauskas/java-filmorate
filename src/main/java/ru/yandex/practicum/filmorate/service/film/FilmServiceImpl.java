@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.dto.DirectorDTO;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
-import ru.yandex.practicum.filmorate.dto.UserDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
@@ -95,18 +94,11 @@ public class FilmServiceImpl implements FilmService {
         filmDbStorage.addLike(filmId, userId);
 
         try {
-            List<Long> friendIds = userService.getFriends(userId).stream()
-                    .map(UserDTO::getId)
-                    .collect(Collectors.toList());
-
-            friendIds.add(userId);
-
-            for (Long friendId : friendIds) {
-                feedService.recordEvent(friendId, userId, EventType.LIKE, Operation.ADD, filmId);
-            }
-            log.debug("Событие лайка записано в ленту для {} пользователей", friendIds.size());
+            feedService.recordEvent(userId, userId, EventType.LIKE, Operation.ADD, filmId);
+            log.debug("Событие лайка записано в ленту пользователя {}", userId);
         } catch (Exception e) {
             log.error("Ошибка при записи события лайка в ленту: {}", e.getMessage());
+            throw e;  // Пробрасываем исключение дальше
         }
     }
 
@@ -222,17 +214,11 @@ public class FilmServiceImpl implements FilmService {
         filmDbStorage.removeLike(filmId, userId);
 
         try {
-            List<Long> friendIds = userService.getFriends(userId).stream()
-                    .map(user -> user.getId())
-                    .collect(Collectors.toList());
-            friendIds.add(userId);
-
-            for (Long friendId : friendIds) {
-                feedService.recordEvent(friendId, userId, EventType.LIKE, Operation.REMOVE, filmId);
-            }
-            log.debug("Событие удаления лайка записано в ленту для {} пользователей", friendIds.size());
+            feedService.recordEvent(userId, userId, EventType.LIKE, Operation.REMOVE, filmId);
+            log.debug("Событие удаления лайка записано в ленту пользователя {}", userId);
         } catch (Exception e) {
             log.error("Ошибка при записи события удаления лайка в ленту: {}", e.getMessage());
+            throw e;
         }
     }
 

@@ -34,6 +34,8 @@ public class FeedDbStorage {
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
+        Instant timestamp = feedEvent.getTimestamp() != null ? feedEvent.getTimestamp() : Instant.now();
+
         jdbcTemplate.update(connection -> {
             PreparedStatement stmt = connection.prepareStatement(sql, new String[]{"event_id"});
             stmt.setLong(1, feedEvent.getUserId());
@@ -41,24 +43,38 @@ public class FeedDbStorage {
             stmt.setString(3, feedEvent.getEventType().name());
             stmt.setString(4, feedEvent.getOperation().name());
             stmt.setLong(5, feedEvent.getEntityId());
-            stmt.setTimestamp(6, Timestamp.from(
-                    feedEvent.getTimestamp() != null ? feedEvent.getTimestamp() : Instant.now()));
+            stmt.setTimestamp(6, Timestamp.from(timestamp));
             return stmt;
         }, keyHolder);
 
         Long id = Objects.requireNonNull(keyHolder.getKey()).longValue();
         feedEvent.setEventId(id);
+        feedEvent.setTimestamp(timestamp);
 
-        log.debug("Создано событие в ленте: {} для пользователя {}", feedEvent.getEventType(), feedEvent.getUserId());
+        log.debug("Создано событие в ленте: {} ({}) для пользователя {}, entityId={}, time={}",
+                feedEvent.getEventType(), feedEvent.getOperation(),
+                feedEvent.getUserId(), feedEvent.getEntityId(), timestamp);
         return feedEvent;
     }
 
     public List<FeedEvent> findByUserId(Long userId, Integer limit) {
         String sql = "SELECT * FROM user_feed_events WHERE user_id = ? " +
-                "ORDER BY timestamp DESC LIMIT ?";
+                "ORDER BY timestamp ASC, event_id ASC LIMIT ?";
 
         log.debug("Поиск событий для пользователя {} с лимитом {}", userId, limit);
-        return jdbcTemplate.query(sql, new FeedEventRowMapper(), userId, limit);
+
+        List<FeedEvent> events = jdbcTemplate.query(sql, new FeedEventRowMapper(), userId, limit);
+
+        log.debug("Найдено {} событий для пользователя {}:", events.size(), userId);
+        for (int i = 0; i < events.size(); i++) {
+            FeedEvent event = events.get(i);
+            log.debug("  [{}/{}] eventType={}, operation={}, entityId={}, timestamp={}, eventId={}",
+                    i + 1, events.size(),
+                    event.getEventType(), event.getOperation(),
+                    event.getEntityId(), event.getTimestamp(), event.getEventId());
+        }
+
+        return events;
     }
 
     public List<FeedEvent> findByUserIds(List<Long> userIds, Integer limit) {
@@ -75,7 +91,7 @@ public class FeedDbStorage {
                 sql.append(", ");
             }
         }
-        sql.append(") ORDER BY timestamp DESC LIMIT ?");
+        sql.append(") ORDER BY timestamp ASC, event_id ASC LIMIT ?");
 
         Object[] params = new Object[userIds.size() + 1];
         for (int i = 0; i < userIds.size(); i++) {
@@ -84,7 +100,11 @@ public class FeedDbStorage {
         params[userIds.size()] = limit;
 
         log.debug("Поиск событий для {} пользователей с лимитом {}", userIds.size(), limit);
-        return jdbcTemplate.query(sql.toString(), new FeedEventRowMapper(), params);
+        List<FeedEvent> events = jdbcTemplate.query(sql.toString(),
+                new FeedEventRowMapper(), params);
+
+        log.debug("Найдено {} событий для пользователей: {}", events.size(), userIds);
+        return events;
     }
 
     public void deleteByUserId(Long userId) {

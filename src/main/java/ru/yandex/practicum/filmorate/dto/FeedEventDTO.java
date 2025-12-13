@@ -1,12 +1,11 @@
 package ru.yandex.practicum.filmorate.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.yandex.practicum.filmorate.model.EventType;
-import ru.yandex.practicum.filmorate.model.Operation;
 
 @Data
 @Builder
@@ -14,10 +13,21 @@ import ru.yandex.practicum.filmorate.model.Operation;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class FeedEventDTO {
+    @JsonProperty("timestamp")
     private Long timestamp;
+
+    @JsonProperty("userId")
     private Long userId;
-    private EventType eventType;
-    private Operation operation;
+
+    @JsonProperty("eventType")
+    private String eventType;
+
+    @JsonProperty("operation")
+    private String operation;
+
+    @JsonProperty("eventId")
     private Long eventId;
+
+    @JsonProperty("entityId")
     private Long entityId;
 }
