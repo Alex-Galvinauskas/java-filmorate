@@ -19,6 +19,9 @@ public class FeedEventDTO {
     @JsonProperty("userId")
     private Long userId;
 
+    @JsonProperty("actorId")
+    private Long actorId;
+
     @JsonProperty("eventType")
     private String eventType;
 

@@ -83,7 +83,7 @@ public class UserServiceImpl implements UserService {
         try {
             feedService.recordEvent(userId, userId, EventType.FRIEND,
                     Operation.ADD, friendId);
-            feedService.recordEvent(friendId, userId, EventType.FRIEND,
+            feedService.recordEvent(friendId, friendId, EventType.FRIEND,
                     Operation.ADD, userId);
             log.debug("События дружбы записаны в ленту для пользователей {} и {}", userId, friendId);
         } catch (Exception e) {
@@ -200,7 +200,7 @@ public class UserServiceImpl implements UserService {
         try {
             feedService.recordEvent(userId, userId, EventType.FRIEND,
                     Operation.REMOVE, friendId);
-            feedService.recordEvent(friendId, userId, EventType.FRIEND,
+            feedService.recordEvent(friendId, friendId, EventType.FRIEND,
                     Operation.REMOVE, userId);
             log.debug("События удаления дружбы записаны в ленту для пользователей {} и {}", userId, friendId);
         } catch (Exception e) {

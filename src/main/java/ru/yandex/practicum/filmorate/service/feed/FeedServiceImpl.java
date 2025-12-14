@@ -40,6 +40,9 @@ public class FeedServiceImpl implements FeedService {
                 .build();
 
         feedDbStorage.create(event);
+
+        log.debug("Записано событие: userId={}, actorId={}, eventType={}, operation={}, entityId={}",
+                userId, actorId, eventType, operation, entityId);
     }
 
     @Override
