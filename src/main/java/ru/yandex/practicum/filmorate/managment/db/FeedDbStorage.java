@@ -77,42 +77,6 @@ public class FeedDbStorage {
         return events;
     }
 
-    public List<FeedEvent> findByUserIds(List<Long> userIds, Integer limit) {
-        if (userIds.isEmpty()) {
-            return List.of();
-        }
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT * FROM user_feed_events WHERE user_id IN (");
-
-        for (int i = 0; i < userIds.size(); i++) {
-            sql.append("?");
-            if (i < userIds.size() - 1) {
-                sql.append(", ");
-            }
-        }
-        sql.append(") ORDER BY timestamp ASC, event_id ASC LIMIT ?");
-
-        Object[] params = new Object[userIds.size() + 1];
-        for (int i = 0; i < userIds.size(); i++) {
-            params[i] = userIds.get(i);
-        }
-        params[userIds.size()] = limit;
-
-        log.debug("Поиск событий для {} пользователей с лимитом {}", userIds.size(), limit);
-        List<FeedEvent> events = jdbcTemplate.query(sql.toString(),
-                new FeedEventRowMapper(), params);
-
-        log.debug("Найдено {} событий для пользователей: {}", events.size(), userIds);
-        return events;
-    }
-
-    public void deleteByUserId(Long userId) {
-        String sql = "DELETE FROM user_feed_events WHERE user_id = ?";
-        int deleted = jdbcTemplate.update(sql, userId);
-        log.debug("Удалено {} событий для пользователя {}", deleted, userId);
-    }
-
     private static class FeedEventRowMapper implements RowMapper<FeedEvent> {
         @Override
         public FeedEvent mapRow(ResultSet rs, int rowNum) throws SQLException {

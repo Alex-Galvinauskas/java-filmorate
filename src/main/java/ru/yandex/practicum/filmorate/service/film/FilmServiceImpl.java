@@ -92,14 +92,7 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.addLike(filmId, userId);
-
-        try {
-            feedService.recordEvent(userId, userId, EventType.LIKE, Operation.ADD, filmId);
-            log.debug("Событие лайка записано в ленту пользователя {}", userId);
-        } catch (Exception e) {
-            log.error("Ошибка при записи события лайка в ленту: {}", e.getMessage());
-            throw e;  // Пробрасываем исключение дальше
-        }
+        recordLikeEvent(userId, filmId, Operation.ADD);
     }
 
     /**
@@ -212,14 +205,7 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.removeLike(filmId, userId);
-
-        try {
-            feedService.recordEvent(userId, userId, EventType.LIKE, Operation.REMOVE, filmId);
-            log.debug("Событие удаления лайка записано в ленту пользователя {}", userId);
-        } catch (Exception e) {
-            log.error("Ошибка при записи события удаления лайка в ленту: {}", e.getMessage());
-            throw e;
-        }
+        recordLikeEvent(userId, filmId, Operation.REMOVE);
     }
 
     /**
@@ -273,6 +259,17 @@ public class FilmServiceImpl implements FilmService {
 
         mpaService.getMpaById(mpa.getId());
     }
+
+    private void recordLikeEvent(Long userId, Long filmId, Operation operation) {
+        try {
+            feedService.recordEvent(userId, userId, EventType.LIKE, operation, filmId);
+            log.debug("Событие лайка ({}) записано в ленту пользователя {}", operation, userId);
+        } catch (Exception e) {
+            log.error("Ошибка при записи события лайка в ленту: {}", e.getMessage());
+            throw e;
+        }
+    }
+
 
     private void validateAndPrepareDirectors(FilmDTO filmDTO) {
         if (filmDTO.getDirectors() != null && !filmDTO.getDirectors().isEmpty()) {

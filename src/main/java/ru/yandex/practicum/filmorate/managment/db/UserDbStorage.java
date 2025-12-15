@@ -126,13 +126,6 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
-    public boolean existsById(Long id) {
-        String sql = "SELECT COUNT(*) FROM users WHERE id = ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
-        return count != null && count > 0;
-    }
-
-    @Override
     public boolean existsByEmail(String email) {
         String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email);
@@ -147,7 +140,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     public void addFriend(Long userId, Long friendId) {
-        String sql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, 'PENDING')";
+        String sql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, 'UNCONFIRMED')";
         jdbcTemplate.update(sql, userId, friendId);
         log.debug("Отправлена заявка в друзья от пользователя {} пользователю {}", userId, friendId);
     }
@@ -228,16 +221,5 @@ public class UserDbStorage implements UserStorage {
         String sql = "SELECT COUNT(*) FROM likes WHERE user_id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
         return count != null && count > 0;
-    }
-
-    public boolean userExists(Long userId) {
-        String sql = "SELECT COUNT(*) FROM users WHERE id = ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
-        return count != null && count > 0;
-    }
-
-    public List<Long> getFriendIds(Long userId) {
-        String sql = "SELECT friend_id FROM friends WHERE user_id = ? AND status = 'accepted'";
-        return jdbcTemplate.queryForList(sql, Long.class, userId);
     }
 }

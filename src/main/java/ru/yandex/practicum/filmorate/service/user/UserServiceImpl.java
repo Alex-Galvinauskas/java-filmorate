@@ -11,6 +11,7 @@ package ru.yandex.practicum.filmorate.service.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.dto.UserDTO;
@@ -34,6 +35,7 @@ public class UserServiceImpl implements UserService {
     private final UserDbStorage userDbStorage;
     private final UserValidatorRules userValidator;
     private final UserMapper userMapper;
+    @Lazy
     private final FeedService feedService;
     private static final boolean DEFAULT_NAME_FROM_LOGIN = true;
 
@@ -79,16 +81,7 @@ public class UserServiceImpl implements UserService {
         }
 
         userDbStorage.addFriend(userId, friendId);
-
-        try {
-            feedService.recordEvent(userId, userId, EventType.FRIEND,
-                    Operation.ADD, friendId);
-            feedService.recordEvent(friendId, friendId, EventType.FRIEND,
-                    Operation.ADD, userId);
-            log.debug("События дружбы записаны в ленту для пользователей {} и {}", userId, friendId);
-        } catch (Exception e) {
-            log.error("Ошибка при записи события в ленту: {}", e.getMessage());
-        }
+        recordFriendEvent(userId, friendId, Operation.ADD);
     }
 
     /**
@@ -196,13 +189,15 @@ public class UserServiceImpl implements UserService {
         userValidator.validateUserExist(friendId);
 
         userDbStorage.removeFriend(userId, friendId);
+        recordFriendEvent(userId, friendId, Operation.REMOVE);
+    }
 
+    private void recordFriendEvent(Long userId, Long friendId, Operation operation) {
         try {
-            feedService.recordEvent(userId, userId, EventType.FRIEND,
-                    Operation.REMOVE, friendId);
-            feedService.recordEvent(friendId, friendId, EventType.FRIEND,
-                    Operation.REMOVE, userId);
-            log.debug("События удаления дружбы записаны в ленту для пользователей {} и {}", userId, friendId);
+            feedService.recordEvent(userId, userId, EventType.FRIEND, operation, friendId);
+            feedService.recordEvent(friendId, friendId, EventType.FRIEND, operation, userId);
+            log.debug("События дружбы ({}) записаны в ленту для пользователей {} и {}",
+                    operation, userId, friendId);
         } catch (Exception e) {
             log.error("Ошибка при записи события в ленту: {}", e.getMessage());
         }

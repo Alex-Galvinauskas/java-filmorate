@@ -1,17 +1,16 @@
 package ru.yandex.practicum.filmorate.service.feed;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.dto.FeedEventDTO;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.FeedDbStorage;
-import ru.yandex.practicum.filmorate.managment.db.UserDbStorage;
 import ru.yandex.practicum.filmorate.mapper.FeedEventMapper;
 import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.FeedEvent;
 import ru.yandex.practicum.filmorate.model.Operation;
+import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.time.Instant;
 import java.util.List;
@@ -19,12 +18,19 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class FeedServiceImpl implements FeedService {
 
     private final FeedDbStorage feedDbStorage;
     private final FeedEventMapper feedEventMapper;
-    private final UserDbStorage userDbStorage;
+    private final UserService userService;
+
+    public FeedServiceImpl(FeedDbStorage feedDbStorage,
+                           FeedEventMapper feedEventMapper,
+                           @Lazy UserService userService) {
+        this.feedDbStorage = feedDbStorage;
+        this.feedEventMapper = feedEventMapper;
+        this.userService = userService;
+    }
 
     @Override
     @Transactional
@@ -50,9 +56,7 @@ public class FeedServiceImpl implements FeedService {
     public List<FeedEventDTO> getUserFeed(Long userId) {
         log.debug("Получение ленты событий для пользователя {}", userId);
 
-        if (!userDbStorage.userExists(userId)) {
-            throw new NotFoundException("Пользователь с ID " + userId + " не найден");
-        }
+        userService.getUserById(userId);
 
         log.debug("Получение событий для пользователя: {}", userId);
         List<FeedEvent> events = feedDbStorage.findByUserId(userId, 1000);
