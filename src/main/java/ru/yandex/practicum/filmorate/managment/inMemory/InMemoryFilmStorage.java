@@ -14,9 +14,7 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -33,7 +31,6 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Присваивает фильму уникальный идентификатор и сохраняет его.
      *
      * @param film фильм для создания (без ID)
-     *
      * @return созданный фильм с присвоенным идентификатором
      */
     @Override
@@ -62,7 +59,6 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Находит фильм по его идентификатору.
      *
      * @param id идентификатор фильма
-     *
      * @return Optional с найденным фильмом или пустой Optional если фильм не найден
      */
     @Override
@@ -82,9 +78,7 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Заменяет фильм с указанным ID на новый объект фильма.
      *
      * @param film фильм с обновленными данными
-     *
      * @return обновленный фильм
-     *
      * @throws NotFoundException если фильм с указанным ID не найден
      */
     @Override
@@ -116,7 +110,6 @@ public class InMemoryFilmStorage implements FilmStorage {
      * Проверяет существование фильма по идентификатору.
      *
      * @param id идентификатор фильма
-     *
      * @return true если фильм существует, false в противном случае
      */
     @Override
@@ -130,7 +123,6 @@ public class InMemoryFilmStorage implements FilmStorage {
      *
      * @param name        название фильма
      * @param releaseYear год выпуска
-     *
      * @return true если фильм с такими названием и годом существует, false в противном случае
      */
     @Override
@@ -205,5 +197,35 @@ public class InMemoryFilmStorage implements FilmStorage {
         }
         films.remove(filmId);
         log.info("Фильм с ID {} успешно удален из памяти", filmId);
+    @Override
+    public Map<Long, Set<Long>> getLikesByUsers() {
+        Map<Long, Set<Long>> likesByUser = new HashMap<>();
+
+        for (Film film : films.values()) {
+            for (Long userId : film.getLikes()) {
+                likesByUser.computeIfAbsent(userId, k -> new HashSet<>()).add(film.getId());
+            }
+        }
+
+        log.debug("Получены лайки для {} пользователей", likesByUser.size());
+        return likesByUser;
+    }
+
+    @Override
+    public List<Film> getFilmsByIds(Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Film> result = new ArrayList<>();
+        for (Long id : ids) {
+            Film film = films.get(id);
+            if (film != null) {
+                result.add(film);
+            }
+        }
+
+        log.debug("Получено {} фильмов по ID", result.size());
+        return result;
     }
 }
