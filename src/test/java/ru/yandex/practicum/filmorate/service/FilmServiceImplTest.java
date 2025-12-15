@@ -16,6 +16,7 @@ import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.film.FilmServiceImpl;
 import ru.yandex.practicum.filmorate.service.film.GenreService;
 import ru.yandex.practicum.filmorate.service.film.MpaService;
@@ -53,6 +54,9 @@ class FilmServiceImplTest {
 
     @Mock
     private FilmMapper filmMapper;
+
+    @Mock
+    private FeedService feedService;
 
     @InjectMocks
     private FilmServiceImpl filmService;
@@ -286,7 +290,8 @@ class FilmServiceImplTest {
             assertNotNull(result);
             assertEquals("Updated Film", result.getName());
             verify(filmDbStorage, times(1)).updateFilm(updatedFilm);
-            verify(filmValidator, times(1)).validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
+            verify(filmValidator, times(1))
+                    .validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
             verify(mpaService, times(1)).getMpaById(anyLong());
         }
 
@@ -395,6 +400,8 @@ class FilmServiceImplTest {
             when(filmMapper.toDTO(film)).thenReturn(filmDTO);
             when(userService.getUserById(1L)).thenReturn(userDTO);
             doNothing().when(filmDbStorage).addLike(1L, 1L);
+            doNothing().when(feedService).recordEvent(anyLong(), anyLong(), any(),
+                    any(), anyLong());
 
             filmService.addLike(1L, 1L);
 
@@ -402,6 +409,8 @@ class FilmServiceImplTest {
             verify(filmDbStorage, times(1)).getFilmById(1L);
             verify(userService, times(1)).getUserById(1L);
             verify(filmMapper, times(1)).toDTO(film);
+            verify(feedService, times(1)).recordEvent(anyLong(),
+                    anyLong(), any(), any(), anyLong());
         }
 
         @Test
@@ -451,6 +460,8 @@ class FilmServiceImplTest {
             when(filmMapper.toDTO(film)).thenReturn(filmDTO);
             when(userService.getUserById(1L)).thenReturn(userDTO);
             doNothing().when(filmDbStorage).removeLike(1L, 1L);
+            doNothing().when(feedService).recordEvent(anyLong(), anyLong(), any(),
+                    any(), anyLong());
 
             filmService.removeLike(1L, 1L);
 
@@ -458,6 +469,8 @@ class FilmServiceImplTest {
             verify(filmDbStorage, times(1)).getFilmById(1L);
             verify(userService, times(1)).getUserById(1L);
             verify(filmMapper, times(1)).toDTO(film);
+            verify(feedService, times(1)).recordEvent(anyLong(),
+                    anyLong(), any(), any(), anyLong());
         }
 
         @Test
