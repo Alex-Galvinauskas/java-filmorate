@@ -306,7 +306,7 @@ public class FilmDbStorage implements FilmStorage {
         int rowsDeleted = jdbcTemplate.update(sql, filmId);
         log.debug("Удалено {} лайков для фильма с ID: {}", rowsDeleted, filmId);
     }
-}
+
     /**
      * Получает лайки всех пользователей
      */

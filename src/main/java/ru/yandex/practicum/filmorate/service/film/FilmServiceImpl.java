@@ -264,6 +264,9 @@ public class FilmServiceImpl implements FilmService {
         } catch (Exception e) {
             log.error("Ошибка при удалении фильма с ID {}: {}", filmId, e.getMessage(), e);
             throw new RuntimeException("Не удалось удалить фильм", e);
+        }
+    }
+
     private void validateAndPrepareDirectors(FilmDTO filmDTO) {
         if (filmDTO.getDirectors() != null && !filmDTO.getDirectors().isEmpty()) {
             for (DirectorDTO directorDTO : filmDTO.getDirectors()) {

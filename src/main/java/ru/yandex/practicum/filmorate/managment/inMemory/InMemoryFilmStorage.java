@@ -197,6 +197,8 @@ public class InMemoryFilmStorage implements FilmStorage {
         }
         films.remove(filmId);
         log.info("Фильм с ID {} успешно удален из памяти", filmId);
+    }
+
     @Override
     public Map<Long, Set<Long>> getLikesByUsers() {
         Map<Long, Set<Long>> likesByUser = new HashMap<>();

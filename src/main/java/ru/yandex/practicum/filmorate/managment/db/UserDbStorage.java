@@ -232,7 +232,6 @@ public class UserDbStorage implements UserStorage {
             throw new RuntimeException("Пользователь с ID " + userId + " не найден");
         }
 
-
         removeAllLikesByUserId(userId);
 
         removeAllFriendshipsByUserId(userId);
@@ -265,9 +264,8 @@ public class UserDbStorage implements UserStorage {
         log.debug("Пользователь с ID {} удален из друзей у {} других пользователей",
                 userId, rowsDeleted);
     }
-}
+
     public boolean hasLikes(Long userId) {
-        // Проверяем, есть ли лайки у пользователя
         String sql = "SELECT COUNT(*) FROM likes WHERE user_id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
         return count != null && count > 0;
