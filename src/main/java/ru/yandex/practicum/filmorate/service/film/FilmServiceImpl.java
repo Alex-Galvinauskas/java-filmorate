@@ -251,6 +251,22 @@ public class FilmServiceImpl implements FilmService {
         mpaService.getMpaById(mpa.getId());
     }
 
+    @Override
+    public void deleteFilm(Long filmId) {
+        log.debug("Начало удаления фильма с ID: {}", filmId);
+
+        FilmDTO film = getFilmById(filmId);
+        log.debug("Фильм найден: '{}' (ID: {})", film.getName(), filmId);
+
+        try {
+            filmDbStorage.deleteFilm(filmId);
+            log.info("Фильм '{}' (ID: {}) успешно удален", film.getName(), filmId);
+        } catch (Exception e) {
+            log.error("Ошибка при удалении фильма с ID {}: {}", filmId, e.getMessage(), e);
+            throw new RuntimeException("Не удалось удалить фильм", e);
+        }
+    }
+
     private void validateAndPrepareDirectors(FilmDTO filmDTO) {
         if (filmDTO.getDirectors() != null && !filmDTO.getDirectors().isEmpty()) {
             for (DirectorDTO directorDTO : filmDTO.getDirectors()) {

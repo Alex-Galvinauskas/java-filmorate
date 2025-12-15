@@ -224,8 +224,48 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
+    public void deleteUser(Long userId) {
+        log.debug("Удаление пользователя с ID: {} из БД", userId);
+
+        if (!existsById(userId)) {
+            log.warn("Попытка удаления несуществующего пользователя с ID: {}", userId);
+            throw new RuntimeException("Пользователь с ID " + userId + " не найден");
+        }
+
+        removeAllLikesByUserId(userId);
+
+        removeAllFriendshipsByUserId(userId);
+
+        String deleteUserSql = "DELETE FROM users WHERE id = ?";
+        int rowsDeleted = jdbcTemplate.update(deleteUserSql, userId);
+
+        if (rowsDeleted > 0) {
+            log.info("Пользователь с ID {} успешно удален", userId);
+        } else {
+            log.warn("Пользователь с ID {} не был удален", userId);
+        }
+    }
+
+    public void removeAllFriendshipsByUserId(Long userId) {
+        String sql = "DELETE FROM friendships WHERE user_id = ? OR friend_id = ?";
+        int rowsDeleted = jdbcTemplate.update(sql, userId, userId);
+        log.debug("Удалено {} дружеских связей для пользователя с ID: {}", rowsDeleted, userId);
+    }
+
+    public void removeAllLikesByUserId(Long userId) {
+        String sql = "DELETE FROM likes WHERE user_id = ?";
+        int rowsDeleted = jdbcTemplate.update(sql, userId);
+        log.debug("Удалено {} лайков для пользователя с ID: {}", rowsDeleted, userId);
+    }
+
+    public void removeUserFromAllFriends(Long userId) {
+        String sql = "DELETE FROM friendships WHERE friend_id = ?";
+        int rowsDeleted = jdbcTemplate.update(sql, userId);
+        log.debug("Пользователь с ID {} удален из друзей у {} других пользователей",
+                userId, rowsDeleted);
+    }
+
     public boolean hasLikes(Long userId) {
-        // Проверяем, есть ли лайки у пользователя
         String sql = "SELECT COUNT(*) FROM likes WHERE user_id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
         return count != null && count > 0;

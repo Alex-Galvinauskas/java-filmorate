@@ -187,4 +187,22 @@ public class UserServiceImpl implements UserService {
             log.debug("Для пользователя {} установлено имя из логина: {}", user.getLogin(), user.getName());
         }
     }
+
+    @Override
+    public void deleteUser(Long userId) {
+        log.debug("Начало удаления пользователя с ID: {}", userId);
+
+        // Проверяем существование пользователя
+        UserDTO user = getUserById(userId);
+        log.debug("Пользователь найден: '{}' (ID: {})", user.getLogin(), userId);
+
+        try {
+            // Удаляем пользователя через storage (там уже удаляются зависимости)
+            userDbStorage.deleteUser(userId);
+            log.info("Пользователь '{}' (ID: {}) успешно удален", user.getLogin(), userId);
+        } catch (Exception e) {
+            log.error("Ошибка при удалении пользователя с ID {}: {}", userId, e.getMessage(), e);
+            throw new RuntimeException("Не удалось удалить пользователя", e);
+        }
+    }
 }
