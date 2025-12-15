@@ -29,9 +29,12 @@ import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -229,6 +232,40 @@ public class FilmServiceImpl implements FilmService {
             log.error("Ошибка при удалении фильма с ID {}: {}", filmId, e.getMessage(), e);
             throw new RuntimeException("Не удалось удалить фильм", e);
         }
+    }
+
+    public List<FilmDTO> getFilmsViaSearch(String query, String searchBy) {
+        if (query == null && searchBy == null) {
+            return getPopularFilms(getAllFilms().size()); // надо вывести ВСЕ фильмы отсторитированные по популярности. Чтобы не изобретать велосипед
+        } else if (query == null || searchBy == null) {
+            throw new IllegalArgumentException("Для осуществления поиска параметры query и by должны иметь непустые значения.");
+        }
+
+        final List<String> AVAILABLE_SEARCH_FIELDS = List.of("title", "director");
+        List<String> searchByParams = Stream.of(searchBy.split(","))
+                .peek(searchField -> {
+                    if (!AVAILABLE_SEARCH_FIELDS.contains(searchField)) {
+                        throw new IllegalArgumentException("Параметр by может принимать значения title/director");
+                    }
+                })
+                .toList();
+
+        List<Film> filmsByTitle = new ArrayList<>();
+        List<Film> filmsByDirector = new ArrayList<>();
+        for (String searchField : searchByParams) {
+            if (searchField.equalsIgnoreCase("title")) {
+                filmsByTitle = filmDbStorage.getFilmsViaSearchByName(query);
+            } else {
+                filmsByDirector = filmDbStorage.getFilmsViaSearchByDirector(query);
+            }
+        }
+
+        return Stream
+                .concat(filmsByTitle.stream(), filmsByDirector.stream())
+                .distinct()
+                .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
+                .map(filmMapper::toDTO)
+                .toList();
     }
 
     /**
