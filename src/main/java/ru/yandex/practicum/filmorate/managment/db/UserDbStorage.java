@@ -220,11 +220,6 @@ public class UserDbStorage implements UserStorage {
     public void deleteUser(Long userId) {
         log.debug("Удаление пользователя с ID: {} из БД", userId);
 
-        if (!existsById(userId)) {
-            log.warn("Попытка удаления несуществующего пользователя с ID: {}", userId);
-            throw new RuntimeException("Пользователь с ID " + userId + " не найден");
-        }
-
         removeAllLikesByUserId(userId);
 
         removeAllFriendshipsByUserId(userId);
