@@ -58,6 +58,12 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
         return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/{filmId}")
+    public ResponseEntity<Void> deleteFilm(@PathVariable Long filmId) {
+        service.deleteFilm(filmId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/director/{directorId}")
     public ResponseEntity<List<FilmDTO>> getFilmsByDirector(
             @PathVariable Long directorId,

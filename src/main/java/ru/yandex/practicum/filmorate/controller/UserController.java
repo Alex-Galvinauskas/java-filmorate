@@ -69,6 +69,12 @@ public class UserController extends AbstractController<UserDTO, UserService> {
         return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
+        service.deleteUser(userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}/recommendations")
     public ResponseEntity<List<FilmDTO>> getRecommendations(@PathVariable Long id) {
         List<FilmDTO> recommendations = recommendationService.getRecommendations(id);

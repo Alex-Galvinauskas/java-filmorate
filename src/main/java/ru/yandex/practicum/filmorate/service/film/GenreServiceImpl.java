@@ -35,4 +35,11 @@ public class GenreServiceImpl implements GenreService {
                 .orElseThrow(() -> new NotFoundException("Жанр с ID " + id + " не найден"));
         return genreMapper.toDTO(genre);
     }
+
+    @Override
+    public void deleteAllGenresByFilmId(Long filmId) {
+        String sql = "DELETE FROM film_genres WHERE film_id = ?";
+        int rowsDeleted = genreDbStorage.deleteGenresByFilmId(filmId);
+        log.debug("Удалено {} связей с жанрами для фильма с ID: {}", rowsDeleted, filmId);
+    }
 }

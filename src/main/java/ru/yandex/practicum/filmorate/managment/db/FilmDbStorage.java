@@ -277,6 +277,36 @@ public class FilmDbStorage implements FilmStorage {
         return count != null && count > 0;
     }
 
+    @Override
+    public void deleteFilm(Long filmId) {
+        log.debug("Удаление фильма с ID: {} из БД", filmId);
+
+        if (!existsFilmById(filmId)) {
+            log.warn("Попытка удаления несуществующего фильма с ID: {}", filmId);
+            throw new RuntimeException("Фильм с ID " + filmId + " не найден");
+        }
+
+        removeAllLikesByFilmId(filmId);
+
+        String deleteGenresSql = "DELETE FROM film_genres WHERE film_id = ?";
+        jdbcTemplate.update(deleteGenresSql, filmId);
+
+        String deleteFilmSql = "DELETE FROM films WHERE id = ?";
+        int rowsDeleted = jdbcTemplate.update(deleteFilmSql, filmId);
+
+        if (rowsDeleted > 0) {
+            log.info("Фильм с ID {} успешно удален", filmId);
+        } else {
+            log.warn("Фильм с ID {} не был удален", filmId);
+        }
+    }
+
+    public void removeAllLikesByFilmId(Long filmId) {
+        String sql = "DELETE FROM likes WHERE film_id = ?";
+        int rowsDeleted = jdbcTemplate.update(sql, filmId);
+        log.debug("Удалено {} лайков для фильма с ID: {}", rowsDeleted, filmId);
+    }
+
     /**
      * Получает лайки всех пользователей
      */

@@ -209,6 +209,29 @@ public class FilmServiceImpl implements FilmService {
     }
 
     /**
+     * Удаляет фильм по идентификатору.
+     *
+     * @param filmId идентификатор фильма для удаления
+     *
+     * @throws NotFoundException если фильм с указанным ID не найден
+     */
+    @Override
+    public void deleteFilm(Long filmId) {
+        log.debug("Начало удаления фильма с ID: {}", filmId);
+
+        FilmDTO film = getFilmById(filmId);
+        log.debug("Фильм найден: '{}' (ID: {})", film.getName(), filmId);
+
+        try {
+            filmDbStorage.deleteFilm(filmId);
+            log.info("Фильм '{}' (ID: {}) успешно удален", film.getName(), filmId);
+        } catch (Exception e) {
+            log.error("Ошибка при удалении фильма с ID {}: {}", filmId, e.getMessage(), e);
+            throw new RuntimeException("Не удалось удалить фильм", e);
+        }
+    }
+
+    /**
      * Валидирует и подготавливает список жанров для фильма
      * Убирает дубликаты и проверяет существование жанров
      */
@@ -260,6 +283,9 @@ public class FilmServiceImpl implements FilmService {
         mpaService.getMpaById(mpa.getId());
     }
 
+    /**
+     * Записывает событие лайка в ленту пользователя
+     */
     private void recordLikeEvent(Long userId, Long filmId, Operation operation) {
         try {
             feedService.recordEvent(userId, userId, EventType.LIKE, operation, filmId);
@@ -270,7 +296,10 @@ public class FilmServiceImpl implements FilmService {
         }
     }
 
-
+    /**
+     * Валидирует и подготавливает список режиссеров для фильма
+     * Убирает дубликаты и проверяет существование режиссеров
+     */
     private void validateAndPrepareDirectors(FilmDTO filmDTO) {
         if (filmDTO.getDirectors() != null && !filmDTO.getDirectors().isEmpty()) {
             for (DirectorDTO directorDTO : filmDTO.getDirectors()) {
