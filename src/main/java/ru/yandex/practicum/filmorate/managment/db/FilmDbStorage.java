@@ -76,26 +76,23 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getAllFilms() {
-        String sql = """
-    SELECT
-        f.*,
-        m.name as mpa_name,
-        m.description as mpa_description,
-        GROUP_CONCAT(DISTINCT g.id ORDER BY g.id) as genre_ids,
-        GROUP_CONCAT(DISTINCT g.name ORDER BY g.id) as genre_names,
-        GROUP_CONCAT(DISTINCT d.id) as director_ids,
-        GROUP_CONCAT(DISTINCT d.name) as director_names
-    FROM films f
-    LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id
-    LEFT JOIN film_genres fg ON f.id = fg.film_id
-    LEFT JOIN genres g ON fg.genre_id = g.id
-    LEFT JOIN film_directors fd ON f.id = fd.film_id
-    LEFT JOIN directors d ON fd.director_id = d.id
-    GROUP BY f.id, m.name, m.description
-    ORDER BY f.id
-    """;
+        String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description " +
+                "FROM films f " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                "ORDER BY f.id";
 
-        return jdbcTemplate.query(sql, new FilmRowMapper());
+        log.debug("Получение всех фильмов из БД");
+        List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper());
+
+        // Дозагружаем жанры и режиссеров для каждого фильма
+        for (Film film : films) {
+            film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
+            film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
+            film.setLikes(getLikesByFilmId(film.getId()));
+        }
+
+        log.debug("Загружено {} фильмов с жанрами и режиссерами", films.size());
+        return films;
     }
 
     @Override
@@ -117,6 +114,8 @@ public class FilmDbStorage implements FilmStorage {
         film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
         film.setLikes(getLikesByFilmId(film.getId()));
 
+        log.debug("Найден фильм: '{}' (ID: {}) с {} жанрами",
+                film.getName(), film.getId(), film.getGenres().size());
         return Optional.of(film);
     }
 
@@ -187,7 +186,7 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                 "LEFT JOIN likes l ON f.id = l.film_id " +
                 "GROUP BY f.id, m.name, m.description " +
-                "ORDER BY likes_count DESC " +
+                "ORDER BY COUNT(l.user_id) DESC " +
                 "LIMIT ?";
 
         log.debug("Получение {} популярных фильмов", count);
@@ -197,6 +196,7 @@ public class FilmDbStorage implements FilmStorage {
                 .peek(film -> {
                     film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
                     film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
+                    film.setLikes(getLikesByFilmId(film.getId()));
                 })
                 .collect(Collectors.toList());
     }
@@ -209,7 +209,7 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN likes l ON f.id = l.film_id " +
                 "WHERE lower(f.name) LIKE ? " +
                 "GROUP BY f.id, m.name, m.description " +
-                "ORDER BY likes_count DESC";
+                "ORDER BY COUNT(l.user_id) DESC";
 
         log.debug("Получение популярных фильмов по части названия: {}", query);
         String searchPattern = "%" + query.toLowerCase() + "%";
@@ -219,6 +219,7 @@ public class FilmDbStorage implements FilmStorage {
                 .peek(film -> {
                     film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
                     film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
+                    film.setLikes(getLikesByFilmId(film.getId()));
                 })
                 .collect(Collectors.toList());
     }
@@ -233,7 +234,7 @@ public class FilmDbStorage implements FilmStorage {
                 "JOIN directors d ON fd.director_id = d.id " +
                 "WHERE lower(d.name) LIKE ? " +
                 "GROUP BY f.id, m.name, m.description " +
-                "ORDER BY likes_count DESC";
+                "ORDER BY COUNT(l.user_id) DESC";
 
         log.debug("Получение популярных фильмов по части имени режиссера: {}", query);
         String searchPattern = "%" + query.toLowerCase() + "%";
@@ -243,6 +244,7 @@ public class FilmDbStorage implements FilmStorage {
                 .peek(film -> {
                     film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
                     film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
+                    film.setLikes(getLikesByFilmId(film.getId()));
                 })
                 .collect(Collectors.toList());
     }
@@ -255,13 +257,16 @@ public class FilmDbStorage implements FilmStorage {
 
         String sql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
         List<Object[]> batchArgs = film.getGenres().stream()
+                .distinct()
                 .map(genre -> new Object[]{film.getId(), genre.getId()})
                 .collect(Collectors.toList());
 
-        jdbcTemplate.batchUpdate(sql, batchArgs);
-        log.debug("Сохранены {} жанров для фильма {}: {}",
-                batchArgs.size(), film.getId(),
-                film.getGenres().stream().map(Genre::getId).collect(Collectors.toList()));
+        if (!batchArgs.isEmpty()) {
+            jdbcTemplate.batchUpdate(sql, batchArgs);
+            log.debug("Сохранены {} жанров для фильма {}: {}",
+                    batchArgs.size(), film.getId(),
+                    film.getGenres().stream().map(Genre::getId).collect(Collectors.toList()));
+        }
     }
 
     private void updateFilmGenres(Film film) {
@@ -291,7 +296,7 @@ public class FilmDbStorage implements FilmStorage {
                     .duration(rs.getInt("duration"))
                     .mpa(mpa)
                     .likes(new HashSet<>())
-                    .genres(new ArrayList<>())
+                    .genres(new ArrayList<>())  // Здесь будет пусто, потом дозагрузим
                     .directors(new ArrayList<>())
                     .build();
         }
@@ -532,18 +537,14 @@ public class FilmDbStorage implements FilmStorage {
         """;
         } else if ("likes".equalsIgnoreCase(sortBy)) {
             return """
-        SELECT f.*, m.name as mpa_name, m.description as mpa_description,
-               COALESCE(l.likes_count, 0) as likes_count
+        SELECT f.*, m.name as mpa_name, m.description as mpa_description
         FROM films f
         LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id
         JOIN film_directors fd ON f.id = fd.film_id
-        LEFT JOIN (
-            SELECT film_id, COUNT(user_id) as likes_count
-            FROM likes
-            GROUP BY film_id
-        ) l ON f.id = l.film_id
         WHERE fd.director_id = ?
-        ORDER BY COALESCE(l.likes_count, 0) DESC, f.id
+        ORDER BY (
+            SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id
+        ) DESC, f.id
         """;
         } else {
             return """
@@ -585,7 +586,7 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         sql.append("GROUP BY f.id, m.name, m.description ");
-        sql.append("ORDER BY likes_count DESC ");
+        sql.append("ORDER BY COUNT(l.user_id) DESC ");
         sql.append("LIMIT ?");
         params.add(count);
 
@@ -598,6 +599,7 @@ public class FilmDbStorage implements FilmStorage {
                 .peek(film -> {
                     film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
                     film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
+                    film.setLikes(getLikesByFilmId(film.getId()));
                 })
                 .collect(Collectors.toList());
     }
@@ -618,12 +620,16 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN likes l ON f.id = l.film_id " +
                 "WHERE f.id IN (SELECT film_id FROM common_films) " +
                 "GROUP BY f.id, m.name, m.description " +
-                "ORDER BY likes_count DESC, f.id";
+                "ORDER BY COUNT(l.user_id) DESC, f.id";
 
         List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), userId, friendId);
 
         return films.stream()
-                .peek(film -> film.setGenres(genreDbStorage.getGenresByFilmId(film.getId())))
+                .peek(film -> {
+                    film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
+                    film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
+                    film.setLikes(getLikesByFilmId(film.getId()));
+                })
                 .collect(Collectors.toList());
     }
 }
