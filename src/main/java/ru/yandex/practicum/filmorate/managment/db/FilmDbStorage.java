@@ -211,7 +211,7 @@ public class FilmDbStorage implements FilmStorage {
                 "GROUP BY f.id, m.name, m.description " +
                 "ORDER BY likes_count DESC";
 
-        log.debug("Получение популярных фильмов по части названия");
+        log.debug("Получение популярных фильмов по части названия: {}", query);
         String searchPattern = "%" + query.toLowerCase() + "%";
         List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), searchPattern);
 
@@ -230,12 +230,12 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                 "LEFT JOIN likes l ON f.id = l.film_id " +
                 "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
-                "JOIN directors d ON fd.director_id = f.id " +
+                "JOIN directors d ON fd.director_id = d.id " +
                 "WHERE lower(d.name) LIKE ? " +
                 "GROUP BY f.id, m.name, m.description " +
                 "ORDER BY likes_count DESC";
 
-        log.debug("Получение популярных фильмов по части имени режисера");
+        log.debug("Получение популярных фильмов по части имени режиссера: {}", query);
         String searchPattern = "%" + query.toLowerCase() + "%";
         List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), searchPattern);
 

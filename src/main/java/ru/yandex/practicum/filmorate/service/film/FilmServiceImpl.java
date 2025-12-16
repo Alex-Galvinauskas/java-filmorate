@@ -235,16 +235,19 @@ public class FilmServiceImpl implements FilmService {
 
     public List<FilmDTO> getFilmsViaSearch(String query, String searchBy) {
         if (query == null && searchBy == null) {
+            log.debug("При поиске фильмов не были переданы параметры запроса -> в ответ список всех фильмов по популярности.");
             return getPopularFilms(getAllFilms().size()); // надо вывести ВСЕ фильмы отсторитированные по популярности. Чтобы не изобретать велосипед
         } else if (query == null || searchBy == null) {
-            throw new IllegalArgumentException("Для осуществления поиска параметры query и by должны иметь непустые значения.");
+            log.debug("При поиске фильмов должно быть указано 2 параметра, но был указан только 1.");
+            throw new IllegalArgumentException("Для осуществления поиска параметры 'query' и 'by' должны иметь непустые значения.");
         }
 
         final List<String> AVAILABLE_SEARCH_FIELDS = List.of("title", "director");
         List<String> searchByParams = Stream.of(searchBy.split(","))
                 .peek(searchField -> {
                     if (!AVAILABLE_SEARCH_FIELDS.contains(searchField)) {
-                        throw new IllegalArgumentException("Параметр by может принимать значения title/director");
+                        log.debug("При поиске фильмов передано недопустимое для параметра 'by' значение: {}", searchField);
+                        throw new IllegalArgumentException("Параметр 'by' может принимать только значения 'title'/'director'");
                     }
                 })
                 .toList();
@@ -254,8 +257,11 @@ public class FilmServiceImpl implements FilmService {
         for (String searchField : searchByParams) {
             if (searchField.equalsIgnoreCase("title")) {
                 filmsByTitle = filmDbStorage.getFilmsViaSearchByName(query);
+                log.debug("При поиске фильмов по названию найдено фильмов : {}", filmsByTitle.size());
+
             } else {
                 filmsByDirector = filmDbStorage.getFilmsViaSearchByDirector(query);
+                log.debug("При поиске фильмов по имени режиссера найдено фильмов : {}", filmsByTitle.size());
             }
         }
 
