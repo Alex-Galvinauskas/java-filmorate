@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(of = {"name", "releaseDate"})
 public class Film {
 
     private Long id;
