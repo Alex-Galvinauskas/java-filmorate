@@ -201,6 +201,52 @@ public class FilmDbStorage implements FilmStorage {
                 .collect(Collectors.toList());
     }
 
+    public List<Film> getFilmsViaSearchByName(String query) {
+        String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
+                "COUNT(l.user_id) as likes_count " +
+                "FROM films f " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                "LEFT JOIN likes l ON f.id = l.film_id " +
+                "WHERE lower(f.name) LIKE ? " +
+                "GROUP BY f.id, m.name, m.description " +
+                "ORDER BY likes_count DESC";
+
+        log.debug("Получение популярных фильмов по части названия: {}", query);
+        String searchPattern = "%" + query.toLowerCase() + "%";
+        List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), searchPattern);
+
+        return films.stream()
+                .peek(film -> {
+                    film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
+                    film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<Film> getFilmsViaSearchByDirector(String query) {
+        String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
+                "COUNT(l.user_id) as likes_count " +
+                "FROM films f " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                "LEFT JOIN likes l ON f.id = l.film_id " +
+                "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
+                "JOIN directors d ON fd.director_id = d.id " +
+                "WHERE lower(d.name) LIKE ? " +
+                "GROUP BY f.id, m.name, m.description " +
+                "ORDER BY likes_count DESC";
+
+        log.debug("Получение популярных фильмов по части имени режиссера: {}", query);
+        String searchPattern = "%" + query.toLowerCase() + "%";
+        List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), searchPattern);
+
+        return films.stream()
+                .peek(film -> {
+                    film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
+                    film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
+                })
+                .collect(Collectors.toList());
+    }
+
     private void saveFilmGenres(Film film) {
         if (film.getGenres() == null || film.getGenres().isEmpty()) {
             log.debug("Жанры для фильма {} не указаны или пусты", film.getId());

@@ -86,4 +86,13 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
         List<FilmDTO> films = service.getFilmsByDirector(directorId, sortBy);
         return ResponseEntity.ok(films);
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<FilmDTO>> getFilmsViaSearch(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String by
+    ) {
+        List<FilmDTO> films = service.getFilmsViaSearch(query, by);
+        return ResponseEntity.ok(films);
+    }
 }
