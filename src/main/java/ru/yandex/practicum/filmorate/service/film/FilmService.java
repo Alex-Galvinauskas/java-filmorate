@@ -22,4 +22,6 @@ public interface FilmService {
     void removeLike(Long filmId, Long userId);
 
     void deleteFilm(Long filmId);
+
+    List<FilmDTO> getCommonFilms(Long userId, Long friendId);
 }
