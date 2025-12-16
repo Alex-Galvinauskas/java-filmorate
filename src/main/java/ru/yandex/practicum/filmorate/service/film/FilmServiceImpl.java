@@ -323,4 +323,32 @@ public class FilmServiceImpl implements FilmService {
             filmDTO.setDirectors(uniqueDirectors);
         }
     }
+
+    @Override
+    public List<FilmDTO> getCommonFilms(Long userId, Long friendId) {
+        log.debug("Получение общих фильмов пользователя {} и друга {}", userId, friendId);
+
+        if (userId == null) {
+            throw new IllegalArgumentException("Идентификатор пользователя не может быть null");
+        }
+        if (friendId == null) {
+            throw new IllegalArgumentException("Идентификатор друга не может быть null");
+        }
+
+        if (userId.equals(friendId)) {
+            throw new IllegalArgumentException("Нельзя искать общие фильмы с самим собой");
+        }
+
+        userService.getUserById(userId);
+        userService.getUserById(friendId);
+
+        List<Film> commonFilms = filmDbStorage.getCommonFilms(userId, friendId);
+
+        log.debug("Найдено {} общих фильмов для пользователей {} и {}",
+                commonFilms.size(), userId, friendId);
+
+        return commonFilms.stream()
+                .map(filmMapper::toDTO)
+                .collect(Collectors.toList());
+    }
 }

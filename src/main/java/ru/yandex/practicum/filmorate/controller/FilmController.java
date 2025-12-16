@@ -46,6 +46,16 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/common")
+    public ResponseEntity<List<FilmDTO>> getCommonFilms(
+            @RequestParam Long userId,
+            @RequestParam Long friendId) {
+
+        List<FilmDTO> commonFilms = service.getCommonFilms(userId, friendId);
+
+        return ResponseEntity.ok(commonFilms);
+    }
+
     @GetMapping("/popular")
     public ResponseEntity<List<FilmDTO>> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
         List<FilmDTO> popularFilms = service.getPopularFilms(count);
