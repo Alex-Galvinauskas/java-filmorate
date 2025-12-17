@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
+import ru.yandex.practicum.filmorate.dto.MpaDTO;
 import ru.yandex.practicum.filmorate.service.film.FilmService;
 
 import java.time.LocalDate;
@@ -249,43 +250,68 @@ class FilmControllerTest {
         @Test
         @DisplayName("Получение популярных фильмов с фильтрацией по жанру и году возвращает фильмы")
         void getPopularFilms_WithGenreAndYearFilter_ReturnsFilteredFilms() throws Exception {
-            List<FilmDTO> popularFilms = Collections.singletonList(testFilmDTO);
-            when(filmService.getPopularFilms(10, 2, 2020)).thenReturn(popularFilms);
+            // Создаем ожидаемые фильмы с правильными ID
+            FilmDTO film2 = FilmDTO.builder()
+                    .id(2L)
+                    .name("New film")
+                    .description("New film about friends")
+                    .releaseDate(LocalDate.of(1999, 4, 30))
+                    .duration(120)
+                    .mpa(MpaDTO.builder().id(3L).name("PG-13").build())
+                    .build();
+
+            FilmDTO film3 = FilmDTO.builder()
+                    .id(3L)
+                    .name("New film with director")
+                    .description("Film with director")
+                    .releaseDate(LocalDate.of(1999, 12, 31))
+                    .duration(100)
+                    .mpa(MpaDTO.builder().id(3L).name("PG-13").build())
+                    .build();
+
+            List<FilmDTO> popularFilms = Arrays.asList(film2, film3);
+
+            // В тестах ожидаются фильмы 2 и 3 (по году 1999 и жанру 1 - Комедия)
+            when(filmService.getPopularFilms(10, 1, 1999)).thenReturn(popularFilms);
 
             mockMvc.perform(get("/films/popular")
-                            .param("genreId", "2")
-                            .param("year", "2020"))
+                            .param("genreId", "1")
+                            .param("year", "1999"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(1)));
+                    .andExpect(jsonPath("$", hasSize(2)))
+                    .andExpect(jsonPath("$[0].id", is(2)))
+                    .andExpect(jsonPath("$[0].name", is("New film")))
+                    .andExpect(jsonPath("$[1].id", is(3)))
+                    .andExpect(jsonPath("$[1].name", is("New film with director")));
 
-            verify(filmService, times(1)).getPopularFilms(10, 2, 2020);
-        }
-    }
-
-    @Nested
-    @DisplayName("Тесты валидации endpoints")
-    class EndpointValidationTests {
-
-        @Test
-        @DisplayName("Некорректный ID в пути возвращает ошибку")
-        void getFilmById_InvalidId_ReturnsBadRequestTest() throws Exception {
-            mockMvc.perform(get("/films/invalid"))
-                    .andExpect(status().isBadRequest());
+            verify(filmService, times(1)).getPopularFilms(10, 1, 1999);
         }
 
-        @Test
-        @DisplayName("Некорректный ID для лайка возвращает ошибку")
-        void addLike_InvalidIds_ReturnsBadRequestTest() throws Exception {
-            mockMvc.perform(put("/films/invalid/like/invalid"))
-                    .andExpect(status().isBadRequest());
-        }
+        @Nested
+        @DisplayName("Тесты валидации endpoints")
+        class EndpointValidationTests {
 
-        @Test
-        @DisplayName("Некорректный параметр count возвращает ошибку")
-        void getPopularFilms_InvalidCount_ReturnsBadRequestTest() throws Exception {
-            mockMvc.perform(get("/films/popular")
-                            .param("count", "invalid"))
-                    .andExpect(status().isBadRequest());
+            @Test
+            @DisplayName("Некорректный ID в пути возвращает ошибку")
+            void getFilmById_InvalidId_ReturnsBadRequestTest() throws Exception {
+                mockMvc.perform(get("/films/invalid"))
+                        .andExpect(status().isBadRequest());
+            }
+
+            @Test
+            @DisplayName("Некорректный ID для лайка возвращает ошибку")
+            void addLike_InvalidIds_ReturnsBadRequestTest() throws Exception {
+                mockMvc.perform(put("/films/invalid/like/invalid"))
+                        .andExpect(status().isBadRequest());
+            }
+
+            @Test
+            @DisplayName("Некорректный параметр count возвращает ошибку")
+            void getPopularFilms_InvalidCount_ReturnsBadRequestTest() throws Exception {
+                mockMvc.perform(get("/films/popular")
+                                .param("count", "invalid"))
+                        .andExpect(status().isBadRequest());
+            }
         }
     }
 }

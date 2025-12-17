@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Repository
@@ -159,7 +160,7 @@ public class FilmDbStorage implements FilmStorage {
     public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
         StringBuilder sql = new StringBuilder(
                 "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
-                        "COUNT(l.user_id) as likes_count " +
+                        "COUNT(DISTINCT l.user_id) as likes_count " +  // Используем DISTINCT
                         "FROM films f " +
                         "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                         "LEFT JOIN likes l ON f.id = l.film_id "
@@ -168,7 +169,7 @@ public class FilmDbStorage implements FilmStorage {
         List<Object> params = new ArrayList<>();
 
         if (genreId != null) {
-            sql.append("JOIN film_genres fg ON f.id = fg.film_id ");
+            sql.append("INNER JOIN film_genres fg ON f.id = fg.film_id ");  // Используем INNER JOIN
         }
 
         sql.append("WHERE 1=1 ");
@@ -179,15 +180,12 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         if (year != null) {
-            /**
-             *  Используем YEAR() для совместимости с H2
-             */
-            sql.append("AND YEAR(f.release_date) = ? ");
+            sql.append("AND EXTRACT(YEAR FROM f.release_date) = ? ");
             params.add(year);
         }
 
         sql.append("GROUP BY f.id, m.name, m.description ");
-        sql.append("ORDER BY likes_count DESC ");
+        sql.append("ORDER BY likes_count DESC, f.id DESC ");
         sql.append("LIMIT ?");
         params.add(count);
 
@@ -196,8 +194,12 @@ public class FilmDbStorage implements FilmStorage {
 
         List<Film> films = jdbcTemplate.query(sql.toString(), new FilmRowMapper(), params.toArray());
 
+        // Загружаем жанры и лайки для каждого фильма
         return films.stream()
-                .peek(film -> film.setGenres(genreDbStorage.getGenresByFilmId(film.getId())))
+                .peek(film -> {
+                    film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
+                    film.setLikes(getLikesByFilmId(film.getId()));
+                })
                 .collect(Collectors.toList());
     }
 
@@ -237,15 +239,19 @@ public class FilmDbStorage implements FilmStorage {
 
             LocalDate releaseDate = rs.getDate("release_date").toLocalDate();
 
-            return Film.builder()
+            Film film = Film.builder()
                     .id(rs.getLong("id"))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
                     .releaseDate(releaseDate)
                     .duration(rs.getInt("duration"))
                     .mpa(mpa)
-                    .likes(new HashSet<>())
                     .build();
+
+            // Инициализируем пустой набор лайков
+            film.setLikes(ConcurrentHashMap.newKeySet());
+
+            return film;
         }
     }
 
