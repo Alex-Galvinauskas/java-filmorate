@@ -1,9 +1,9 @@
 package ru.yandex.practicum.filmorate.model;
 
 public enum Operation {
-    ADD("Добавить"),
-    REMOVE("Удалить"),
-    UPDATE("Обновить");
+    ADD("ADD"),
+    REMOVE("REMOVE"),
+    UPDATE("UPDATE");
 
     private final String russianName;
 

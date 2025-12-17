@@ -59,7 +59,7 @@ public class FeedDbStorage {
 
     public List<FeedEvent> findByUserId(Long userId, Integer limit) {
         String sql = "SELECT * FROM user_feed_events WHERE user_id = ? " +
-                "ORDER BY timestamp ASC, event_id ASC LIMIT ?";
+                "ORDER BY event_id ASC LIMIT ?";
 
         log.debug("Поиск событий для пользователя {} с лимитом {}", userId, limit);
 

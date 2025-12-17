@@ -44,10 +44,9 @@ public class DirectorServiceImpl implements DirectorService {
 
     @Override
     public DirectorDTO getById(Long id) {
-        log.debug("Получение режиссера по ID: {}", id);
+        log.debug("Получение режиссёра по ID: {}", id);
 
-        Director director = directorDbStorage.getById(id)
-                .orElseThrow(() -> new NotFoundException("Режиссер с ID " + id + " не найден"));
+        Director director = directorDbStorage.getById(id);
 
         return directorMapper.toDTO(director);
     }
