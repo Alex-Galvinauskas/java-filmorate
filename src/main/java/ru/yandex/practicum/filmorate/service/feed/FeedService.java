@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.service.feed;
 
-import ru.yandex.practicum.filmorate.dto.FeedEventDTO;
+import ru.yandex.practicum.filmorate.dto.FeedEventDto;
 import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.Operation;
 
@@ -11,5 +11,5 @@ public interface FeedService {
     void recordEvent(Long userId, Long actorId, EventType eventType,
                      Operation operation, Long entityId);
 
-    List<FeedEventDTO> getUserFeed(Long userId);
+    List<FeedEventDto> getUserFeed(Long userId, Integer from, Integer size);
 }
