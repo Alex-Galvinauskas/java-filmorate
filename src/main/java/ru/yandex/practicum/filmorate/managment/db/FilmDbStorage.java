@@ -23,7 +23,6 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Repository
@@ -61,6 +60,7 @@ public class FilmDbStorage implements FilmStorage {
         film.setId(filmId);
 
         saveFilmGenres(film);
+
         saveFilmDirectors(film);
 
         log.info("Создан новый фильм в БД: '{}' (ID: {})", film.getName(), filmId);
@@ -131,6 +131,7 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         updateFilmGenres(film);
+
         updateFilmDirectors(film);
 
         log.info("Обновлен фильм в БД: '{}' (ID: {})", film.getName(), film.getId());
@@ -170,66 +171,14 @@ public class FilmDbStorage implements FilmStorage {
         return new HashSet<>(likes);
     }
 
-    /**
-     * Получает популярные фильмы с фильтрацией по жанру и году.
-     */
-    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
-        StringBuilder sql = new StringBuilder(
-                "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
-                        "COUNT(DISTINCT l.user_id) as likes_count " +
-                        "FROM films f " +
-                        "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                        "LEFT JOIN likes l ON f.id = l.film_id "
-        );
-
-        List<Object> params = new ArrayList<>();
-
-        if (genreId != null) {
-            sql.append("INNER JOIN film_genres fg ON f.id = fg.film_id ");
-        }
-
-        sql.append("WHERE 1=1 ");
-
-        if (genreId != null) {
-            sql.append("AND fg.genre_id = ? ");
-            params.add(genreId);
-        }
-
-        if (year != null) {
-            sql.append("AND EXTRACT(YEAR FROM f.release_date) = ? ");
-            params.add(year);
-        }
-
-        sql.append("GROUP BY f.id, m.name, m.description ");
-        sql.append("ORDER BY likes_count DESC, f.id DESC ");
-        sql.append("LIMIT ?");
-        params.add(count);
-
-        log.debug("Выполнение SQL запроса для популярных фильмов: {}", sql);
-        log.debug("Параметры: genreId={}, year={}, count={}", genreId, year, count);
-
-        List<Film> films = jdbcTemplate.query(sql.toString(), new FilmRowMapper(), params.toArray());
-
-        for (Film film : films) {
-            film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
-            film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
-            film.setLikes(getLikesByFilmId(film.getId()));
-        }
-
-        return films;
-    }
-
-    /**
-     * Получает популярные фильмы без фильтрации
-     */
     public List<Film> getPopularFilms(int count) {
         String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
-                "COUNT(DISTINCT l.user_id) as likes_count " +
+                "COUNT(l.user_id) as likes_count " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                 "LEFT JOIN likes l ON f.id = l.film_id " +
-                "GROUP BY f.id, m.name, m.description " +
-                "ORDER BY likes_count DESC, f.id DESC " +
+                "GROUP BY f.id, m.id, m.name, m.description " +
+                "ORDER BY COUNT(l.user_id) DESC " +
                 "LIMIT ?";
 
         log.debug("Получение {} популярных фильмов", count);
@@ -257,15 +206,15 @@ public class FilmDbStorage implements FilmStorage {
 
     public List<Film> getFilmsViaSearchByName(String query) {
         String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
-                "COUNT(DISTINCT l.user_id) as likes_count " +
+                "COUNT(l.user_id) as likes_count " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                 "LEFT JOIN likes l ON f.id = l.film_id " +
                 "WHERE lower(f.name) LIKE ? " +
-                "GROUP BY f.id, m.name, m.description " +
-                "ORDER BY likes_count DESC, f.id DESC";
+                "GROUP BY f.id, m.id, m.name, m.description " +
+                "ORDER BY COUNT(l.user_id) DESC";
 
-        log.debug("Получение фильмов по части названия: {}", query);
+        log.debug("Получение популярных фильмов по части названия: {}", query);
         String searchPattern = "%" + query.toLowerCase() + "%";
         List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), searchPattern);
 
@@ -280,44 +229,19 @@ public class FilmDbStorage implements FilmStorage {
 
     public List<Film> getFilmsViaSearchByDirector(String query) {
         String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
-                "COUNT(DISTINCT l.user_id) as likes_count " +
+                "COUNT(l.user_id) as likes_count " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                 "LEFT JOIN likes l ON f.id = l.film_id " +
                 "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
                 "JOIN directors d ON fd.director_id = d.id " +
                 "WHERE lower(d.name) LIKE ? " +
-                "GROUP BY f.id, m.name, m.description " +
-                "ORDER BY likes_count DESC, f.id DESC";
+                "GROUP BY f.id, m.id, m.name, m.description " +
+                "ORDER BY COUNT(l.user_id) DESC";
 
-        log.debug("Получение фильмов по части имени режиссера: {}", query);
+        log.debug("Получение популярных фильмов по части имени режиссера: {}", query);
         String searchPattern = "%" + query.toLowerCase() + "%";
         List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), searchPattern);
-
-        for (Film film : films) {
-            film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
-            film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
-            film.setLikes(getLikesByFilmId(film.getId()));
-        }
-
-        return films;
-    }
-
-    public List<Film> getFilmsViaSearchByNameAndDirector(String query) {
-        String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
-                "COUNT(DISTINCT l.user_id) as likes_count " +
-                "FROM films f " +
-                "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                "LEFT JOIN likes l ON f.id = l.film_id " +
-                "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
-                "LEFT JOIN directors d ON fd.director_id = d.id " +
-                "WHERE lower(f.name) LIKE ? OR lower(d.name) LIKE ? " +
-                "GROUP BY f.id, m.name, m.description " +
-                "ORDER BY likes_count DESC, f.id DESC";
-
-        log.debug("Получение фильмов по названию или режиссеру: {}", query);
-        String searchPattern = "%" + query.toLowerCase() + "%";
-        List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), searchPattern, searchPattern);
 
         for (Film film : films) {
             film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
@@ -367,18 +291,17 @@ public class FilmDbStorage implements FilmStorage {
 
             LocalDate releaseDate = rs.getDate("release_date").toLocalDate();
 
-            Film film = Film.builder()
+            return Film.builder()
                     .id(rs.getLong("id"))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
                     .releaseDate(releaseDate)
                     .duration(rs.getInt("duration"))
                     .mpa(mpa)
+                    .likes(new HashSet<>())
+                    .genres(new ArrayList<>())  // Здесь будет пусто, потом дозагрузим
+                    .directors(new ArrayList<>())
                     .build();
-
-            film.setLikes(ConcurrentHashMap.newKeySet());
-
-            return film;
         }
     }
 
@@ -623,7 +546,7 @@ public class FilmDbStorage implements FilmStorage {
         JOIN film_directors fd ON f.id = fd.film_id
         WHERE fd.director_id = ?
         ORDER BY (
-            SELECT COUNT(DISTINCT l.user_id) FROM likes l WHERE l.film_id = f.id
+            SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id
         ) DESC, f.id
         """;
         } else {
@@ -638,6 +561,52 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
+    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
+                        "COUNT(l.user_id) as likes_count " +
+                        "FROM films f " +
+                        "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                        "LEFT JOIN likes l ON f.id = l.film_id "
+        );
+
+        List<Object> params = new ArrayList<>();
+
+        if (genreId != null) {
+            sql.append("JOIN film_genres fg ON f.id = fg.film_id ");
+        }
+
+        sql.append("WHERE 1=1 ");
+
+        if (genreId != null) {
+            sql.append("AND fg.genre_id = ? ");
+            params.add(genreId);
+        }
+
+        if (year != null) {
+            sql.append("AND YEAR(f.release_date) = ? ");
+            params.add(year);
+        }
+
+        sql.append("GROUP BY f.id, m.id, m.name, m.description ");
+        sql.append("ORDER BY COUNT(l.user_id) DESC ");
+        sql.append("LIMIT ?");
+        params.add(count);
+
+        log.debug("Выполнение SQL запроса для популярных фильмов: {}", sql);
+        log.debug("Параметры: genreId={}, year={}, count={}", genreId, year, count);
+
+        List<Film> films = jdbcTemplate.query(sql.toString(), new FilmRowMapper(), params.toArray());
+
+        for (Film film : films) {
+            film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
+            film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
+            film.setLikes(getLikesByFilmId(film.getId()));
+        }
+
+        return films;
+    }
+
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         String sql = "WITH user_likes AS ( " +
                 "    SELECT film_id FROM likes WHERE user_id = ? " +
@@ -648,13 +617,13 @@ public class FilmDbStorage implements FilmStorage {
                 "    INNER JOIN friend_likes fl ON ul.film_id = fl.film_id " +
                 ") " +
                 "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
-                "       COUNT(DISTINCT l.user_id) as likes_count " +
+                "       COUNT(l.user_id) as likes_count " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                 "LEFT JOIN likes l ON f.id = l.film_id " +
                 "WHERE f.id IN (SELECT film_id FROM common_films) " +
-                "GROUP BY f.id, m.name, m.description " +
-                "ORDER BY likes_count DESC";
+                "GROUP BY f.id, m.id, m.name, m.description " +  // Добавлен m.id
+                "ORDER BY COUNT(l.user_id) DESC";
 
         List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), userId, friendId);
 
