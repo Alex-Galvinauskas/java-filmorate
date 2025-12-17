@@ -16,6 +16,7 @@ import ru.yandex.practicum.filmorate.service.film.FilmService;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -66,8 +67,15 @@ public class ReviewServiceImpl implements ReviewService {
 
         ReviewDTO existingReview = getReviewById(reviewDTO.getReviewId());
 
-        if (!existingReview.getUserId().equals(reviewDTO.getUserId())) {
+        if (reviewDTO.getUserId() == null) {
+            reviewDTO.setUserId(existingReview.getUserId());
+            log.warn("Обновление отзыва с ID: {} без указания userId (обратная совместимость)", reviewDTO.getReviewId());
+        } else if (!existingReview.getUserId().equals(reviewDTO.getUserId())) {
             throw new ForbiddenException("Пользователь может редактировать только свои отзывы");
+        }
+
+        if (reviewDTO.getFilmId() == null) {
+            reviewDTO.setFilmId(existingReview.getFilmId());
         }
 
         Review review = reviewMapper.toEntity(reviewDTO);
@@ -88,11 +96,19 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public void deleteReview(Long id, Long userId) {
-        ReviewDTO existingReview = getReviewById(id);
+        Optional<Review> existingReviewOpt = reviewDbStorage.getReviewById(id);
+
+        if (existingReviewOpt.isEmpty()) {
+            log.debug("Попытка удаления несуществующего отзыва с ID: {}", id);
+            return;
+        }
+
+        Review existingReview = existingReviewOpt.get();
+        ReviewDTO existingReviewDTO = reviewMapper.toDTO(existingReview);
 
         if (userId != null) {
             log.debug("Удаление отзыва с ID: {} пользователем {}", id, userId);
-            if (!existingReview.getUserId().equals(userId)) {
+            if (!existingReviewDTO.getUserId().equals(userId)) {
                 throw new ForbiddenException("Пользователь может удалять только свои отзывы");
             }
             log.info("Удален отзыв с ID: {} пользователем {}", id, userId);
@@ -181,3 +197,5 @@ public class ReviewServiceImpl implements ReviewService {
         log.info("Удален дизлайк отзыву {} от пользователя {}", reviewId, userId);
     }
 }
+
+
