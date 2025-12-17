@@ -46,6 +46,16 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/common")
+    public ResponseEntity<List<FilmDTO>> getCommonFilms(
+            @RequestParam Long userId,
+            @RequestParam Long friendId) {
+
+        List<FilmDTO> commonFilms = service.getCommonFilms(userId, friendId);
+
+        return ResponseEntity.ok(commonFilms);
+    }
+
     @GetMapping("/popular")
     public ResponseEntity<List<FilmDTO>> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
         List<FilmDTO> popularFilms = service.getPopularFilms(count);
@@ -58,6 +68,12 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
         return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/{filmId}")
+    public ResponseEntity<Void> deleteFilm(@PathVariable Long filmId) {
+        service.deleteFilm(filmId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/director/{directorId}")
     public ResponseEntity<List<FilmDTO>> getFilmsByDirector(
             @PathVariable Long directorId,
@@ -68,6 +84,15 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
         }
 
         List<FilmDTO> films = service.getFilmsByDirector(directorId, sortBy);
+        return ResponseEntity.ok(films);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<FilmDTO>> getFilmsViaSearch(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String by
+    ) {
+        List<FilmDTO> films = service.getFilmsViaSearch(query, by);
         return ResponseEntity.ok(films);
     }
 }

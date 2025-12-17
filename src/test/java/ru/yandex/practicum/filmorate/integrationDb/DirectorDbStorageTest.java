@@ -15,7 +15,6 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.DirectorDbStorage;
 import ru.yandex.practicum.filmorate.model.Director;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,7 +37,6 @@ public class DirectorDbStorageTest {
         testDirector = Director.builder()
                 .id(1L)
                 .name("Christopher Nolan")
-                .createdAt(LocalDateTime.now())
                 .build();
     }
 
@@ -81,7 +79,7 @@ public class DirectorDbStorageTest {
                 any(RowMapper.class), eq(1L)))
                 .thenReturn(List.of(testDirector));
 
-        Optional<Director> result = directorDbStorage.getById(1L);
+        Optional<Director> result = Optional.ofNullable(directorDbStorage.getById(1L));
 
         assertTrue(result.isPresent());
         assertEquals(1L, result.get().getId());
@@ -97,7 +95,7 @@ public class DirectorDbStorageTest {
                 any(RowMapper.class), eq(999L)))
                 .thenReturn(List.of());
 
-        Optional<Director> result = directorDbStorage.getById(999L);
+        Optional<Director> result = Optional.ofNullable(directorDbStorage.getById(999L));
 
         assertTrue(result.isEmpty());
         verify(jdbcTemplate, times(1))

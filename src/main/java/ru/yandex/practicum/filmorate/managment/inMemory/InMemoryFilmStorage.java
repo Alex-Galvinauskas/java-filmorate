@@ -17,6 +17,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -189,6 +190,16 @@ public class InMemoryFilmStorage implements FilmStorage {
     private record FilmKey(String nameLowercase, int releaseYear) {
     }
 
+    public void deleteFilm(Long filmId) {
+        log.debug("Удаление фильма с ID: {} из памяти", filmId);
+        if (!films.containsKey(filmId)) {
+            log.warn("Попытка удаления несуществующего фильма с ID: {}", filmId);
+            throw new RuntimeException("Фильм с ID " + filmId + " не найден");
+        }
+        films.remove(filmId);
+        log.info("Фильм с ID {} успешно удален из памяти", filmId);
+    }
+
     @Override
     public Map<Long, Set<Long>> getLikesByUsers() {
         Map<Long, Set<Long>> likesByUser = new HashMap<>();
@@ -219,5 +230,38 @@ public class InMemoryFilmStorage implements FilmStorage {
 
         log.debug("Получено {} фильмов по ID", result.size());
         return result;
+    }
+
+    @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        log.debug("Поиск общих фильмов для пользователей {} и {} в памяти", userId, friendId);
+        return Collections.emptyList();
+    }
+
+    private List<Film> findCommonFilmsByLikes(Long userId, Long friendId) {
+
+        Map<Long, Set<Long>> likesByFilm = new HashMap<>(); // filmId -> Set<userId>
+
+        Set<Long> userLikedFilms = films.values().stream()
+                .filter(film -> film.getLikes() != null && film.getLikes().contains(userId))
+                .map(Film::getId)
+                .collect(Collectors.toSet());
+
+        Set<Long> friendLikedFilms = films.values().stream()
+                .filter(film -> film.getLikes() != null && film.getLikes().contains(friendId))
+                .map(Film::getId)
+                .collect(Collectors.toSet());
+
+        userLikedFilms.retainAll(friendLikedFilms);
+
+        return userLikedFilms.stream()
+                .map(films::get)
+                .filter(Objects::nonNull)
+                .sorted((f1, f2) -> {
+                    int likes1 = f1.getLikes() != null ? f1.getLikes().size() : 0;
+                    int likes2 = f2.getLikes() != null ? f2.getLikes().size() : 0;
+                    return Integer.compare(likes2, likes1); // по убыванию
+                })
+                .collect(Collectors.toList());
     }
 }

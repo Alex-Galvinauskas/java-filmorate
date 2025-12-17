@@ -20,4 +20,6 @@ public interface UserService {
     void addFriend(Long userId, Long friendId);
 
     void removeFriend(Long userId, Long friendId);
+
+    void deleteUser(Long userId);
 }

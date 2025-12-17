@@ -18,11 +18,9 @@ public interface UserStorage {
 
     User updateUser(User user);
 
-    boolean existsById(Long id);
-
     boolean existsByEmail(String email);
 
     boolean existsByLogin(String login);
 
-    boolean hasLikes(Long userId);
+    void deleteUser(Long userId);
 }

@@ -16,7 +16,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @Repository
 @Slf4j
@@ -27,6 +26,10 @@ public class DirectorDbStorage {
     private final JdbcTemplate jdbcTemplate;
 
     public Director create(Director director) {
+        if (director.getName() == null || director.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Имя режиссёра не может быть пустым");
+        }
+
         String sql = "INSERT INTO directors (name) VALUES (?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -43,29 +46,38 @@ public class DirectorDbStorage {
         return director;
     }
 
-    public Optional<Director> getById(Long id) {
+    public Director getById(Long id) {
         String sql = "SELECT * FROM directors WHERE id = ?";
         List<Director> result = jdbcTemplate.query(sql, new DirectorRowMapper(), id);
-        return result.stream().findFirst();
+
+        return result.stream().findFirst()
+                .orElseThrow(() -> new NotFoundException("Режиссёр с ID " + id + " не найден"));
     }
 
     public List<Director> getAll() {
-        String sql = "SELECT * FROM directors ORDER BY name";
+        String sql = "SELECT * FROM directors ORDER BY id";
         return jdbcTemplate.query(sql, new DirectorRowMapper());
     }
 
     public Director update(Director director) {
-        String sql = "UPDATE directors SET name = ? WHERE id = ?";
+        if (!existsById(director.getId())) {
+            throw new NotFoundException("Режиссёр с ID " + director.getId() + " не найден");
+        }
 
-        int updated = jdbcTemplate.update(sql,
+        String sql = "UPDATE directors SET name = ? WHERE id = ?";
+        int updated = jdbcTemplate.update(
+                sql,
                 director.getName(),
-                director.getId());
+                director.getId()
+        );
 
         if (updated == 0) {
-            throw new NotFoundException("Режиссер с ID " + director.getId() + " не найден");
+            throw new NotFoundException("Режиссёр с ID " + director.getId() + " не найден");
         }
-        log.info("Обновлен режиссер: {} (ID: {}", director.getName(), director.getId());
-        return director;
+
+        log.info("Обновлён режиссёр: {} (ID: {})", director.getName(), director.getId());
+
+        return getById(director.getId());
     }
 
     public void delete(Long id) {
@@ -120,8 +132,6 @@ public class DirectorDbStorage {
             return Director.builder()
                     .id(rs.getLong("id"))
                     .name(rs.getString("name"))
-                    .createdAt(rs.getTimestamp("created_at") != null ?
-                            rs.getTimestamp("created_at").toLocalDateTime() : null)
                     .build();
         }
     }

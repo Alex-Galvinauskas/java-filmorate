@@ -51,4 +51,10 @@ public class GenreDbStorage {
                     .build();
         }
     }
+
+    public int deleteGenresByFilmId(Long filmId) {
+        String sql = "DELETE FROM film_genres WHERE film_id = ?";
+        jdbcTemplate.update(sql, filmId);
+        return 0;
+    }
 }
