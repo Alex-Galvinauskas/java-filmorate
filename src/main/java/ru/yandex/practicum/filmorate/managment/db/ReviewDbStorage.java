@@ -86,10 +86,11 @@ public class ReviewDbStorage implements ReviewStorage {
     public void deleteReview(Long id) {
         String sql = "DELETE FROM reviews WHERE review_id = ?";
         int deleted = jdbcTemplate.update(sql, id);
-        if (deleted == 0) {
-            throw new NotFoundException("Отзыв с ID " + id + " не найден");
+        if (deleted > 0) {
+            log.info("Удален отзыв из БД: ID: {}", id);
+        } else {
+            log.debug("Попытка удаления несуществующего отзыва с ID: {}", id);
         }
-        log.info("Удален отзыв из БД: ID: {}", id);
     }
 
     @Override
