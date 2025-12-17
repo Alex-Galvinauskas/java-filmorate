@@ -30,6 +30,7 @@ import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -123,9 +124,19 @@ public class FilmServiceImpl implements FilmService {
     public List<FilmDTO> getPopularFilms(Integer count) {
         log.debug("Получение списка популярных фильмов. Количество: {}", count);
 
-        int filmsCount = (count != null) && (count > 0) ? count : 10;
+        int filmsCount = (count == null || count <= 0) ? 10 : count;
 
-        return filmDbStorage.getPopularFilms(filmsCount).stream()
+        List<Film> films = filmDbStorage.getPopularFilms(filmsCount);
+
+        if (films == null || films.isEmpty()) {
+            log.debug("Список популярных фильмов пуст");
+            return Collections.emptyList();
+        }
+
+        log.debug("Найдено {} популярных фильмов", films.size());
+
+        // Маппим в DTO
+        return films.stream()
                 .map(filmMapper::toDTO)
                 .collect(Collectors.toList());
     }

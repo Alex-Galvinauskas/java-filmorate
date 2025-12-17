@@ -13,7 +13,6 @@ import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,8 +68,7 @@ class FilmValidatorImplTest {
         @DisplayName("Название и год не изменились")
         void validateFilmUniquenessForUpdate_SameNameAndYear_NoExceptionTest() {
             List<Director> directors = new ArrayList<>();
-            directors.add(Director.builder().id(1L).name("Director1")
-                    .createdAt(LocalDateTime.now()).build());
+            directors.add(Director.builder().id(1L).name("Director1").build());
 
             Film existingFilm = Film.builder()
                     .id(1L)
@@ -97,8 +95,7 @@ class FilmValidatorImplTest {
         @DisplayName("Изменилось только название")
         void validateFilmUniquenessForUpdate_NameChanged_ValidatesUniquenessTest() {
             List<Director> directors = new ArrayList<>();
-            directors.add(Director.builder().id(1L).name("Director1")
-                    .createdAt(LocalDateTime.now()).build());
+            directors.add(Director.builder().id(1L).name("Director1").build());
 
             Film existingFilm = Film.builder()
                     .id(1L)
@@ -126,8 +123,7 @@ class FilmValidatorImplTest {
         @DisplayName("Изменился только год")
         void validateFilmUniquenessForUpdate_YearChanged_ValidatesUniquenessTest() {
             List<Director> directors = new ArrayList<>();
-            directors.add(Director.builder().id(1L).name("Director1")
-                    .createdAt(LocalDateTime.now()).build());
+            directors.add(Director.builder().id(1L).name("Director1").build());
 
             Film existingFilm = Film.builder()
                     .id(1L)
@@ -155,12 +151,10 @@ class FilmValidatorImplTest {
         @DisplayName("Разные режиссеры, проверка не вызывается")
         void validateFilmUniquenessForUpdate_DifferentDirectors_NoValidationTest() {
             List<Director> existingDirectors = new ArrayList<>();
-            existingDirectors.add(Director.builder().id(1L).name("Director1")
-                    .createdAt(LocalDateTime.now()).build());
+            existingDirectors.add(Director.builder().id(1L).name("Director1").build());
 
             List<Director> updatedDirectors = new ArrayList<>();
-            updatedDirectors.add(Director.builder().id(2L).name("Director2")
-                    .createdAt(LocalDateTime.now()).build());
+            updatedDirectors.add(Director.builder().id(2L).name("Director2").build());
 
             Film existingFilm = Film.builder()
                     .id(1L)
@@ -188,8 +182,7 @@ class FilmValidatorImplTest {
         @DisplayName("Изменилось название на уже существующее")
         void validateFilmUniquenessForUpdate_NameChangedToExisting_ThrowsExceptionTest() {
             List<Director> directors = new ArrayList<>();
-            directors.add(Director.builder().id(1L).name("Director1")
-                    .createdAt(LocalDateTime.now()).build());
+            directors.add(Director.builder().id(1L).name("Director1").build());
 
             Film existingFilm = Film.builder()
                     .id(1L)

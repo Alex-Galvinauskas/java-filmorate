@@ -14,13 +14,13 @@ public interface FeedEventMapper {
     @Mapping(target = "timestamp", expression = "java(feedEvent.getTimestamp().toEpochMilli())")
     @Mapping(target = "eventType", source = "eventType", qualifiedByName = "eventTypeToString")
     @Mapping(target = "operation", source = "operation", qualifiedByName = "operationToString")
-    @Mapping(target = "actorId", source = "actorId")
+    @Mapping(target = "userId", source = "userId")
     FeedEventDTO toDTO(FeedEvent feedEvent);
 
     @Mapping(target = "timestamp", expression = "java(java.time.Instant.ofEpochMilli(dto.getTimestamp()))")
     @Mapping(target = "eventType", source = "eventType", qualifiedByName = "stringToEventType")
     @Mapping(target = "operation", source = "operation", qualifiedByName = "stringToOperation")
-    @Mapping(target = "actorId", source = "actorId")
+    @Mapping(target = "userId", source = "userId")
     FeedEvent toEntity(FeedEventDTO dto);
 
     @Named("eventTypeToString")

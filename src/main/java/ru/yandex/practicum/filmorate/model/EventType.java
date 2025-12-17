@@ -1,9 +1,9 @@
 package ru.yandex.practicum.filmorate.model;
 
 public enum EventType {
-    LIKE("Лайк"),
-    REVIEW("Отзыв"),
-    FRIEND("Друг");
+    LIKE("LIKE"),
+    REVIEW("REVIEW"),
+    FRIEND("FRIEND");
 
     private final String russianName;
 
