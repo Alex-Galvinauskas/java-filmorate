@@ -13,12 +13,17 @@ public interface FilmService {
 
     List<FilmDTO> getAllFilms();
 
-    /**
-     * добавляем параметры genreId и year
-      */
-    List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year);
+    List<FilmDTO> getPopularFilms(Integer count);
+
+    List<FilmDTO> getFilmsByDirector(Long directorId, String sortBy);
+
+    List<FilmDTO> getFilmsViaSearch(String query, String searchBy);
 
     void addLike(Long filmId, Long userId);
 
     void removeLike(Long filmId, Long userId);
+
+    void deleteFilm(Long filmId);
+
+    List<FilmDTO> getCommonFilms(Long userId, Long friendId);
 }

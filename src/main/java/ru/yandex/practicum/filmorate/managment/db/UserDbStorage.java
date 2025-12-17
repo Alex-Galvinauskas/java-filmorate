@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.managment.inMemory.UserStorage;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 @Primary
 @Slf4j
 @RequiredArgsConstructor
+@Transactional
 public class UserDbStorage implements UserStorage {
 
     private final JdbcTemplate jdbcTemplate;
@@ -124,13 +126,6 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
-    public boolean existsById(Long id) {
-        String sql = "SELECT COUNT(*) FROM users WHERE id = ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
-        return count != null && count > 0;
-    }
-
-    @Override
     public boolean existsByEmail(String email) {
         String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email);
@@ -145,7 +140,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     public void addFriend(Long userId, Long friendId) {
-        String sql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, 'PENDING')";
+        String sql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, 'UNCONFIRMED')";
         jdbcTemplate.update(sql, userId, friendId);
         log.debug("Отправлена заявка в друзья от пользователя {} пользователю {}", userId, friendId);
     }
@@ -174,7 +169,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     /**
-            * Загружает друзей для списка пользователей
+     * Загружает друзей для списка пользователей
      */
     private void loadFriendsForUsers(List<User> users) {
         if (users == null || users.isEmpty()) {
@@ -219,5 +214,48 @@ public class UserDbStorage implements UserStorage {
                     .friends(new HashSet<>())
                     .build();
         }
+    }
+
+    @Override
+    public void deleteUser(Long userId) {
+        log.debug("Удаление пользователя с ID: {} из БД", userId);
+
+        removeAllLikesByUserId(userId);
+
+        removeAllFriendshipsByUserId(userId);
+
+        String deleteUserSql = "DELETE FROM users WHERE id = ?";
+        int rowsDeleted = jdbcTemplate.update(deleteUserSql, userId);
+
+        if (rowsDeleted > 0) {
+            log.info("Пользователь с ID {} успешно удален", userId);
+        } else {
+            log.warn("Пользователь с ID {} не был удален", userId);
+        }
+    }
+
+    public void removeAllFriendshipsByUserId(Long userId) {
+        String sql = "DELETE FROM friendships WHERE user_id = ? OR friend_id = ?";
+        int rowsDeleted = jdbcTemplate.update(sql, userId, userId);
+        log.debug("Удалено {} дружеских связей для пользователя с ID: {}", rowsDeleted, userId);
+    }
+
+    public void removeAllLikesByUserId(Long userId) {
+        String sql = "DELETE FROM likes WHERE user_id = ?";
+        int rowsDeleted = jdbcTemplate.update(sql, userId);
+        log.debug("Удалено {} лайков для пользователя с ID: {}", rowsDeleted, userId);
+    }
+
+    public void removeUserFromAllFriends(Long userId) {
+        String sql = "DELETE FROM friendships WHERE friend_id = ?";
+        int rowsDeleted = jdbcTemplate.update(sql, userId);
+        log.debug("Пользователь с ID {} удален из друзей у {} других пользователей",
+                userId, rowsDeleted);
+    }
+
+    public boolean hasLikes(Long userId) {
+        String sql = "SELECT COUNT(*) FROM likes WHERE user_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        return count != null && count > 0;
     }
 }

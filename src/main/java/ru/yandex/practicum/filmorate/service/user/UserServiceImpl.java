@@ -11,13 +11,18 @@ package ru.yandex.practicum.filmorate.service.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.dto.UserDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.UserDbStorage;
 import ru.yandex.practicum.filmorate.mapper.UserMapper;
+import ru.yandex.practicum.filmorate.model.EventType;
+import ru.yandex.practicum.filmorate.model.Operation;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.user.validation.UserValidatorRules;
 
 import java.util.List;
@@ -30,6 +35,8 @@ public class UserServiceImpl implements UserService {
     private final UserDbStorage userDbStorage;
     private final UserValidatorRules userValidator;
     private final UserMapper userMapper;
+    @Lazy
+    private final FeedService feedService;
     private static final boolean DEFAULT_NAME_FROM_LOGIN = true;
 
     /**
@@ -38,9 +45,7 @@ public class UserServiceImpl implements UserService {
      * Выполняет нормализацию данных пользователя.
      *
      * @param userDTO пользователь для создания
-     *
      * @return созданный пользователь
-     *
      * @throws DuplicateException если пользователь с таким email или логином уже существует
      */
     @Override
@@ -58,12 +63,13 @@ public class UserServiceImpl implements UserService {
     /**
      * Добавляет обоих пользователей в список друзей.
      *
-     * @param userId индентификатор пользователя, который добавляется в друзья
+     * @param userId   индентификатор пользователя, который добавляется в друзья
      * @param friendId идентификатор друга, который добавляется в друзья
-     *
-     *throws NotFoundException если один или оба пользователя не существует
+     *                 <p>
+     *                 throws NotFoundException если один или оба пользователя не существует
      */
     @Override
+    @Transactional
     public void addFriend(Long userId, Long friendId) {
         log.debug("Добавление пользователя {} в друзья пользователя {}", friendId, userId);
 
@@ -75,28 +81,27 @@ public class UserServiceImpl implements UserService {
         }
 
         userDbStorage.addFriend(userId, friendId);
+        recordFriendEvent(userId, friendId, Operation.ADD);
     }
 
-     /**
+    /**
      * Возвращает список всех пользователей.
      *
      * @return список всех пользователей
      */
-     @Override
-     public List<UserDTO> getAllUsers() {
-         log.debug("Получение списка всех пользователей");
-         return userDbStorage.getAllUsers().stream()
-                 .map(userMapper::toDTO)
-                 .collect(Collectors.toList());
-     }
+    @Override
+    public List<UserDTO> getAllUsers() {
+        log.debug("Получение списка всех пользователей");
+        return userDbStorage.getAllUsers().stream()
+                .map(userMapper::toDTO)
+                .collect(Collectors.toList());
+    }
 
     /**
      * Находит пользователя по идентификатору.
      *
      * @param id идентификатор пользователя
-     *
      * @return найденный пользователь
-     *
      * @throws NotFoundException если пользователь с указанным ID не найден
      */
     @Override
@@ -108,9 +113,9 @@ public class UserServiceImpl implements UserService {
 
     /**
      * Возвращает список друзей пользователя.
+     *
      * @param userId идентификатор пользователя, для которого получаем список друзей
      * @return список друзей пользователя
-     *
      * @throws NotFoundException если пользователь с указанным ID не найден
      */
     @Override
@@ -127,10 +132,10 @@ public class UserServiceImpl implements UserService {
 
     /**
      * Возвращает список общих друзей двух пользователей.
+     *
      * @param userId1 id первого пользователя
      * @param userId2 id второго пользователя
      * @return список общих друзей двух пользователей
-     *
      * @throws NotFoundException если один или оба пользователя не существует
      */
     @Override
@@ -151,9 +156,7 @@ public class UserServiceImpl implements UserService {
      * Устанавливает имя из логина если имя не указано, выполняет нормализацию данных.
      *
      * @param userDTO пользователь с обновленными данными
-     *
      * @return обновленный пользователь
-     *
      * @throws NotFoundException  если пользователь с указанным ID не найден
      * @throws DuplicateException если пользователь с новым email или логином уже существует
      */
@@ -173,12 +176,12 @@ public class UserServiceImpl implements UserService {
     /**
      * Удаляет пользователей из друзей друг у друга.
      *
-     * @param userId идентификатор пользователя, у которого удаляем друга
+     * @param userId   идентификатор пользователя, у которого удаляем друга
      * @param friendId идентификатор друга, которого удаляем
-     *
      * @throws NotFoundException если один или оба пользователя не существует
      */
     @Override
+    @Transactional
     public void removeFriend(Long userId, Long friendId) {
         log.debug("Удаление пользователя {} из друзей пользователя {}", friendId, userId);
 
@@ -186,12 +189,41 @@ public class UserServiceImpl implements UserService {
         userValidator.validateUserExist(friendId);
 
         userDbStorage.removeFriend(userId, friendId);
+        recordFriendEvent(userId, friendId, Operation.REMOVE);
+    }
+
+    private void recordFriendEvent(Long userId, Long friendId, Operation operation) {
+        try {
+            feedService.recordEvent(userId, userId, EventType.FRIEND, operation, friendId);
+            log.debug("События дружбы ({}) записаны в ленту для пользователей {} и {}",
+                    operation, userId, friendId);
+        } catch (Exception e) {
+            log.error("Ошибка при записи события в ленту: {}", e.getMessage());
+        }
     }
 
     private void normalizeUser(User user) {
         if (DEFAULT_NAME_FROM_LOGIN && (user.getName() == null || user.getName().isBlank())) {
             user.setName(user.getLogin());
             log.debug("Для пользователя {} установлено имя из логина: {}", user.getLogin(), user.getName());
+        }
+    }
+
+    @Override
+    public void deleteUser(Long userId) {
+        log.debug("Начало удаления пользователя с ID: {}", userId);
+
+        // Проверяем существование пользователя
+        UserDTO user = getUserById(userId);
+        log.debug("Пользователь найден: '{}' (ID: {})", user.getLogin(), userId);
+
+        try {
+            // Удаляем пользователя через storage (там уже удаляются зависимости)
+            userDbStorage.deleteUser(userId);
+            log.info("Пользователь '{}' (ID: {}) успешно удален", user.getLogin(), userId);
+        } catch (Exception e) {
+            log.error("Ошибка при удалении пользователя с ID {}: {}", userId, e.getMessage(), e);
+            throw new RuntimeException("Не удалось удалить пользователя", e);
         }
     }
 }

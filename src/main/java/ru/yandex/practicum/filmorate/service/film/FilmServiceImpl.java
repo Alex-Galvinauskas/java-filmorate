@@ -13,18 +13,28 @@ package ru.yandex.practicum.filmorate.service.film;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.practicum.filmorate.dto.DirectorDTO;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Operation;
+import ru.yandex.practicum.filmorate.service.directors.DirectorService;
+import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -37,6 +47,8 @@ public class FilmServiceImpl implements FilmService {
     private final MpaService mpaService;
     private final GenreService genreService;
     private final FilmMapper filmMapper;
+    private final DirectorService directorService;
+    private final FeedService feedService;
 
     /**
      * Создает новый фильм с проверкой уникальности.
@@ -57,6 +69,7 @@ public class FilmServiceImpl implements FilmService {
 
         Film film = filmMapper.toEntity(filmDTO);
         validateAndPrepareGenres(film);
+        validateAndPrepareDirectors(filmDTO);
 
         Film createdFilm = filmDbStorage.createFilm(film);
         FilmDTO result = filmMapper.toDTO(createdFilm);
@@ -74,6 +87,7 @@ public class FilmServiceImpl implements FilmService {
      * @throws NotFoundException если фильм с указанным ID не найден
      */
     @Override
+    @Transactional
     public void addLike(Long filmId, Long userId) {
         log.debug("Добавление лайка фильму с ID: {} от пользователя {}", filmId, userId);
 
@@ -81,6 +95,7 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.addLike(filmId, userId);
+        recordLikeEvent(userId, filmId, Operation.ADD);
     }
 
     /**
@@ -98,16 +113,41 @@ public class FilmServiceImpl implements FilmService {
     }
 
     /**
-     * Возвращает список популярных фильмов с фильтрацией по жанру и году.
+     * Возвращает список популярных фильмов.
+     * Популярность определяется количеством лайков.
+     *
+     * @param count количество фильмов (если null или отрицательное, то по умолчанию)
+     *
+     * @return список популярных фильмов, сортированных по количеству лайков по убыванию
      */
     @Override
-    public List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year) {
-        log.debug("Получение списка популярных фильмов. Количество: {}, жанр: {}, год: {}",
-                count, genreId, year);
+    public List<FilmDTO> getPopularFilms(Integer count) {
+        log.debug("Получение списка популярных фильмов. Количество: {}", count);
 
-        int filmsCount = (count != null) && (count > 0) ? count : 10;
+        int filmsCount = (count == null || count <= 0) ? 10 : count;
 
-        return filmDbStorage.getPopularFilms(filmsCount, genreId, year).stream()
+        List<Film> films = filmDbStorage.getPopularFilms(filmsCount);
+
+        if (films == null || films.isEmpty()) {
+            log.debug("Список популярных фильмов пуст");
+            return Collections.emptyList();
+        }
+
+        log.debug("Найдено {} популярных фильмов", films.size());
+
+        // Маппим в DTO
+        return films.stream()
+                .map(filmMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<FilmDTO> getFilmsByDirector(Long directorId, String sortBy) {
+        log.debug("Получение фильмов режиссера {} с сортировкой: {}", directorId, sortBy);
+
+        directorService.getById(directorId);
+
+        List<Film> films = filmDbStorage.getFilmsByDirector(directorId, sortBy);
+        return films.stream()
                 .map(filmMapper::toDTO)
                 .collect(Collectors.toList());
     }
@@ -152,6 +192,7 @@ public class FilmServiceImpl implements FilmService {
 
         Film film = filmMapper.toEntity(filmDTO);
         validateAndPrepareGenres(film);
+        validateAndPrepareDirectors(filmDTO);
 
         filmValidator.validateFilmUniquenessForUpdate(filmMapper.toEntity(existingFilm), film);
 
@@ -169,6 +210,7 @@ public class FilmServiceImpl implements FilmService {
      * @throws NotFoundException если фильм с указанными ID не найдены
      */
     @Override
+    @Transactional
     public void removeLike(Long filmId, Long userId) {
         log.debug("Удаление лайка фильму с ID: {} от пользователя {}", filmId, userId);
 
@@ -176,6 +218,70 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.removeLike(filmId, userId);
+        recordLikeEvent(userId, filmId, Operation.REMOVE);
+    }
+
+    /**
+     * Удаляет фильм по идентификатору.
+     *
+     * @param filmId идентификатор фильма для удаления
+     *
+     * @throws NotFoundException если фильм с указанным ID не найден
+     */
+    @Override
+    public void deleteFilm(Long filmId) {
+        log.debug("Начало удаления фильма с ID: {}", filmId);
+
+        FilmDTO film = getFilmById(filmId);
+        log.debug("Фильм найден: '{}' (ID: {})", film.getName(), filmId);
+
+        try {
+            filmDbStorage.deleteFilm(filmId);
+            log.info("Фильм '{}' (ID: {}) успешно удален", film.getName(), filmId);
+        } catch (Exception e) {
+            log.error("Ошибка при удалении фильма с ID {}: {}", filmId, e.getMessage(), e);
+            throw new RuntimeException("Не удалось удалить фильм", e);
+        }
+    }
+
+    public List<FilmDTO> getFilmsViaSearch(String query, String searchBy) {
+        if (query == null && searchBy == null) {
+            log.debug("При поиске фильмов не были переданы параметры запроса -> в ответ список всех фильмов по популярности.");
+            return getPopularFilms(getAllFilms().size()); // надо вывести ВСЕ фильмы отсторитированные по популярности. Чтобы не изобретать велосипед
+        } else if (query == null || searchBy == null) {
+            log.debug("При поиске фильмов должно быть указано 2 параметра, но был указан только 1.");
+            throw new IllegalArgumentException("Для осуществления поиска параметры 'query' и 'by' должны иметь непустые значения.");
+        }
+
+        final List<String> AVAILABLE_SEARCH_FIELDS = List.of("title", "director");
+        List<String> searchByParams = Stream.of(searchBy.split(","))
+                .peek(searchField -> {
+                    if (!AVAILABLE_SEARCH_FIELDS.contains(searchField)) {
+                        log.debug("При поиске фильмов передано недопустимое для параметра 'by' значение: {}", searchField);
+                        throw new IllegalArgumentException("Параметр 'by' может принимать только значения 'title'/'director'");
+                    }
+                })
+                .toList();
+
+        List<Film> filmsByTitle = new ArrayList<>();
+        List<Film> filmsByDirector = new ArrayList<>();
+        for (String searchField : searchByParams) {
+            if (searchField.equalsIgnoreCase("title")) {
+                filmsByTitle = filmDbStorage.getFilmsViaSearchByName(query);
+                log.debug("При поиске фильмов по названию найдено фильмов : {}", filmsByTitle.size());
+
+            } else {
+                filmsByDirector = filmDbStorage.getFilmsViaSearchByDirector(query);
+                log.debug("При поиске фильмов по имени режиссера найдено фильмов : {}", filmsByTitle.size());
+            }
+        }
+
+        return Stream
+                .concat(filmsByTitle.stream(), filmsByDirector.stream())
+                .distinct()
+                .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
+                .map(filmMapper::toDTO)
+                .toList();
     }
 
     /**
@@ -228,5 +334,74 @@ public class FilmServiceImpl implements FilmService {
         }
 
         mpaService.getMpaById(mpa.getId());
+    }
+
+    /**
+     * Записывает событие лайка в ленту пользователя
+     */
+    private void recordLikeEvent(Long userId, Long filmId, Operation operation) {
+        try {
+            feedService.recordEvent(userId, userId, EventType.LIKE, operation, filmId);
+            log.debug("Событие лайка ({}) записано в ленту пользователя {}", operation, userId);
+        } catch (Exception e) {
+            log.error("Ошибка при записи события лайка в ленту: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * Валидирует и подготавливает список режиссеров для фильма
+     * Убирает дубликаты и проверяет существование режиссеров
+     */
+    private void validateAndPrepareDirectors(FilmDTO filmDTO) {
+        if (filmDTO.getDirectors() != null && !filmDTO.getDirectors().isEmpty()) {
+            for (DirectorDTO directorDTO : filmDTO.getDirectors()) {
+                if (directorDTO.getId() == null) {
+                    throw new IllegalArgumentException("ID режиссера не может быть null");
+                }
+                directorService.getById(directorDTO.getId());
+            }
+
+            List<DirectorDTO> uniqueDirectors = filmDTO.getDirectors().stream()
+                    .collect(Collectors.toMap(
+                            DirectorDTO::getId,
+                            d -> d,
+                            (d1, d2) -> d1
+                    ))
+                    .values()
+                    .stream()
+                    .sorted(Comparator.comparing(DirectorDTO::getId))
+                    .collect(Collectors.toList());
+
+            filmDTO.setDirectors(uniqueDirectors);
+        }
+    }
+
+    @Override
+    public List<FilmDTO> getCommonFilms(Long userId, Long friendId) {
+        log.debug("Получение общих фильмов пользователя {} и друга {}", userId, friendId);
+
+        if (userId == null) {
+            throw new IllegalArgumentException("Идентификатор пользователя не может быть null");
+        }
+        if (friendId == null) {
+            throw new IllegalArgumentException("Идентификатор друга не может быть null");
+        }
+
+        if (userId.equals(friendId)) {
+            throw new IllegalArgumentException("Нельзя искать общие фильмы с самим собой");
+        }
+
+        userService.getUserById(userId);
+        userService.getUserById(friendId);
+
+        List<Film> commonFilms = filmDbStorage.getCommonFilms(userId, friendId);
+
+        log.debug("Найдено {} общих фильмов для пользователей {} и {}",
+                commonFilms.size(), userId, friendId);
+
+        return commonFilms.stream()
+                .map(filmMapper::toDTO)
+                .collect(Collectors.toList());
     }
 }
