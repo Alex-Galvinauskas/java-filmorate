@@ -35,7 +35,7 @@ public class FeedEventDbStorage {
         String sql = """
             SELECT * FROM user_feed_events
             WHERE user_id = ?
-            ORDER BY event_id ASC  -- Изменил с timestamp DESC на event_id ASC
+            ORDER BY event_id ASC
             LIMIT ? OFFSET ?
             """;
         return jdbcTemplate.query(sql, feedEventRowMapper, userId, size, from);

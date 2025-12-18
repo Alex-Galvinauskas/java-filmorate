@@ -121,12 +121,12 @@ public class FilmServiceImpl implements FilmService {
      * @return список популярных фильмов, сортированных по количеству лайков по убыванию
      */
     @Override
-    public List<FilmDTO> getPopularFilms(Integer count) {
-        log.debug("Получение списка популярных фильмов. Количество: {}", count);
+    public List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year) {
+        log.debug("Получение списка популярных фильмов. Количество: {}, genreId: {}, year: {}", count, genreId, year);
 
         int filmsCount = (count == null || count <= 0) ? 10 : count;
 
-        List<Film> films = filmDbStorage.getPopularFilms(filmsCount);
+        List<Film> films = filmDbStorage.getPopularFilms(filmsCount, genreId, year);
 
         if (films == null || films.isEmpty()) {
             log.debug("Список популярных фильмов пуст");
@@ -135,7 +135,6 @@ public class FilmServiceImpl implements FilmService {
 
         log.debug("Найдено {} популярных фильмов", films.size());
 
-        // Маппим в DTO
         return films.stream()
                 .map(filmMapper::toDTO)
                 .collect(Collectors.toList());
@@ -247,7 +246,7 @@ public class FilmServiceImpl implements FilmService {
     public List<FilmDTO> getFilmsViaSearch(String query, String searchBy) {
         if (query == null && searchBy == null) {
             log.debug("При поиске фильмов не были переданы параметры запроса -> в ответ список всех фильмов по популярности.");
-            return getPopularFilms(getAllFilms().size()); // надо вывести ВСЕ фильмы отсторитированные по популярности. Чтобы не изобретать велосипед
+            return getPopularFilms(getAllFilms().size(), null, null);
         } else if (query == null || searchBy == null) {
             log.debug("При поиске фильмов должно быть указано 2 параметра, но был указан только 1.");
             throw new IllegalArgumentException("Для осуществления поиска параметры 'query' и 'by' должны иметь непустые значения.");

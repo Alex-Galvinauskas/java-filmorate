@@ -27,11 +27,9 @@ public class ReviewDTO {
     @JsonProperty("isPositive")
     private Boolean isPositive;
 
-    @NotNull(message = "ID пользователя не может быть null")
     @JsonProperty("userId")
     private Long userId;
 
-    @NotNull(message = "ID фильма не может быть null")
     @JsonProperty("filmId")
     private Long filmId;
 

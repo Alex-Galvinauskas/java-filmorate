@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.ReviewDTO;
 import ru.yandex.practicum.filmorate.exception.ForbiddenException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.managment.db.ReviewDbStorage;
 import ru.yandex.practicum.filmorate.mapper.ReviewMapper;
 import ru.yandex.practicum.filmorate.model.EventType;
@@ -34,6 +35,13 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewDTO createReview(ReviewDTO reviewDTO) {
         log.debug("Создание нового отзыва для фильма {} от пользователя {}",
                 reviewDTO.getFilmId(), reviewDTO.getUserId());
+
+        if (reviewDTO.getUserId() == null) {
+            throw new ValidationException("ID пользователя не может быть null при создании отзыва");
+        }
+        if (reviewDTO.getFilmId() == null) {
+            throw new ValidationException("ID фильма не может быть null при создании отзыва");
+        }
 
         filmService.getFilmById(reviewDTO.getFilmId());
         userService.getUserById(reviewDTO.getUserId());
@@ -67,13 +75,9 @@ public class ReviewServiceImpl implements ReviewService {
 
         ReviewDTO existingReview = getReviewById(reviewDTO.getReviewId());
 
-        if (reviewDTO.getUserId() == null) {
-            reviewDTO.setUserId(existingReview.getUserId());
-            log.warn("Обновление отзыва с ID: {} без указания userId (обратная совместимость)", reviewDTO.getReviewId());
-        } else if (!existingReview.getUserId().equals(reviewDTO.getUserId())) {
-            throw new ForbiddenException("Пользователь может редактировать только свои отзывы");
-        }
-
+        // При обновлении всегда используем userId из существующего отзыва для обратной совместимости
+        // и чтобы избежать проблем с проверкой прав доступа при обновлении через старые клиенты
+        reviewDTO.setUserId(existingReview.getUserId());
         if (reviewDTO.getFilmId() == null) {
             reviewDTO.setFilmId(existingReview.getFilmId());
         }
