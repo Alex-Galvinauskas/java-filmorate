@@ -39,8 +39,8 @@ public class FeedEventDbStorage {
     public List<FeedEvent> findFeedEventsByUser(Long userId, int from, int size) {
         String sql = """
     SELECT ufe.* FROM user_feed_events ufe
-    WHERE ufe.actor_id = ?  -- Показываем действия, совершенные этим пользователем
-       OR ufe.user_id = ?   -- Или действия, предназначенные этому пользователю (от друзей)
+    WHERE ufe.actor_id = ?
+       OR ufe.user_id = ?
     ORDER BY ufe.event_id ASC, ufe.timestamp ASC
     LIMIT ? OFFSET ?
     """;

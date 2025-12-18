@@ -52,13 +52,12 @@ public class ReviewServiceImpl implements ReviewService {
         Review createdReview = reviewDbStorage.createReview(review);
         ReviewDTO result = reviewMapper.toDTO(createdReview);
 
-        // ИСПРАВЛЕНО: передаем filmId вместо reviewId для entityId
         feedService.recordEvent(
                 reviewDTO.getUserId(),
                 reviewDTO.getUserId(),
                 EventType.REVIEW,
                 Operation.ADD,
-                result.getReviewId() // ← ВАЖНО: передаем filmId, а не reviewId!
+                result.getReviewId()
         );
 
 

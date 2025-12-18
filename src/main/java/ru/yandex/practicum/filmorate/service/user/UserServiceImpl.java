@@ -195,7 +195,8 @@ public class UserServiceImpl implements UserService {
     private void recordFriendEvent(Long userId, Long friendId, Operation operation) {
         try {
             // Для события FRIEND entityId - это ID друга
-            feedService.recordEvent(userId, userId, EventType.FRIEND, operation, friendId);
+            feedService.recordEvent(userId, userId, EventType.FRIEND, operation,
+                    friendId);
             log.debug("Событие дружбы ({}) записано в ленту пользователя {} для друга {}",
                     operation, userId, friendId);
         } catch (Exception e) {

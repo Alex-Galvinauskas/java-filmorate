@@ -27,11 +27,9 @@ public class RecommendationServiceImpl implements RecommendationService {
     public List<FilmDTO> getRecommendations(Long userId) {
         log.debug("Получение рекомендаций для пользователя {}", userId);
 
-        // Проверяем существование пользователя
         User user = userDbStorage.getUserById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
 
-        // Используем оптимизированный метод для получения рекомендаций
         List<Film> recommendedFilms = filmDbStorage.getRecommendationsForUser(userId, 10);
 
         log.debug("Возвращаем {} рекомендованных фильмов для пользователя {}",

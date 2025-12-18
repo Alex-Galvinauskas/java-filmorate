@@ -30,12 +30,9 @@ public class FeedServiceImpl implements FeedService {
     public List<FeedEventDto> getUserFeed(Long userId, Integer from, Integer size) {
         log.debug("Получение ленты событий для пользователя {}", userId);
 
-        // Проверяем существование пользователя
         userDbStorage.getUserById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
 
-
-        // Получаем события из БД
         List<FeedEvent> events = feedEventDbStorage.findFeedEventsByUser(userId, from, size);
 
         log.debug("=== ДЕТАЛЬНАЯ ИНФОРМАЦИЯ О ЛЕНТЕ ПОЛЬЗОВАТЕЛЯ {} ===", userId);
@@ -46,7 +43,6 @@ public class FeedServiceImpl implements FeedService {
         }
         log.debug("=== КОНЕЦ ЛЕНТЫ ===");
 
-        // Конвертируем в DTO
         return events.stream()
                 .map(feedEventMapper::toDto)
                 .collect(Collectors.toList());
@@ -58,7 +54,6 @@ public class FeedServiceImpl implements FeedService {
                             Operation operation, Long entityId) {
         Instant now = Instant.now();
 
-        // Создаем событие только для указанного пользователя
         FeedEvent event = FeedEvent.builder()
                 .userId(userId)
                 .actorId(actorId)

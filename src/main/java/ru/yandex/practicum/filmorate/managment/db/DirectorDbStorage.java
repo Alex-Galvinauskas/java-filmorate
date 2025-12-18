@@ -106,7 +106,8 @@ public class DirectorDbStorage {
         }
 
         String checkSql = "SELECT COUNT(*) FROM film_directors WHERE film_id = ? AND director_id = ?";
-        Integer existing = jdbcTemplate.queryForObject(checkSql, Integer.class, filmId, directorId);
+        Integer existing = jdbcTemplate.queryForObject(checkSql, Integer.class,
+                filmId, directorId);
 
         if (existing != null && existing == 0) {
             String sql = "INSERT INTO film_directors (film_id, director_id) VALUES (?, ?)";
