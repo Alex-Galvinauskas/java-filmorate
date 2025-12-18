@@ -150,8 +150,8 @@ public class FilmDbStorage implements FilmStorage {
         return count != null && count > 0;
     }
 
-    public void addLike(Long filmId, Long userId) {
-        String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
+    public void addLike(long filmId, long userId) {
+        String sql = "MERGE INTO likes (film_id, user_id) KEY(film_id, user_id) VALUES (?, ?)";
         jdbcTemplate.update(sql, filmId, userId);
         log.debug("Добавлен лайк фильму {} от пользователя {}", filmId, userId);
     }

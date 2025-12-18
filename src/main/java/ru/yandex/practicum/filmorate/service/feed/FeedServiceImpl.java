@@ -38,6 +38,14 @@ public class FeedServiceImpl implements FeedService {
         // Получаем события из БД
         List<FeedEvent> events = feedEventDbStorage.findFeedEventsByUser(userId, from, size);
 
+        log.debug("=== ДЕТАЛЬНАЯ ИНФОРМАЦИЯ О ЛЕНТЕ ПОЛЬЗОВАТЕЛЯ {} ===", userId);
+        for (FeedEvent event : events) {
+            log.debug("EventId: {}, Type: {}, Operation: {}, EntityId: {}, Timestamp: {}",
+                    event.getEventId(), event.getEventType(), event.getOperation(),
+                    event.getEntityId(), event.getTimestamp());
+        }
+        log.debug("=== КОНЕЦ ЛЕНТЫ ===");
+
         // Конвертируем в DTO
         return events.stream()
                 .map(feedEventMapper::toDto)

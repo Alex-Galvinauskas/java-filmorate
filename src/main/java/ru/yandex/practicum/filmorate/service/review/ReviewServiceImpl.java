@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.ReviewDTO;
+import ru.yandex.practicum.filmorate.dto.UserDTO;
 import ru.yandex.practicum.filmorate.exception.ForbiddenException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -52,13 +53,28 @@ public class ReviewServiceImpl implements ReviewService {
         Review createdReview = reviewDbStorage.createReview(review);
         ReviewDTO result = reviewMapper.toDTO(createdReview);
 
+        // ИСПРАВЛЕНО: передаем filmId вместо reviewId для entityId
         feedService.recordEvent(
                 reviewDTO.getUserId(),
                 reviewDTO.getUserId(),
                 EventType.REVIEW,
                 Operation.ADD,
-                result.getReviewId()
+                reviewDTO.getFilmId()  // ← ВАЖНО: передаем filmId, а не reviewId!
         );
+
+        List<Long> friendIds = userService.getFriends(reviewDTO.getUserId())
+                .stream()
+                .map(UserDTO::getId)
+                .toList();
+        for (Long friendId : friendIds) {
+            feedService.recordEvent(
+                    friendId,
+                    reviewDTO.getUserId(),
+                    EventType.REVIEW,
+                    Operation.ADD,
+                    reviewDTO.getFilmId()
+            );
+        }
 
         log.info("Создан отзыв с ID: {}", result.getReviewId());
         return result;
@@ -84,12 +100,13 @@ public class ReviewServiceImpl implements ReviewService {
         Review updatedReview = reviewDbStorage.updateReview(review);
         ReviewDTO result = reviewMapper.toDTO(updatedReview);
 
+        // ИСПРАВЛЕНО: передаем filmId вместо reviewId для entityId
         feedService.recordEvent(
                 reviewDTO.getUserId(),
                 reviewDTO.getUserId(),
                 EventType.REVIEW,
                 Operation.UPDATE,
-                reviewDTO.getReviewId()
+                reviewDTO.getFilmId()  // ← ВАЖНО: передаем filmId, а не reviewId!
         );
 
         log.info("Обновлен отзыв с ID: {}", result.getReviewId());
@@ -122,12 +139,13 @@ public class ReviewServiceImpl implements ReviewService {
 
         reviewDbStorage.deleteReview(id);
 
+        // ИСПРАВЛЕНО: передаем filmId вместо reviewId для entityId
         feedService.recordEvent(
                 userId,
                 userId,
                 EventType.REVIEW,
                 Operation.REMOVE,
-                id
+                existingReview.getFilmId()  // ← ВАЖНО: передаем filmId, а не reviewId!
         );
     }
 
@@ -199,5 +217,3 @@ public class ReviewServiceImpl implements ReviewService {
         log.info("Удален дизлайк отзыву {} от пользователя {}", reviewId, userId);
     }
 }
-
-
