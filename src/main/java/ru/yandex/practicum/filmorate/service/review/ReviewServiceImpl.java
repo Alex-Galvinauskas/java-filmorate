@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.ReviewDTO;
-import ru.yandex.practicum.filmorate.dto.UserDTO;
 import ru.yandex.practicum.filmorate.exception.ForbiddenException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -62,19 +61,7 @@ public class ReviewServiceImpl implements ReviewService {
                 reviewDTO.getFilmId()  // ← ВАЖНО: передаем filmId, а не reviewId!
         );
 
-        List<Long> friendIds = userService.getFriends(reviewDTO.getUserId())
-                .stream()
-                .map(UserDTO::getId)
-                .toList();
-        for (Long friendId : friendIds) {
-            feedService.recordEvent(
-                    friendId,
-                    reviewDTO.getUserId(),
-                    EventType.REVIEW,
-                    Operation.ADD,
-                    reviewDTO.getFilmId()
-            );
-        }
+
 
         log.info("Создан отзыв с ID: {}", result.getReviewId());
         return result;
