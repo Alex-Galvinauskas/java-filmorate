@@ -38,12 +38,13 @@ public class FeedEventDbStorage {
 
     public List<FeedEvent> findFeedEventsByUser(Long userId, int from, int size) {
         String sql = """
-        SELECT * FROM user_feed_events
-        WHERE user_id = ?
-        ORDER BY event_id ASC, timestamp ASC //    // Сортировка по времени и ID по возрастанию
-        LIMIT ? OFFSET ?
-        """;
-        return jdbcTemplate.query(sql, feedEventRowMapper, userId, size, from);
+    SELECT ufe.* FROM user_feed_events ufe
+    WHERE ufe.actor_id = ?  -- Показываем действия, совершенные этим пользователем
+       OR ufe.user_id = ?   -- Или действия, предназначенные этому пользователю (от друзей)
+    ORDER BY ufe.event_id ASC, ufe.timestamp ASC
+    LIMIT ? OFFSET ?
+    """;
+        return jdbcTemplate.query(sql, feedEventRowMapper, userId, userId, size, from);
     }
 
     public void save(FeedEvent event) {

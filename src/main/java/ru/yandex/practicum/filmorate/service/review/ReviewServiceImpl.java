@@ -58,7 +58,7 @@ public class ReviewServiceImpl implements ReviewService {
                 reviewDTO.getUserId(),
                 EventType.REVIEW,
                 Operation.ADD,
-                reviewDTO.getFilmId()  // ← ВАЖНО: передаем filmId, а не reviewId!
+                result.getReviewId() // ← ВАЖНО: передаем filmId, а не reviewId!
         );
 
 
@@ -93,7 +93,7 @@ public class ReviewServiceImpl implements ReviewService {
                 reviewDTO.getUserId(),
                 EventType.REVIEW,
                 Operation.UPDATE,
-                reviewDTO.getFilmId()  // ← ВАЖНО: передаем filmId, а не reviewId!
+                reviewDTO.getReviewId()  // ← ВАЖНО: передаем filmId, а не reviewId!
         );
 
         log.info("Обновлен отзыв с ID: {}", result.getReviewId());
@@ -132,7 +132,7 @@ public class ReviewServiceImpl implements ReviewService {
                 userId,
                 EventType.REVIEW,
                 Operation.REMOVE,
-                existingReview.getFilmId()  // ← ВАЖНО: передаем filmId, а не reviewId!
+                existingReview.getReviewId()  // ← ВАЖНО: передаем filmId, а не reviewId!
         );
     }
 
