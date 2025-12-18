@@ -46,7 +46,8 @@ public class ReviewDbStorage implements ReviewStorage {
         log.info("Создан новый отзыв в БД: ID: {}, фильм: {}, пользователь: {}",
                 reviewId, review.getFilmId(), review.getUserId());
         return getReviewById(reviewId)
-                .orElseThrow(() -> new NotFoundException("Отзыв с ID " + reviewId + " не найден после создания"));
+                .orElseThrow(() -> new NotFoundException("Отзыв с ID "
+                        + reviewId + " не найден после создания"));
     }
 
     @Override
@@ -79,7 +80,8 @@ public class ReviewDbStorage implements ReviewStorage {
 
         log.info("Обновлен отзыв в БД: ID: {}", review.getReviewId());
         return getReviewById(review.getReviewId())
-                .orElseThrow(() -> new NotFoundException("Отзыв с ID " + review.getReviewId() + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Отзыв с ID "
+                        + review.getReviewId() + " не найден"));
     }
 
     @Override
@@ -118,7 +120,8 @@ public class ReviewDbStorage implements ReviewStorage {
         String deleteDislikeSql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = false";
         jdbcTemplate.update(deleteDislikeSql, reviewId, userId);
         String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = true";
-        Integer existingCount = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
+        Integer existingCount = jdbcTemplate.queryForObject(checkSql, Integer.class,
+                reviewId, userId);
         if (existingCount != null && existingCount == 0) {
             String sql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, true)";
             jdbcTemplate.update(sql, reviewId, userId);
@@ -132,7 +135,8 @@ public class ReviewDbStorage implements ReviewStorage {
         String deleteLikeSql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = true";
         jdbcTemplate.update(deleteLikeSql, reviewId, userId);
         String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = false";
-        Integer existingCount = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
+        Integer existingCount = jdbcTemplate.queryForObject(checkSql, Integer.class,
+                reviewId, userId);
         if (existingCount != null && existingCount == 0) {
             String sql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, false)";
             jdbcTemplate.update(sql, reviewId, userId);

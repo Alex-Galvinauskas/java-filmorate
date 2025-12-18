@@ -31,7 +31,6 @@ public class FilmDbStorage implements FilmStorage {
 
     private final JdbcTemplate jdbcTemplate;
     private final GenreDbStorage genreDbStorage;
-    private final MpaDbStorage mpaDbStorage;
     private final DirectorDbStorage directorDbStorage;
 
     @Override
@@ -150,8 +149,8 @@ public class FilmDbStorage implements FilmStorage {
         return count != null && count > 0;
     }
 
-    public void addLike(Long filmId, Long userId) {
-        String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
+    public void addLike(long filmId, long userId) {
+        String sql = "MERGE INTO likes (film_id, user_id) KEY(film_id, user_id) VALUES (?, ?)";
         jdbcTemplate.update(sql, filmId, userId);
         log.debug("Добавлен лайк фильму {} от пользователя {}", filmId, userId);
     }
@@ -296,7 +295,7 @@ public class FilmDbStorage implements FilmStorage {
                     .duration(rs.getInt("duration"))
                     .mpa(mpa)
                     .likes(new HashSet<>())
-                    .genres(new ArrayList<>())  // Здесь будет пусто, потом дозагрузим
+                    .genres(new ArrayList<>())
                     .directors(new ArrayList<>())
                     .build();
         }
@@ -584,7 +583,8 @@ public class FilmDbStorage implements FilmStorage {
         log.debug("Выполнение SQL запроса для популярных фильмов: {}", sql);
         log.debug("Параметры: genreId={}, year={}, count={}", genreId, year, count);
 
-        List<Film> films = jdbcTemplate.query(sql.toString(), new FilmRowMapper(), params.toArray());
+        List<Film> films = jdbcTemplate.query(sql.toString(), new FilmRowMapper(),
+                params.toArray());
 
         for (Film film : films) {
             film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));

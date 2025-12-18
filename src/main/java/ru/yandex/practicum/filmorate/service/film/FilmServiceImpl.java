@@ -245,11 +245,13 @@ public class FilmServiceImpl implements FilmService {
 
     public List<FilmDTO> getFilmsViaSearch(String query, String searchBy) {
         if (query == null && searchBy == null) {
-            log.debug("При поиске фильмов не были переданы параметры запроса -> в ответ список всех фильмов по популярности.");
+            log.debug("При поиске фильмов не были переданы параметры запроса " +
+                    "-> в ответ список всех фильмов по популярности.");
             return getPopularFilms(getAllFilms().size(), null, null);
         } else if (query == null || searchBy == null) {
             log.debug("При поиске фильмов должно быть указано 2 параметра, но был указан только 1.");
-            throw new IllegalArgumentException("Для осуществления поиска параметры 'query' и 'by' должны иметь непустые значения.");
+            throw new IllegalArgumentException("Для осуществления поиска параметры 'query' и" +
+                    " 'by' должны иметь непустые значения.");
         }
 
         final List<String> AVAILABLE_SEARCH_FIELDS = List.of("title", "director");
