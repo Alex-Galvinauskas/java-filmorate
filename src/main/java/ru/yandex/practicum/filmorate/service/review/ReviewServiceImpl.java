@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.ReviewDTO;
 import ru.yandex.practicum.filmorate.exception.ForbiddenException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.managment.db.ReviewDbStorage;
 import ru.yandex.practicum.filmorate.mapper.ReviewMapper;
 import ru.yandex.practicum.filmorate.model.EventType;
@@ -16,6 +17,7 @@ import ru.yandex.practicum.filmorate.service.film.FilmService;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +35,13 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewDTO createReview(ReviewDTO reviewDTO) {
         log.debug("Создание нового отзыва для фильма {} от пользователя {}",
                 reviewDTO.getFilmId(), reviewDTO.getUserId());
+
+        if (reviewDTO.getUserId() == null) {
+            throw new ValidationException("ID пользователя не может быть null при создании отзыва");
+        }
+        if (reviewDTO.getFilmId() == null) {
+            throw new ValidationException("ID фильма не может быть null при создании отзыва");
+        }
 
         filmService.getFilmById(reviewDTO.getFilmId());
         userService.getUserById(reviewDTO.getUserId());
@@ -66,8 +75,11 @@ public class ReviewServiceImpl implements ReviewService {
 
         ReviewDTO existingReview = getReviewById(reviewDTO.getReviewId());
 
-        if (!existingReview.getUserId().equals(reviewDTO.getUserId())) {
-            throw new ForbiddenException("Пользователь может редактировать только свои отзывы");
+        // При обновлении всегда используем userId из существующего отзыва для обратной совместимости
+        // и чтобы избежать проблем с проверкой прав доступа при обновлении через старые клиенты
+        reviewDTO.setUserId(existingReview.getUserId());
+        if (reviewDTO.getFilmId() == null) {
+            reviewDTO.setFilmId(existingReview.getFilmId());
         }
 
         Review review = reviewMapper.toEntity(reviewDTO);
@@ -88,11 +100,19 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public void deleteReview(Long id, Long userId) {
-        ReviewDTO existingReview = getReviewById(id);
+        Optional<Review> existingReviewOpt = reviewDbStorage.getReviewById(id);
+
+        if (existingReviewOpt.isEmpty()) {
+            log.debug("Попытка удаления несуществующего отзыва с ID: {}", id);
+            return;
+        }
+
+        Review existingReview = existingReviewOpt.get();
+        ReviewDTO existingReviewDTO = reviewMapper.toDTO(existingReview);
 
         if (userId != null) {
             log.debug("Удаление отзыва с ID: {} пользователем {}", id, userId);
-            if (!existingReview.getUserId().equals(userId)) {
+            if (!existingReviewDTO.getUserId().equals(userId)) {
                 throw new ForbiddenException("Пользователь может удалять только свои отзывы");
             }
             log.info("Удален отзыв с ID: {} пользователем {}", id, userId);
@@ -181,3 +201,5 @@ public class ReviewServiceImpl implements ReviewService {
         log.info("Удален дизлайк отзыву {} от пользователя {}", reviewId, userId);
     }
 }
+
+

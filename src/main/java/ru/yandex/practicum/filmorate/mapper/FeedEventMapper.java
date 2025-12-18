@@ -1,45 +1,39 @@
 package ru.yandex.practicum.filmorate.mapper;
 
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.Named;
-import ru.yandex.practicum.filmorate.dto.FeedEventDTO;
+import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.dto.FeedEventDto;
 import ru.yandex.practicum.filmorate.model.FeedEvent;
-import ru.yandex.practicum.filmorate.model.EventType;
-import ru.yandex.practicum.filmorate.model.Operation;
 
-@Mapper(componentModel = "spring")
-public interface FeedEventMapper {
+@Component
+public class FeedEventMapper {
 
-    @Mapping(target = "timestamp", expression = "java(feedEvent.getTimestamp().toEpochMilli())")
-    @Mapping(target = "eventType", source = "eventType", qualifiedByName = "eventTypeToString")
-    @Mapping(target = "operation", source = "operation", qualifiedByName = "operationToString")
-    @Mapping(target = "userId", source = "userId")
-    FeedEventDTO toDTO(FeedEvent feedEvent);
+    public FeedEventDto toDto(FeedEvent event) {
+        if (event == null) {
+            return null;
+        }
 
-    @Mapping(target = "timestamp", expression = "java(java.time.Instant.ofEpochMilli(dto.getTimestamp()))")
-    @Mapping(target = "eventType", source = "eventType", qualifiedByName = "stringToEventType")
-    @Mapping(target = "operation", source = "operation", qualifiedByName = "stringToOperation")
-    @Mapping(target = "userId", source = "userId")
-    FeedEvent toEntity(FeedEventDTO dto);
-
-    @Named("eventTypeToString")
-    default String eventTypeToString(EventType eventType) {
-        return eventType != null ? eventType.name() : null;
+        return FeedEventDto.builder()
+                .timestamp(event.getTimestamp())
+                .userId(event.getUserId())
+                .eventType(event.getEventType())
+                .operation(event.getOperation())
+                .eventId(event.getEventId())
+                .entityId(event.getEntityId())
+                .build();
     }
 
-    @Named("operationToString")
-    default String operationToString(Operation operation) {
-        return operation != null ? operation.name() : null;
-    }
+    public FeedEvent toEntity(FeedEventDto dto) {
+        if (dto == null) {
+            return null;
+        }
 
-    @Named("stringToEventType")
-    default EventType stringToEventType(String eventType) {
-        return eventType != null ? EventType.valueOf(eventType) : null;
-    }
-
-    @Named("stringToOperation")
-    default Operation stringToOperation(String operation) {
-        return operation != null ? Operation.valueOf(operation) : null;
+        return FeedEvent.builder()
+                .eventId(dto.getEventId())
+                .userId(dto.getUserId())
+                .timestamp(dto.getTimestamp())
+                .eventType(dto.getEventType())
+                .operation(dto.getOperation())
+                .entityId(dto.getEntityId())
+                .build();
     }
 }

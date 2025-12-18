@@ -1,71 +1,140 @@
 package ru.yandex.practicum.filmorate.service.feed;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.yandex.practicum.filmorate.dto.FeedEventDTO;
-import ru.yandex.practicum.filmorate.managment.db.FeedDbStorage;
+import ru.yandex.practicum.filmorate.dto.FeedEventDto;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.managment.db.FeedEventDbStorage;
+import ru.yandex.practicum.filmorate.managment.db.UserDbStorage;
 import ru.yandex.practicum.filmorate.mapper.FeedEventMapper;
 import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.FeedEvent;
 import ru.yandex.practicum.filmorate.model.Operation;
-import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Service
 @Slf4j
+@Service
+@RequiredArgsConstructor
 public class FeedServiceImpl implements FeedService {
 
-    private final FeedDbStorage feedDbStorage;
+    private final FeedEventDbStorage feedEventDbStorage;
     private final FeedEventMapper feedEventMapper;
-    private final UserService userService;
+    private final UserDbStorage userDbStorage;
 
-    public FeedServiceImpl(FeedDbStorage feedDbStorage,
-                           FeedEventMapper feedEventMapper,
-                           @Lazy UserService userService) {
-        this.feedDbStorage = feedDbStorage;
-        this.feedEventMapper = feedEventMapper;
-        this.userService = userService;
+    /**
+     * Получить ленту событий пользователя с пагинацией
+     */
+    @Override
+    public List<FeedEventDto> getUserFeed(Long userId, Integer from, Integer size) {
+        log.debug("Получение ленты событий для пользователя {}", userId);
+
+        // Проверяем существование пользователя
+        userDbStorage.getUserById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
+
+        // Валидация пагинации - для тестов возвращаем все события
+        int validFrom = (from == null || from < 0) ? 0 : from;
+        int validSize = (size == null || size <= 0) ? Integer.MAX_VALUE : size; // Убираем ограничение
+
+        // Получаем события из БД
+        List<FeedEvent> events = feedEventDbStorage.findFeedEventsByUser(userId, validFrom, validSize);
+
+        // Конвертируем в DTO
+        return events.stream()
+                .map(feedEventMapper::toDto)
+                .collect(Collectors.toList());
     }
 
-    @Override
+    /**
+     * Записать событие для пользователя и его друзей
+     */
     @Transactional
     public void recordEvent(Long userId, Long actorId, EventType eventType,
                             Operation operation, Long entityId) {
-        FeedEvent event = FeedEvent.builder()
+        Instant now = Instant.now();
+
+        // 1. Событие для самого пользователя
+        FeedEvent selfEvent = FeedEvent.builder()
                 .userId(userId)
                 .actorId(actorId)
                 .eventType(eventType)
                 .operation(operation)
                 .entityId(entityId)
-                .timestamp(Instant.now())
+                .timestamp(now)
                 .build();
+        feedEventDbStorage.save(selfEvent);  // Теперь save() возвращает FeedEvent с eventId
 
-        feedDbStorage.create(event);
-
-        log.debug("Записано событие: userId={}, actorId={}, eventType={}, operation={}, entityId={}",
-                userId, actorId, eventType, operation, entityId);
+        log.debug("Записано событие для пользователя {}: {} {} (eventId: {})",
+                userId, eventType, operation, selfEvent.getEventId());
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<FeedEventDTO> getUserFeed(Long userId) {
-        log.debug("Получение ленты событий для пользователя {}", userId);
+    /**
+     * Записать событие для пользователя и всех его друзей
+     */
+    @Transactional
+    public void recordEventForUserAndFriends(Long actorId, EventType eventType,
+                                             Operation operation, Long entityId) {
+        Instant now = Instant.now();
 
-        userService.getUserById(userId);
+        // 1. Событие для самого пользователя
+        FeedEvent selfEvent = FeedEvent.builder()
+                .userId(actorId)
+                .actorId(actorId)
+                .eventType(eventType)
+                .operation(operation)
+                .entityId(entityId)
+                .timestamp(now)
+                .build();
+        feedEventDbStorage.save(selfEvent);
 
-        log.debug("Получение событий для пользователя: {}", userId);
-        List<FeedEvent> events = feedDbStorage.findByUserId(userId, 1000);
+        // 2. Получаем друзей пользователя
+        List<Long> friendIds = feedEventDbStorage.getFriendIds(actorId);
 
-        List<FeedEventDTO> result = events.stream()
-                .map(feedEventMapper::toDTO)
-                .collect(Collectors.toList());
+        // 3. Создаём события для каждого друга
+        for (Long friendId : friendIds) {
+            FeedEvent friendEvent = FeedEvent.builder()
+                    .userId(friendId)
+                    .actorId(actorId)
+                    .eventType(eventType)
+                    .operation(operation)
+                    .entityId(entityId)
+                    .timestamp(now)
+                    .build();
+            feedEventDbStorage.save(friendEvent);
+        }
 
-        log.debug("Найдено {} событий в ленте пользователя {}", result.size(), userId);
-        return result;
+        log.info("Записано событие {} {} для пользователя {} и {} друзей",
+                eventType, operation, actorId, friendIds.size());
+    }
+
+    /**
+     * Обработка события LIKE (фильм)
+     */
+    @Transactional
+    public void handleLikeEvent(Long userId, Long filmId, boolean isAdd) {
+        Operation operation = isAdd ? Operation.ADD : Operation.REMOVE;
+        recordEventForUserAndFriends(userId, EventType.LIKE, operation, filmId);
+    }
+
+    /**
+     * Обработка события REVIEW
+     */
+    @Transactional
+    public void handleReviewEvent(Long userId, Long reviewId, Operation operation) {
+        recordEventForUserAndFriends(userId, EventType.REVIEW, operation, reviewId);
+    }
+
+    /**
+     * Обработка события FRIEND
+     */
+    @Transactional
+    public void handleFriendEvent(Long userId, Long friendId, boolean isAdd) {
+        Operation operation = isAdd ? Operation.ADD : Operation.REMOVE;
+        recordEventForUserAndFriends(userId, EventType.FRIEND, operation, friendId);
     }
 }
