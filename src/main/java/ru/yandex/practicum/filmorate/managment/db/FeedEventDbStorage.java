@@ -40,22 +40,17 @@ public class FeedEventDbStorage {
         String sql = """
         SELECT * FROM user_feed_events
         WHERE user_id = ?
-        ORDER BY event_id ASC //  ORDER BY timestamp ASC, event_id ASC  // Сортировка по времени и ID по возрастанию
+        ORDER BY event_id ASC, timestamp ASC //    // Сортировка по времени и ID по возрастанию
         LIMIT ? OFFSET ?
         """;
         return jdbcTemplate.query(sql, feedEventRowMapper, userId, size, from);
     }
 
-    public Integer countFeedEventsByUser(Long userId) {
-        String sql = "SELECT COUNT(*) FROM user_feed_events WHERE user_id = ?";
-        return jdbcTemplate.queryForObject(sql, Integer.class, userId);
+    public void save(FeedEvent event) {
+        create(event);
     }
 
-    public FeedEvent save(FeedEvent event) {
-        return create(event);
-    }
-
-    public FeedEvent create(FeedEvent feedEvent) {
+    public void create(FeedEvent feedEvent) {
         String sql = "INSERT INTO user_feed_events (user_id, actor_id, event_type, operation, entity_id, timestamp) " +
                 "VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -81,37 +76,5 @@ public class FeedEventDbStorage {
         log.debug("Создано событие в ленте: {} ({}) для пользователя {}, entityId={}, time={}",
                 feedEvent.getEventType(), feedEvent.getOperation(),
                 feedEvent.getUserId(), feedEvent.getEntityId(), timestamp);
-        return feedEvent;
-    }
-
-    public List<FeedEvent> findByUserId(Long userId, Integer limit) {
-        String sql = "SELECT * FROM user_feed_events WHERE user_id = ? " +
-                "ORDER BY timestamp DESC LIMIT ?";
-
-        log.debug("Поиск событий для пользователя {} с лимитом {}", userId, limit);
-
-        List<FeedEvent> events = jdbcTemplate.query(sql, feedEventRowMapper, userId, limit);
-
-        log.debug("Найдено {} событий для пользователя {}:", events.size(), userId);
-        for (int i = 0; i < events.size(); i++) {
-            FeedEvent event = events.get(i);
-            log.debug("  [{}/{}] eventType={}, operation={}, entityId={}, timestamp={}, eventId={}",
-                    i + 1, events.size(),
-                    event.getEventType(), event.getOperation(),
-                    event.getEntityId(), event.getTimestamp(), event.getEventId());
-        }
-
-        return events;
-    }
-
-    public List<Long> getFriendIds(Long userId) {
-        String sql = """
-            SELECT friend_id FROM friendships
-            WHERE user_id = ? AND status = 'CONFIRMED'
-            UNION
-            SELECT user_id FROM friendships
-            WHERE friend_id = ? AND status = 'CONFIRMED'
-            """;
-        return jdbcTemplate.queryForList(sql, Long.class, userId, userId);
     }
 }

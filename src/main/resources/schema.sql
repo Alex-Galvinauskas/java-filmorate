@@ -39,17 +39,14 @@ CREATE TABLE IF NOT EXISTS films (
     description VARCHAR(200),
     release_date DATE NOT NULL,
     duration INTEGER NOT NULL CHECK (duration > 0),
-    mpa_rating_id INTEGER NOT NULL,
-    FOREIGN KEY (mpa_rating_id) REFERENCES mpa_ratings(id) ON DELETE RESTRICT
+    mpa_rating_id INTEGER NOT NULL
 );
 
 -- Связь многие-ко-многим: Фильмы - Жанры
 CREATE TABLE IF NOT EXISTS film_genres (
     film_id BIGINT NOT NULL,
     genre_id INTEGER NOT NULL,
-    PRIMARY KEY (film_id, genre_id),
-    FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE,
-    FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
+    PRIMARY KEY (film_id, genre_id)
 );
 
 -- Основная таблица пользователей
@@ -67,8 +64,6 @@ CREATE TABLE IF NOT EXISTS friendships (
     friend_id BIGINT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'UNCONFIRMED',
     PRIMARY KEY (user_id, friend_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE,
     CHECK (user_id != friend_id)
 );
 
@@ -77,9 +72,7 @@ CREATE TABLE IF NOT EXISTS likes (
     film_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (film_id, user_id),
-    FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    PRIMARY KEY (film_id, user_id)
 );
 
 -- Таблица режиссеров
@@ -93,9 +86,7 @@ CREATE TABLE IF NOT EXISTS directors (
 CREATE TABLE IF NOT EXISTS film_directors (
     film_id BIGINT NOT NULL,
     director_id BIGINT NOT NULL,
-    PRIMARY KEY (film_id, director_id),
-    FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE,
-    FOREIGN KEY (director_id) REFERENCES directors(id) ON DELETE CASCADE
+    PRIMARY KEY (film_id, director_id)
 );
 
 -- Таблица отзывов
@@ -105,9 +96,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     is_positive BOOLEAN NOT NULL,
     user_id BIGINT NOT NULL,
     film_id BIGINT NOT NULL,
-    useful INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE
+    useful INTEGER NOT NULL DEFAULT 0
 );
 
 -- Таблица лайков/дизлайков отзывов
@@ -115,9 +104,7 @@ CREATE TABLE IF NOT EXISTS review_likes (
     review_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
     is_like BOOLEAN NOT NULL,
-    PRIMARY KEY (review_id, user_id),
-    FOREIGN KEY (review_id) REFERENCES reviews(review_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    PRIMARY KEY (review_id, user_id)
 );
 
 -- Таблица ленты событий
@@ -128,9 +115,7 @@ CREATE TABLE IF NOT EXISTS user_feed_events (
     event_type VARCHAR(20) NOT NULL CHECK (event_type IN ('LIKE', 'REVIEW', 'FRIEND')),
     operation VARCHAR(20) NOT NULL CHECK (operation IN ('ADD', 'REMOVE', 'UPDATE')),
     entity_id BIGINT NOT NULL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE CASCADE
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Индексы для улучшения производительности
