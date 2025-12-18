@@ -194,7 +194,6 @@ public class UserServiceImpl implements UserService {
 
     private void recordFriendEvent(Long userId, Long friendId, Operation operation) {
         try {
-            // Для события FRIEND entityId - это ID друга
             feedService.recordEvent(userId, userId, EventType.FRIEND, operation,
                     friendId);
             log.debug("Событие дружбы ({}) записано в ленту пользователя {} для друга {}",
@@ -215,12 +214,10 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long userId) {
         log.debug("Начало удаления пользователя с ID: {}", userId);
 
-        // Проверяем существование пользователя
         UserDTO user = getUserById(userId);
         log.debug("Пользователь найден: '{}' (ID: {})", user.getLogin(), userId);
 
         try {
-            // Удаляем пользователя через storage (там уже удаляются зависимости)
             userDbStorage.deleteUser(userId);
             log.info("Пользователь '{}' (ID: {}) успешно удален", user.getLogin(), userId);
         } catch (Exception e) {

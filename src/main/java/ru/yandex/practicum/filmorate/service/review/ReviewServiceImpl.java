@@ -86,13 +86,13 @@ public class ReviewServiceImpl implements ReviewService {
         Review updatedReview = reviewDbStorage.updateReview(review);
         ReviewDTO result = reviewMapper.toDTO(updatedReview);
 
-        // ИСПРАВЛЕНО: передаем filmId вместо reviewId для entityId
+
         feedService.recordEvent(
                 reviewDTO.getUserId(),
                 reviewDTO.getUserId(),
                 EventType.REVIEW,
                 Operation.UPDATE,
-                reviewDTO.getReviewId()  // ← ВАЖНО: передаем filmId, а не reviewId!
+                reviewDTO.getReviewId()
         );
 
         log.info("Обновлен отзыв с ID: {}", result.getReviewId());
@@ -125,13 +125,13 @@ public class ReviewServiceImpl implements ReviewService {
 
         reviewDbStorage.deleteReview(id);
 
-        // ИСПРАВЛЕНО: передаем filmId вместо reviewId для entityId
+
         feedService.recordEvent(
                 userId,
                 userId,
                 EventType.REVIEW,
                 Operation.REMOVE,
-                existingReview.getReviewId()  // ← ВАЖНО: передаем filmId, а не reviewId!
+                existingReview.getReviewId()
         );
     }
 
