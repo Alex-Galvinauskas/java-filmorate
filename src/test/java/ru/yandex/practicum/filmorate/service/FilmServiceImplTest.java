@@ -515,7 +515,7 @@ class FilmServiceImplTest {
             when(filmMapper.toDTO(film1)).thenReturn(filmDTO1);
             when(filmMapper.toDTO(film2)).thenReturn(filmDTO2);
 
-            List<FilmDTO> result = filmService.getPopularFilms(2);
+            List<FilmDTO> result = filmService.getPopularFilms(2, null, null);
 
             assertEquals(2, result.size());
             assertEquals(2L, result.get(0).getId());
@@ -549,7 +549,7 @@ class FilmServiceImplTest {
                 when(filmMapper.toDTO(films.get(i))).thenReturn(filmDTOs.get(i));
             }
 
-            List<FilmDTO> result = filmService.getPopularFilms(null);
+            List<FilmDTO> result = filmService.getPopularFilms(null, null, null);
 
             assertEquals(10, result.size());
             verify(filmDbStorage, times(1)).getPopularFilms(10);
@@ -571,7 +571,7 @@ class FilmServiceImplTest {
                 when(filmMapper.toDTO(films.get(i))).thenReturn(filmDTOs.get(i));
             }
 
-            List<FilmDTO> result = filmService.getPopularFilms(-5);
+            List<FilmDTO> result = filmService.getPopularFilms(-5, null, null);
 
             assertEquals(10, result.size());
             verify(filmDbStorage, times(1)).getPopularFilms(10);
@@ -582,7 +582,7 @@ class FilmServiceImplTest {
         void getPopularFilms_EmptyList_ReturnsEmptyListTest() {
             when(filmDbStorage.getPopularFilms(10)).thenReturn(List.of());
 
-            List<FilmDTO> result = filmService.getPopularFilms(10);
+            List<FilmDTO> result = filmService.getPopularFilms(10, null, null);
 
             assertTrue(result.isEmpty());
             verify(filmDbStorage, times(1)).getPopularFilms(10);
@@ -606,7 +606,7 @@ class FilmServiceImplTest {
             when(filmMapper.toDTO(film1)).thenReturn(filmDTO1);
             when(filmMapper.toDTO(film2)).thenReturn(filmDTO2);
 
-            List<FilmDTO> result = filmService.getPopularFilms(10);
+            List<FilmDTO> result = filmService.getPopularFilms(10, null, null);
 
             assertEquals(2, result.size());
             verify(filmDbStorage, times(1)).getPopularFilms(10);

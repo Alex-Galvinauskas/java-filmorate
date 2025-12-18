@@ -8,8 +8,8 @@ import java.util.List;
 
 public interface FeedService {
 
-    void recordEvent(Long userId, Long actorId, EventType eventType,
-                     Operation operation, Long entityId);
+    public void recordEvent(Long userId, Long actorId, EventType eventType,
+                            Operation operation, Long entityId);
 
     List<FeedEventDto> getUserFeed(Long userId, Integer from, Integer size);
 }

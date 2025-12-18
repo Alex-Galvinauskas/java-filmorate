@@ -75,8 +75,6 @@ public class ReviewServiceImpl implements ReviewService {
 
         ReviewDTO existingReview = getReviewById(reviewDTO.getReviewId());
 
-        // При обновлении всегда используем userId из существующего отзыва для обратной совместимости
-        // и чтобы избежать проблем с проверкой прав доступа при обновлении через старые клиенты
         reviewDTO.setUserId(existingReview.getUserId());
         if (reviewDTO.getFilmId() == null) {
             reviewDTO.setFilmId(existingReview.getFilmId());
@@ -119,7 +117,7 @@ public class ReviewServiceImpl implements ReviewService {
         } else {
             log.warn("Удаление отзыва с ID: {} без указания userId (обратная совместимость)", id);
             log.info("Удален отзыв с ID: {}", id);
-            userId = existingReview.getUserId();  // Используем ID из отзыва
+            userId = existingReview.getUserId();
         }
 
         reviewDbStorage.deleteReview(id);

@@ -340,6 +340,7 @@ public class FilmServiceImpl implements FilmService {
      */
     private void recordLikeEvent(Long userId, Long filmId, Operation operation) {
         try {
+            // Используем правильный entityId (ID фильма)
             feedService.recordEvent(userId, userId, EventType.LIKE, operation, filmId);
             log.debug("Событие лайка ({}) записано в ленту пользователя {}", operation, userId);
         } catch (Exception e) {
