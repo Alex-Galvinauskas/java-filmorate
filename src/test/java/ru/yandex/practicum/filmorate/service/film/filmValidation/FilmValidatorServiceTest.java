@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.service.film.validation;
+package ru.yandex.practicum.filmorate.service.film.filmValidation;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,14 +20,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Тесты сервиса FilmValidatorImpl")
-class FilmValidatorImplTest {
+@DisplayName("Тесты сервиса FilmValidatorService")
+class FilmValidatorServiceTest {
 
     @Mock
     private FilmStorage filmStorage;
 
     @InjectMocks
-    private FilmValidatorImpl filmValidator;
+    private FilmValidatorService filmValidator;
 
     @Nested
     @DisplayName("Тесты построения сообщений об ошибках")

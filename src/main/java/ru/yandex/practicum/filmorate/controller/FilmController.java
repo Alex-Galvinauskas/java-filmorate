@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.service.film.FilmService;
+import ru.yandex.practicum.filmorate.service.film.FilmSearchService;
 
 import java.util.List;
 
@@ -11,8 +12,11 @@ import java.util.List;
 @RequestMapping("/films")
 public class FilmController extends AbstractController<FilmDTO, FilmService> {
 
-    public FilmController(FilmService filmService) {
+    private final FilmSearchService filmSearchService;
+
+    public FilmController(FilmService filmService, FilmSearchService filmSearchService) {
         super(filmService, "фильм");
+        this.filmSearchService = filmSearchService;
     }
 
     @Override
@@ -95,7 +99,7 @@ public class FilmController extends AbstractController<FilmDTO, FilmService> {
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String by
     ) {
-        List<FilmDTO> films = service.getFilmsViaSearch(query, by);
+        List<FilmDTO> films = filmSearchService.searchFilms(query, by);
         return ResponseEntity.ok(films);
     }
 }

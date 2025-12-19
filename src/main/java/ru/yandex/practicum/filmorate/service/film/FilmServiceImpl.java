@@ -3,10 +3,6 @@
  * Содержит бизнес-логику приложения для операций с фильмами.
  * Обеспечивает проверку уникальности фильмов и обработку исключительных ситуаций.
  * Делегирует операции хранения данных объекту FilmStorage.
- *
- * @see ru.yandex.practicum.filmorate.service.film.FilmService
- * @see ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage
- * @see ru.yandex.practicum.filmorate.model.Film
  */
 package ru.yandex.practicum.filmorate.service.film;
 
@@ -14,27 +10,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.yandex.practicum.filmorate.dto.DirectorDTO;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
-import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Operation;
 import ru.yandex.practicum.filmorate.service.directors.DirectorService;
-import ru.yandex.practicum.filmorate.service.feed.FeedService;
-import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
+import ru.yandex.practicum.filmorate.service.film.filmValidation.FilmValidator;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -42,13 +30,12 @@ import java.util.stream.Stream;
 public class FilmServiceImpl implements FilmService {
 
     private final FilmDbStorage filmDbStorage;
-    private final FilmValidatorRules filmValidator;
+    private final FilmValidator filmValidator;
     private final UserService userService;
-    private final MpaService mpaService;
-    private final GenreService genreService;
     private final FilmMapper filmMapper;
     private final DirectorService directorService;
-    private final FeedService feedService;
+    private final LikeEventService likeEventService;
+    private final PopularFilmService popularFilmsService;
 
     /**
      * Создает новый фильм с проверкой уникальности.
@@ -65,11 +52,11 @@ public class FilmServiceImpl implements FilmService {
     public FilmDTO createFilm(FilmDTO filmDTO) {
         log.debug("Создание нового фильма с releaseDate: {}", filmDTO.getReleaseDate());
 
-        validateMpa(filmDTO.getMpa());
+        filmValidator.validateMpa(filmDTO.getMpa());
 
         Film film = filmMapper.toEntity(filmDTO);
-        validateAndPrepareGenres(film);
-        validateAndPrepareDirectors(filmDTO);
+        filmValidator.validateAndPrepareGenres(film);
+        filmValidator.validateAndPrepareDirectors(filmDTO);
 
         Film createdFilm = filmDbStorage.createFilm(film);
         FilmDTO result = filmMapper.toDTO(createdFilm);
@@ -95,7 +82,7 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.addLike(filmId, userId);
-        recordLikeEvent(userId, filmId, Operation.ADD);
+        likeEventService.recordLikeEvent(userId, filmId, Operation.ADD);
     }
 
     /**
@@ -122,22 +109,8 @@ public class FilmServiceImpl implements FilmService {
      */
     @Override
     public List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year) {
-        log.debug("Получение списка популярных фильмов. Количество: {}, genreId: {}, year: {}", count, genreId, year);
-
-        int filmsCount = (count == null || count <= 0) ? 10 : count;
-
-        List<Film> films = filmDbStorage.getPopularFilms(filmsCount, genreId, year);
-
-        if (films == null || films.isEmpty()) {
-            log.debug("Список популярных фильмов пуст");
-            return Collections.emptyList();
-        }
-
-        log.debug("Найдено {} популярных фильмов", films.size());
-
-        return films.stream()
-                .map(filmMapper::toDTO)
-                .collect(Collectors.toList());
+        log.debug("Делегирование запроса популярных фильмов в специализированный сервис");
+        return popularFilmsService.getPopularFilms(count, genreId, year);
     }
 
     public List<FilmDTO> getFilmsByDirector(Long directorId, String sortBy) {
@@ -187,12 +160,11 @@ public class FilmServiceImpl implements FilmService {
 
         FilmDTO existingFilm = getFilmById(filmDTO.getId());
 
-        validateMpa(filmDTO.getMpa());
+        filmValidator.validateMpa(filmDTO.getMpa());
 
         Film film = filmMapper.toEntity(filmDTO);
-        validateAndPrepareGenres(film);
-        validateAndPrepareDirectors(filmDTO);
-
+        filmValidator.validateAndPrepareGenres(film);
+        filmValidator.validateAndPrepareDirectors(filmDTO);
         filmValidator.validateFilmUniquenessForUpdate(filmMapper.toEntity(existingFilm), film);
 
         Film updatedFilm = filmDbStorage.updateFilm(film);
@@ -217,7 +189,7 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.removeLike(filmId, userId);
-        recordLikeEvent(userId, filmId, Operation.REMOVE);
+        likeEventService.recordLikeEvent(userId, filmId, Operation.REMOVE);
     }
 
     /**
@@ -243,144 +215,11 @@ public class FilmServiceImpl implements FilmService {
         }
     }
 
-    public List<FilmDTO> getFilmsViaSearch(String query, String searchBy) {
-        if (query == null && searchBy == null) {
-            log.debug("При поиске фильмов не были переданы параметры запроса " +
-                    "-> в ответ список всех фильмов по популярности.");
-            return getPopularFilms(getAllFilms().size(), null, null);
-        } else if (query == null || searchBy == null) {
-            log.debug("При поиске фильмов должно быть указано 2 параметра, но был указан только 1.");
-            throw new IllegalArgumentException("Для осуществления поиска параметры 'query' и" +
-                    " 'by' должны иметь непустые значения.");
-        }
-
-        final List<String> AVAILABLE_SEARCH_FIELDS = List.of("title", "director");
-        List<String> searchByParams = Stream.of(searchBy.split(","))
-                .peek(searchField -> {
-                    if (!AVAILABLE_SEARCH_FIELDS.contains(searchField)) {
-                        log.debug("При поиске фильмов передано недопустимое для параметра 'by' значение: {}", searchField);
-                        throw new IllegalArgumentException("Параметр 'by' может принимать только значения 'title'/'director'");
-                    }
-                })
-                .toList();
-
-        List<Film> filmsByTitle = new ArrayList<>();
-        List<Film> filmsByDirector = new ArrayList<>();
-        for (String searchField : searchByParams) {
-            if (searchField.equalsIgnoreCase("title")) {
-                filmsByTitle = filmDbStorage.getFilmsViaSearchByName(query);
-                log.debug("При поиске фильмов по названию найдено фильмов : {}", filmsByTitle.size());
-
-            } else {
-                filmsByDirector = filmDbStorage.getFilmsViaSearchByDirector(query);
-                log.debug("При поиске фильмов по имени режиссера найдено фильмов : {}", filmsByTitle.size());
-            }
-        }
-
-        return Stream
-                .concat(filmsByTitle.stream(), filmsByDirector.stream())
-                .distinct()
-                .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
-                .map(filmMapper::toDTO)
-                .toList();
-    }
-
-    /**
-     * Валидирует и подготавливает список жанров для фильма
-     * Убирает дубликаты и проверяет существование жанров
-     */
-    private void validateAndPrepareGenres(Film film) {
-        if (film == null) {
-            log.debug("Film is null, skipping genre validation");
-            return;
-        }
-
-        log.debug("Начальная валидация жанров для фильма: {}", film.getGenres());
-
-        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
-            List<Genre> distinctGenres = film.getGenres().stream()
-                    .filter(genre -> genre.getId() != null)
-                    .collect(Collectors.toMap(
-                            Genre::getId,
-                            genre -> genre,
-                            (existing, replacement) -> existing
-                    ))
-                    .values()
-                    .stream()
-                    .sorted(Comparator.comparing(Genre::getId))
-                    .collect(Collectors.toList());
-
-            log.debug("Жанры после удаления дубликатов и сортировки: {}", distinctGenres);
-
-            for (Genre genre : distinctGenres) {
-                genreService.getGenreById(genre.getId());
-            }
-
-            film.setGenres(distinctGenres);
-            log.debug("Финальный список жанров для фильма: {}", film.getGenres());
-        } else {
-            log.debug("Жанры не указаны или пусты");
-        }
-    }
-
-    /**
-     * Валидирует MPA рейтинг
-     */
-    private void validateMpa(ru.yandex.practicum.filmorate.dto.MpaDTO mpa) {
-        if (mpa == null) {
-            throw new IllegalArgumentException("MPA рейтинг не может быть null");
-        }
-        if (mpa.getId() == null) {
-            throw new IllegalArgumentException("ID MPA рейтинга не может быть null");
-        }
-
-        mpaService.getMpaById(mpa.getId());
-    }
-
-    /**
-     * Записывает событие лайка в ленту пользователя
-     */
-    private void recordLikeEvent(Long userId, Long filmId, Operation operation) {
-        try {
-            feedService.recordEvent(userId, userId, EventType.LIKE, operation, filmId);
-            log.debug("Событие лайка ({}) записано в ленту пользователя {}", operation, userId);
-        } catch (Exception e) {
-            log.error("Ошибка при записи события лайка в ленту: {}", e.getMessage());
-            throw e;
-        }
-    }
-
-    /**
-     * Валидирует и подготавливает список режиссеров для фильма
-     * Убирает дубликаты и проверяет существование режиссеров
-     */
-    private void validateAndPrepareDirectors(FilmDTO filmDTO) {
-        if (filmDTO.getDirectors() != null && !filmDTO.getDirectors().isEmpty()) {
-            for (DirectorDTO directorDTO : filmDTO.getDirectors()) {
-                if (directorDTO.getId() == null) {
-                    throw new IllegalArgumentException("ID режиссера не может быть null");
-                }
-                directorService.getById(directorDTO.getId());
-            }
-
-            List<DirectorDTO> uniqueDirectors = filmDTO.getDirectors().stream()
-                    .collect(Collectors.toMap(
-                            DirectorDTO::getId,
-                            d -> d,
-                            (d1, d2) -> d1
-                    ))
-                    .values()
-                    .stream()
-                    .sorted(Comparator.comparing(DirectorDTO::getId))
-                    .collect(Collectors.toList());
-
-            filmDTO.setDirectors(uniqueDirectors);
-        }
-    }
-
     @Override
     public List<FilmDTO> getCommonFilms(Long userId, Long friendId) {
         log.debug("Получение общих фильмов пользователя {} и друга {}", userId, friendId);
+
+        filmValidator.validateCommonFilmsParams(userId, friendId);
 
         if (userId == null) {
             throw new IllegalArgumentException("Идентификатор пользователя не может быть null");

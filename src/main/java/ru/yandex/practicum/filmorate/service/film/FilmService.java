@@ -17,8 +17,6 @@ public interface FilmService {
 
     List<FilmDTO> getFilmsByDirector(Long directorId, String sortBy);
 
-    List<FilmDTO> getFilmsViaSearch(String query, String searchBy);
-
     void addLike(Long filmId, Long userId);
 
     void removeLike(Long filmId, Long userId);

@@ -9,7 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage;
-import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorImpl;
+import ru.yandex.practicum.filmorate.service.film.filmValidation.FilmValidatorService;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ class FilmValidationTest {
     private FilmStorage filmStorage;
 
     @InjectMocks
-    private FilmValidatorImpl filmValidator;
+    private FilmValidatorService filmValidator;
 
     @Nested
     @DisplayName("Тесты построения сообщений об ошибках")
