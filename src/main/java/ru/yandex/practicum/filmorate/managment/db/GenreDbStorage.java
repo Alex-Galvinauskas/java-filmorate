@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.model.Genre;
 
 import java.sql.ResultSet;
@@ -15,6 +16,7 @@ import java.util.Optional;
 @Repository
 @Slf4j
 @RequiredArgsConstructor
+@Transactional
 public class GenreDbStorage {
 
     private final JdbcTemplate jdbcTemplate;
@@ -48,5 +50,11 @@ public class GenreDbStorage {
                     .name(rs.getString("name"))
                     .build();
         }
+    }
+
+    public int deleteGenresByFilmId(Long filmId) {
+        String sql = "DELETE FROM film_genres WHERE film_id = ?";
+        jdbcTemplate.update(sql, filmId);
+        return 0;
     }
 }

@@ -13,9 +13,15 @@ public interface FilmService {
 
     List<FilmDTO> getAllFilms();
 
-    List<FilmDTO> getPopularFilms(Integer count);
+    List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year);
+
+    List<FilmDTO> getFilmsByDirector(Long directorId, String sortBy);
 
     void addLike(Long filmId, Long userId);
 
     void removeLike(Long filmId, Long userId);
+
+    void deleteFilm(Long filmId);
+
+    List<FilmDTO> getCommonFilms(Long userId, Long friendId);
 }

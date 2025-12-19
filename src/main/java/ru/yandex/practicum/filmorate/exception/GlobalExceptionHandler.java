@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -44,6 +45,26 @@ public class GlobalExceptionHandler {
     public Map<String, String> handleDuplicateException(final DuplicateException e) {
         log.error("Конфликт данных: {}", e.getMessage());
         return Map.of("error", "Конфликт данных", "message", e.getMessage());
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Map<String, String> handleForbiddenException(final ForbiddenException e) {
+        log.error("Доступ запрещен: {}", e.getMessage());
+        return Map.of("error", "Доступ запрещен", "message", e.getMessage());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleDataIntegrityViolationException(final DataIntegrityViolationException e) {
+        log.error("Нарушение целостности данных (объект не найден): {}", e.getMessage());
+        String message = e.getMessage();
+        if (message != null && (message.contains("user_id") || message.contains("users"))) {
+            return Map.of("error", "Объект не найден", "message", "Пользователь не найден");
+        } else if (message != null && (message.contains("film_id") || message.contains("films"))) {
+            return Map.of("error", "Объект не найден", "message", "Фильм не найден");
+        }
+        return Map.of("error", "Объект не найден", "message", "Связанный объект не найден");
     }
 
     @ExceptionHandler(Exception.class)

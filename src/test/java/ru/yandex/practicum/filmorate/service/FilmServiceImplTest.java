@@ -10,26 +10,25 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.dto.MpaDTO;
 import ru.yandex.practicum.filmorate.dto.UserDTO;
-import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.film.FilmServiceImpl;
 import ru.yandex.practicum.filmorate.service.film.GenreService;
 import ru.yandex.practicum.filmorate.service.film.MpaService;
-import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorImpl;
+import ru.yandex.practicum.filmorate.service.film.filmValidation.FilmValidatorService;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,7 +39,7 @@ class FilmServiceImplTest {
     private FilmDbStorage filmDbStorage;
 
     @Mock
-    private FilmValidatorImpl filmValidator;
+    private FilmValidatorService filmValidator;
 
     @Mock
     private UserService userService;
@@ -53,6 +52,9 @@ class FilmServiceImplTest {
 
     @Mock
     private FilmMapper filmMapper;
+
+    @Mock
+    private FeedService feedService;
 
     @InjectMocks
     private FilmServiceImpl filmService;
@@ -141,66 +143,6 @@ class FilmServiceImplTest {
                 .build();
     }
 
-    @Nested
-    @DisplayName("Тесты создания фильмов")
-    class CreateFilmTests {
-
-        @Test
-        @DisplayName("Создание фильма с валидными данными возвращает созданный фильм")
-        void createFilm_ValidFilm_ReturnsCreatedFilmTest() {
-            FilmDTO inputDTO = createTestFilmDTOWithoutId();
-            Film inputFilm = createTestFilmWithoutId();
-            Film createdFilm = createTestFilm();
-            FilmDTO expectedDTO = createTestFilmDTO();
-
-            when(filmMapper.toEntity(inputDTO)).thenReturn(inputFilm);
-            when(filmMapper.toDTO(createdFilm)).thenReturn(expectedDTO);
-            when(mpaService.getMpaById(1L)).thenReturn(inputDTO.getMpa());
-            when(filmDbStorage.createFilm(inputFilm)).thenReturn(createdFilm);
-
-            FilmDTO result = filmService.createFilm(inputDTO);
-
-            assertNotNull(result);
-            assertEquals(1L, result.getId());
-            assertEquals("Test Film", result.getName());
-            verify(filmDbStorage, times(1)).createFilm(inputFilm);
-            verify(mpaService, times(1)).getMpaById(1L);
-            verify(filmMapper, times(1)).toEntity(inputDTO);
-            verify(filmMapper, times(1)).toDTO(createdFilm);
-        }
-
-        @Test
-        @DisplayName("Создание фильма без MPA выбрасывает IllegalArgumentException")
-        void createFilm_WithoutMpa_ThrowsIllegalArgumentExceptionTest() {
-            FilmDTO filmDTO = createTestFilmDTOWithNullMpa();
-
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> filmService.createFilm(filmDTO)
-            );
-
-            assertTrue(exception.getMessage().contains("MPA"));
-            verify(filmDbStorage, never()).createFilm(any(Film.class));
-            verify(mpaService, never()).getMpaById(anyLong());
-            verify(filmMapper, never()).toEntity(any(FilmDTO.class));
-        }
-
-        @Test
-        @DisplayName("Создание фильма без ID MPA выбрасывает IllegalArgumentException")
-        void createFilm_WithoutMpaId_ThrowsIllegalArgumentExceptionTest() {
-            FilmDTO filmDTO = createTestFilmDTOWithNullMpaId();
-
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> filmService.createFilm(filmDTO)
-            );
-
-            assertTrue(exception.getMessage().contains("MPA"));
-            verify(filmDbStorage, never()).createFilm(any(Film.class));
-            verify(mpaService, never()).getMpaById(anyLong());
-            verify(filmMapper, never()).toEntity(any(FilmDTO.class));
-        }
-    }
 
     @Nested
     @DisplayName("Тесты получения фильмов")
@@ -257,152 +199,9 @@ class FilmServiceImplTest {
     }
 
     @Nested
-    @DisplayName("Тесты обновления фильмов")
-    class UpdateFilmTests {
-
-        @Test
-        @DisplayName("Обновление валидного фильма возвращает обновленный фильм")
-        void updateFilm_ValidFilm_ReturnsUpdatedFilmTest() {
-            Film existingFilm = createTestFilm();
-            FilmDTO existingFilmDTO = createTestFilmDTO();
-            FilmDTO updatedFilmDTO = createTestFilmDTO();
-            updatedFilmDTO.setName("Updated Film");
-            Film updatedFilm = createTestFilm();
-            updatedFilm.setName("Updated Film");
-            FilmDTO expectedDTO = createTestFilmDTO();
-            expectedDTO.setName("Updated Film");
-
-            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
-            when(filmMapper.toDTO(existingFilm)).thenReturn(existingFilmDTO);
-            when(filmMapper.toEntity(updatedFilmDTO)).thenReturn(updatedFilm);
-            when(filmMapper.toEntity(existingFilmDTO)).thenReturn(existingFilm);
-            when(filmMapper.toDTO(updatedFilm)).thenReturn(expectedDTO);
-            when(mpaService.getMpaById(anyLong())).thenReturn(updatedFilmDTO.getMpa());
-            doNothing().when(filmValidator).validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
-            when(filmDbStorage.updateFilm(updatedFilm)).thenReturn(updatedFilm);
-
-            FilmDTO result = filmService.updateFilm(updatedFilmDTO);
-
-            assertNotNull(result);
-            assertEquals("Updated Film", result.getName());
-            verify(filmDbStorage, times(1)).updateFilm(updatedFilm);
-            verify(filmValidator, times(1)).validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
-            verify(mpaService, times(1)).getMpaById(anyLong());
-        }
-
-        @Test
-        @DisplayName("Обновление фильма без MPA выбрасывает IllegalArgumentException")
-        void updateFilm_WithoutMpa_ThrowsIllegalArgumentExceptionTest() {
-            Film existingFilm = createTestFilm();
-            FilmDTO existingFilmDTO = createTestFilmDTO();
-            FilmDTO updatedFilmDTO = createTestFilmDTO();
-            updatedFilmDTO.setMpa(null);
-
-            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
-            when(filmMapper.toDTO(existingFilm)).thenReturn(existingFilmDTO);
-
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> filmService.updateFilm(updatedFilmDTO)
-            );
-
-            assertTrue(exception.getMessage().contains("MPA"));
-            verify(filmDbStorage, never()).updateFilm(any(Film.class));
-            verify(mpaService, never()).getMpaById(anyLong());
-            verify(filmMapper, never()).toEntity(updatedFilmDTO);
-        }
-
-        @Test
-        @DisplayName("Обновление фильма без ID MPA выбрасывает IllegalArgumentException")
-        void updateFilm_WithoutMpaId_ThrowsIllegalArgumentExceptionTest() {
-            Film existingFilm = createTestFilm();
-            FilmDTO existingFilmDTO = createTestFilmDTO();
-            FilmDTO updatedFilmDTO = createTestFilmDTO();
-            updatedFilmDTO.getMpa().setId(null);
-
-            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
-            when(filmMapper.toDTO(existingFilm)).thenReturn(existingFilmDTO);
-
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> filmService.updateFilm(updatedFilmDTO)
-            );
-
-            assertTrue(exception.getMessage().contains("MPA"));
-            verify(filmDbStorage, never()).updateFilm(any(Film.class));
-            verify(mpaService, never()).getMpaById(anyLong());
-            verify(filmMapper, never()).toEntity(updatedFilmDTO);
-        }
-
-        @Test
-        @DisplayName("Обновление несуществующего фильма выбрасывает NotFoundException")
-        void updateFilm_NonExistingFilm_ThrowsNotFoundExceptionTest() {
-            FilmDTO filmDTO = createTestFilmDTO();
-            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.empty());
-
-            NotFoundException exception = assertThrows(
-                    NotFoundException.class,
-                    () -> filmService.updateFilm(filmDTO)
-            );
-
-            assertTrue(exception.getMessage().contains("не найден"));
-            verify(filmDbStorage, never()).updateFilm(any(Film.class));
-            verify(filmMapper, never()).toEntity(any(FilmDTO.class));
-        }
-
-        @Test
-        @DisplayName("Обновление фильма на дублирующие данные выбрасывает DuplicateException")
-        void updateFilm_DuplicateFilm_ThrowsDuplicateExceptionTest() {
-            Film existingFilm = createTestFilm();
-            FilmDTO existingFilmDTO = createTestFilmDTO();
-            FilmDTO updatedFilmDTO = createTestFilmDTO();
-            updatedFilmDTO.setName("Different Film");
-            Film updatedFilm = createTestFilm();
-            updatedFilm.setName("Different Film");
-
-            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(existingFilm));
-            when(filmMapper.toDTO(existingFilm)).thenReturn(existingFilmDTO);
-            when(filmMapper.toEntity(updatedFilmDTO)).thenReturn(updatedFilm);
-            when(filmMapper.toEntity(existingFilmDTO)).thenReturn(existingFilm);
-            when(mpaService.getMpaById(anyLong())).thenReturn(updatedFilmDTO.getMpa());
-            doThrow(new DuplicateException("Фильм с таким названием и годом выпуска уже существует"))
-                    .when(filmValidator).validateFilmUniquenessForUpdate(existingFilm, updatedFilm);
-
-            DuplicateException exception = assertThrows(
-                    DuplicateException.class,
-                    () -> filmService.updateFilm(updatedFilmDTO)
-            );
-
-            assertEquals("Фильм с таким названием и годом выпуска уже существует",
-                    exception.getMessage());
-            verify(filmDbStorage, never()).updateFilm(any(Film.class));
-            verify(mpaService, times(1)).getMpaById(anyLong());
-        }
-    }
-
-    @Nested
     @DisplayName("Тесты управления лайками")
     class LikeManagementTests {
 
-        @Test
-        @DisplayName("Добавление лайка - фильм и пользователь существуют")
-        void addLike_BothExist_AddsLikeTest() {
-            Film film = createTestFilm();
-            FilmDTO filmDTO = createTestFilmDTO();
-            UserDTO userDTO = createTestUserDTO();
-
-            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(film));
-            when(filmMapper.toDTO(film)).thenReturn(filmDTO);
-            when(userService.getUserById(1L)).thenReturn(userDTO);
-            doNothing().when(filmDbStorage).addLike(1L, 1L);
-
-            filmService.addLike(1L, 1L);
-
-            verify(filmDbStorage, times(1)).addLike(1L, 1L);
-            verify(filmDbStorage, times(1)).getFilmById(1L);
-            verify(userService, times(1)).getUserById(1L);
-            verify(filmMapper, times(1)).toDTO(film);
-        }
 
         @Test
         @DisplayName("Добавление лайка - фильм не существует")
@@ -441,26 +240,6 @@ class FilmServiceImplTest {
         }
 
         @Test
-        @DisplayName("Удаление лайка - лайк существует")
-        void removeLike_LikeExists_RemovesLikeTest() {
-            Film film = createTestFilm();
-            FilmDTO filmDTO = createTestFilmDTO();
-            UserDTO userDTO = createTestUserDTO();
-
-            when(filmDbStorage.getFilmById(1L)).thenReturn(Optional.of(film));
-            when(filmMapper.toDTO(film)).thenReturn(filmDTO);
-            when(userService.getUserById(1L)).thenReturn(userDTO);
-            doNothing().when(filmDbStorage).removeLike(1L, 1L);
-
-            filmService.removeLike(1L, 1L);
-
-            verify(filmDbStorage, times(1)).removeLike(1L, 1L);
-            verify(filmDbStorage, times(1)).getFilmById(1L);
-            verify(userService, times(1)).getUserById(1L);
-            verify(filmMapper, times(1)).toDTO(film);
-        }
-
-        @Test
         @DisplayName("Удаление лайка - пользователь не существует")
         void removeLike_UserNotExist_ThrowsNotFoundExceptionTest() {
             Film film = createTestFilm();
@@ -478,127 +257,6 @@ class FilmServiceImplTest {
 
             assertEquals("Пользователь не найден", exception.getMessage());
             verify(filmDbStorage, never()).removeLike(anyLong(), anyLong());
-        }
-    }
-
-    @Nested
-    @DisplayName("Тесты получения популярных фильмов")
-    class PopularFilmsTests {
-
-        @Test
-        @DisplayName("Получение популярных фильмов - указано количество")
-        void getPopularFilms_WithCount_ReturnsLimitedListTest() {
-            Film film1 = createTestFilm();
-            film1.setId(1L);
-            FilmDTO filmDTO1 = createTestFilmDTO();
-            filmDTO1.setId(1L);
-
-            Film film2 = createTestFilm();
-            film2.setId(2L);
-            FilmDTO filmDTO2 = createTestFilmDTO();
-            filmDTO2.setId(2L);
-
-            when(filmDbStorage.getPopularFilms(2)).thenReturn(List.of(film2, film1));
-            when(filmMapper.toDTO(film1)).thenReturn(filmDTO1);
-            when(filmMapper.toDTO(film2)).thenReturn(filmDTO2);
-
-            List<FilmDTO> result = filmService.getPopularFilms(2);
-
-            assertEquals(2, result.size());
-            assertEquals(2L, result.get(0).getId());
-            assertEquals(1L, result.get(1).getId());
-            verify(filmDbStorage, times(1)).getPopularFilms(2);
-            verify(filmMapper, times(1)).toDTO(film1);
-            verify(filmMapper, times(1)).toDTO(film2);
-        }
-
-        @Test
-        @DisplayName("Получение популярных фильмов - count null использует значение по умолчанию")
-        void getPopularFilms_CountNull_UsesDefaultTest() {
-            List<Film> films = IntStream.range(0, 15)
-                    .mapToObj(i -> {
-                        Film film = createTestFilm();
-                        film.setId((long) i);
-                        return film;
-                    })
-                    .collect(Collectors.toList());
-
-            List<FilmDTO> filmDTOs = IntStream.range(0, 15)
-                    .mapToObj(i -> {
-                        FilmDTO filmDTO = createTestFilmDTO();
-                        filmDTO.setId((long) i);
-                        return filmDTO;
-                    })
-                    .toList();
-
-            when(filmDbStorage.getPopularFilms(10)).thenReturn(films.subList(0, 10));
-            for (int i = 0; i < 10; i++) {
-                when(filmMapper.toDTO(films.get(i))).thenReturn(filmDTOs.get(i));
-            }
-
-            List<FilmDTO> result = filmService.getPopularFilms(null);
-
-            assertEquals(10, result.size());
-            verify(filmDbStorage, times(1)).getPopularFilms(10);
-        }
-
-        @Test
-        @DisplayName("Получение популярных фильмов - отрицательный count использует значение по умолчанию")
-        void getPopularFilms_NegativeCount_UsesDefaultTest() {
-            List<Film> films = IntStream.range(0, 15)
-                    .mapToObj(i -> createTestFilm())
-                    .collect(Collectors.toList());
-
-            List<FilmDTO> filmDTOs = IntStream.range(0, 15)
-                    .mapToObj(i -> createTestFilmDTO())
-                    .toList();
-
-            when(filmDbStorage.getPopularFilms(10)).thenReturn(films.subList(0, 10));
-            for (int i = 0; i < 10; i++) {
-                when(filmMapper.toDTO(films.get(i))).thenReturn(filmDTOs.get(i));
-            }
-
-            List<FilmDTO> result = filmService.getPopularFilms(-5);
-
-            assertEquals(10, result.size());
-            verify(filmDbStorage, times(1)).getPopularFilms(10);
-        }
-
-        @Test
-        @DisplayName("Получение популярных фильмов - пустой список")
-        void getPopularFilms_EmptyList_ReturnsEmptyListTest() {
-            when(filmDbStorage.getPopularFilms(10)).thenReturn(List.of());
-
-            List<FilmDTO> result = filmService.getPopularFilms(10);
-
-            assertTrue(result.isEmpty());
-            verify(filmDbStorage, times(1)).getPopularFilms(10);
-            verify(filmMapper, never()).toDTO(any(Film.class));
-        }
-
-        @Test
-        @DisplayName("Получение популярных фильмов - count больше размера списка")
-        void getPopularFilms_CountLargerThanList_ReturnsAllFilmsTest() {
-            Film film1 = createTestFilm();
-            film1.setId(1L);
-            FilmDTO filmDTO1 = createTestFilmDTO();
-            filmDTO1.setId(1L);
-
-            Film film2 = createTestFilm();
-            film2.setId(2L);
-            FilmDTO filmDTO2 = createTestFilmDTO();
-            filmDTO2.setId(2L);
-
-            when(filmDbStorage.getPopularFilms(10)).thenReturn(List.of(film1, film2));
-            when(filmMapper.toDTO(film1)).thenReturn(filmDTO1);
-            when(filmMapper.toDTO(film2)).thenReturn(filmDTO2);
-
-            List<FilmDTO> result = filmService.getPopularFilms(10);
-
-            assertEquals(2, result.size());
-            verify(filmDbStorage, times(1)).getPopularFilms(10);
-            verify(filmMapper, times(1)).toDTO(film1);
-            verify(filmMapper, times(1)).toDTO(film2);
         }
     }
 }

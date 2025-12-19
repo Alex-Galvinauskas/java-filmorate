@@ -29,9 +29,12 @@ public class InMemoryUserStorage implements UserStorage {
     private final Map<String, Long> loginToUserId = new ConcurrentHashMap<>();
     private final AtomicLong nextUserId;
     private static final long INITIAL_USER_ID = 1L;
+    private final FilmStorage filmStorage;
 
-    public InMemoryUserStorage(@Value("${app.storage.user.id.initial:1}") long initialId) {
+    public InMemoryUserStorage(@Value("${app.storage.user.id.initial:1}") long initialId,
+                               FilmStorage filmStorage) {
         this.nextUserId = new AtomicLong(INITIAL_USER_ID);
+        this.filmStorage = filmStorage;
     }
 
     /**
@@ -173,5 +176,12 @@ public class InMemoryUserStorage implements UserStorage {
      */
     public boolean existsByLogin(String login) {
         return loginToUserId.containsKey(login);
+    }
+
+    public void deleteUser(Long userId) {
+        if (!users.containsKey(userId)) {
+            throw new RuntimeException("Пользователь с ID " + userId + " не найден");
+        }
+        users.remove(userId);
     }
 }

@@ -3,27 +3,25 @@
  * Содержит бизнес-логику приложения для операций с фильмами.
  * Обеспечивает проверку уникальности фильмов и обработку исключительных ситуаций.
  * Делегирует операции хранения данных объекту FilmStorage.
- *
- * @see ru.yandex.practicum.filmorate.service.film.FilmService
- * @see ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage
- * @see ru.yandex.practicum.filmorate.model.Film
  */
 package ru.yandex.practicum.filmorate.service.film;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
 import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
+import ru.yandex.practicum.filmorate.model.Operation;
+import ru.yandex.practicum.filmorate.service.directors.DirectorService;
+import ru.yandex.practicum.filmorate.service.film.filmValidation.FilmValidator;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
-import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,11 +30,12 @@ import java.util.stream.Collectors;
 public class FilmServiceImpl implements FilmService {
 
     private final FilmDbStorage filmDbStorage;
-    private final FilmValidatorRules filmValidator;
+    private final FilmValidator filmValidator;
     private final UserService userService;
-    private final MpaService mpaService;
-    private final GenreService genreService;
     private final FilmMapper filmMapper;
+    private final DirectorService directorService;
+    private final LikeEventService likeEventService;
+    private final PopularFilmService popularFilmsService;
 
     /**
      * Создает новый фильм с проверкой уникальности.
@@ -53,10 +52,11 @@ public class FilmServiceImpl implements FilmService {
     public FilmDTO createFilm(FilmDTO filmDTO) {
         log.debug("Создание нового фильма с releaseDate: {}", filmDTO.getReleaseDate());
 
-        validateMpa(filmDTO.getMpa());
+        filmValidator.validateMpa(filmDTO.getMpa());
 
         Film film = filmMapper.toEntity(filmDTO);
-        validateAndPrepareGenres(film);
+        filmValidator.validateAndPrepareGenres(film);
+        filmValidator.validateAndPrepareDirectors(filmDTO);
 
         Film createdFilm = filmDbStorage.createFilm(film);
         FilmDTO result = filmMapper.toDTO(createdFilm);
@@ -74,6 +74,7 @@ public class FilmServiceImpl implements FilmService {
      * @throws NotFoundException если фильм с указанным ID не найден
      */
     @Override
+    @Transactional
     public void addLike(Long filmId, Long userId) {
         log.debug("Добавление лайка фильму с ID: {} от пользователя {}", filmId, userId);
 
@@ -81,6 +82,7 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.addLike(filmId, userId);
+        likeEventService.recordLikeEvent(userId, filmId, Operation.ADD);
     }
 
     /**
@@ -106,12 +108,18 @@ public class FilmServiceImpl implements FilmService {
      * @return список популярных фильмов, сортированных по количеству лайков по убыванию
      */
     @Override
-    public List<FilmDTO> getPopularFilms(Integer count) {
-        log.debug("Получение списка популярных фильмов. Количество: {}", count);
+    public List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year) {
+        log.debug("Делегирование запроса популярных фильмов в специализированный сервис");
+        return popularFilmsService.getPopularFilms(count, genreId, year);
+    }
 
-        int filmsCount = (count != null) && (count > 0) ? count : 10;
+    public List<FilmDTO> getFilmsByDirector(Long directorId, String sortBy) {
+        log.debug("Получение фильмов режиссера {} с сортировкой: {}", directorId, sortBy);
 
-        return filmDbStorage.getPopularFilms(filmsCount).stream()
+        directorService.getById(directorId);
+
+        List<Film> films = filmDbStorage.getFilmsByDirector(directorId, sortBy);
+        return films.stream()
                 .map(filmMapper::toDTO)
                 .collect(Collectors.toList());
     }
@@ -152,11 +160,11 @@ public class FilmServiceImpl implements FilmService {
 
         FilmDTO existingFilm = getFilmById(filmDTO.getId());
 
-        validateMpa(filmDTO.getMpa());
+        filmValidator.validateMpa(filmDTO.getMpa());
 
         Film film = filmMapper.toEntity(filmDTO);
-        validateAndPrepareGenres(film);
-
+        filmValidator.validateAndPrepareGenres(film);
+        filmValidator.validateAndPrepareDirectors(filmDTO);
         filmValidator.validateFilmUniquenessForUpdate(filmMapper.toEntity(existingFilm), film);
 
         Film updatedFilm = filmDbStorage.updateFilm(film);
@@ -173,6 +181,7 @@ public class FilmServiceImpl implements FilmService {
      * @throws NotFoundException если фильм с указанными ID не найдены
      */
     @Override
+    @Transactional
     public void removeLike(Long filmId, Long userId) {
         log.debug("Удаление лайка фильму с ID: {} от пользователя {}", filmId, userId);
 
@@ -180,57 +189,59 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.removeLike(filmId, userId);
+        likeEventService.recordLikeEvent(userId, filmId, Operation.REMOVE);
     }
 
     /**
-     * Валидирует и подготавливает список жанров для фильма
-     * Убирает дубликаты и проверяет существование жанров
+     * Удаляет фильм по идентификатору.
+     *
+     * @param filmId идентификатор фильма для удаления
+     *
+     * @throws NotFoundException если фильм с указанным ID не найден
      */
-    private void validateAndPrepareGenres(Film film) {
-        if (film == null) {
-            log.debug("Film is null, skipping genre validation");
-            return;
-        }
+    @Override
+    public void deleteFilm(Long filmId) {
+        log.debug("Начало удаления фильма с ID: {}", filmId);
 
-        log.debug("Начальная валидация жанров для фильма: {}", film.getGenres());
+        FilmDTO film = getFilmById(filmId);
+        log.debug("Фильм найден: '{}' (ID: {})", film.getName(), filmId);
 
-        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
-            List<Genre> distinctGenres = film.getGenres().stream()
-                    .filter(genre -> genre.getId() != null)
-                    .collect(Collectors.toMap(
-                            Genre::getId,
-                            genre -> genre,
-                            (existing, replacement) -> existing
-                    ))
-                    .values()
-                    .stream()
-                    .sorted(Comparator.comparing(Genre::getId))
-                    .collect(Collectors.toList());
-
-            log.debug("Жанры после удаления дубликатов и сортировки: {}", distinctGenres);
-
-            for (Genre genre : distinctGenres) {
-                genreService.getGenreById(genre.getId());
-            }
-
-            film.setGenres(distinctGenres);
-            log.debug("Финальный список жанров для фильма: {}", film.getGenres());
-        } else {
-            log.debug("Жанры не указаны или пусты");
+        try {
+            filmDbStorage.deleteFilm(filmId);
+            log.info("Фильм '{}' (ID: {}) успешно удален", film.getName(), filmId);
+        } catch (Exception e) {
+            log.error("Ошибка при удалении фильма с ID {}: {}", filmId, e.getMessage(), e);
+            throw new RuntimeException("Не удалось удалить фильм", e);
         }
     }
 
-    /**
-     * Валидирует MPA рейтинг
-     */
-    private void validateMpa(ru.yandex.practicum.filmorate.dto.MpaDTO mpa) {
-        if (mpa == null) {
-            throw new IllegalArgumentException("MPA рейтинг не может быть null");
+    @Override
+    public List<FilmDTO> getCommonFilms(Long userId, Long friendId) {
+        log.debug("Получение общих фильмов пользователя {} и друга {}", userId, friendId);
+
+        filmValidator.validateCommonFilmsParams(userId, friendId);
+
+        if (userId == null) {
+            throw new IllegalArgumentException("Идентификатор пользователя не может быть null");
         }
-        if (mpa.getId() == null) {
-            throw new IllegalArgumentException("ID MPA рейтинга не может быть null");
+        if (friendId == null) {
+            throw new IllegalArgumentException("Идентификатор друга не может быть null");
         }
 
-        mpaService.getMpaById(mpa.getId());
+        if (userId.equals(friendId)) {
+            throw new IllegalArgumentException("Нельзя искать общие фильмы с самим собой");
+        }
+
+        userService.getUserById(userId);
+        userService.getUserById(friendId);
+
+        List<Film> commonFilms = filmDbStorage.getCommonFilms(userId, friendId);
+
+        log.debug("Найдено {} общих фильмов для пользователей {} и {}",
+                commonFilms.size(), userId, friendId);
+
+        return commonFilms.stream()
+                .map(filmMapper::toDTO)
+                .collect(Collectors.toList());
     }
 }

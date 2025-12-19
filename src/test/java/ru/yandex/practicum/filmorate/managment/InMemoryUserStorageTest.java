@@ -4,7 +4,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage;
 import ru.yandex.practicum.filmorate.managment.inMemory.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -19,9 +22,13 @@ class InMemoryUserStorageTest {
 
     private InMemoryUserStorage userStorage;
 
+    @Mock
+    private FilmStorage filmStorage;
+
     @BeforeEach
     void setUp() {
-        userStorage = new InMemoryUserStorage(1L);
+        MockitoAnnotations.openMocks(this);
+        userStorage = new InMemoryUserStorage(1L, filmStorage);
     }
 
     private User createTestUser() {
