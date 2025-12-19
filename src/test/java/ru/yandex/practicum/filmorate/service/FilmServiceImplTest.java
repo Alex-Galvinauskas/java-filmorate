@@ -20,7 +20,7 @@ import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.film.FilmServiceImpl;
 import ru.yandex.practicum.filmorate.service.film.GenreService;
 import ru.yandex.practicum.filmorate.service.film.MpaService;
-import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorImpl;
+import ru.yandex.practicum.filmorate.service.film.filmValidation.FilmValidatorService;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
 import java.time.LocalDate;
@@ -39,7 +39,7 @@ class FilmServiceImplTest {
     private FilmDbStorage filmDbStorage;
 
     @Mock
-    private FilmValidatorImpl filmValidator;
+    private FilmValidatorService filmValidator;
 
     @Mock
     private UserService userService;
