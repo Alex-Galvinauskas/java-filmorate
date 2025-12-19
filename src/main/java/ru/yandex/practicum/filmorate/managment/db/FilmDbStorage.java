@@ -18,7 +18,6 @@ import ru.yandex.practicum.filmorate.model.Mpa;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -167,39 +166,6 @@ public class FilmDbStorage implements FilmStorage {
         return new HashSet<>(likes);
     }
 
-    public List<Film> getPopularFilms(int count) {
-        String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
-                "COUNT(l.user_id) as likes_count " +
-                "FROM films f " +
-                "LEFT JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                "LEFT JOIN likes l ON f.id = l.film_id " +
-                "GROUP BY f.id, m.id, m.name, m.description " +
-                "ORDER BY COUNT(l.user_id) DESC " +
-                "LIMIT ?";
-
-        log.debug("Получение {} популярных фильмов", count);
-
-        try {
-            List<Film> films = jdbcTemplate.query(sql, new FilmRowMapper(), count);
-
-            if (films == null || films.isEmpty()) {
-                log.debug("Популярные фильмы не найдены, возвращаем пустой список");
-                return Collections.emptyList();
-            }
-
-            for (Film film : films) {
-                film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
-                film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
-                film.setLikes(getLikesByFilmId(film.getId()));
-            }
-
-            return films;
-        } catch (Exception e) {
-            log.error("Ошибка при получении популярных фильмов: {}", e.getMessage());
-            return Collections.emptyList();
-        }
-    }
-
     public List<Film> getFilmsViaSearchByName(String query) {
         String sql = "SELECT f.*, m.name as mpa_name, m.description as mpa_description, " +
                 "COUNT(l.user_id) as likes_count " +
@@ -305,22 +271,19 @@ public class FilmDbStorage implements FilmStorage {
     public boolean existsFilmByNameAndReleaseYearExcludingId(String name, Integer releaseYear,
                                                              Long excludedId) {
         String sql = """
-                SELECT COUNT(*)
-                FROM films f
-                WHERE LOWER(f.name) = LOWER(?)
-                  AND YEAR(f.release_date) = ?
-                  AND f.id != ?
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM film_directors fd1
-                      WHERE fd1.film_id = f.id
-                        AND fd1.director_id IN (
-                            SELECT fd2.director_id
-                            FROM film_directors fd2
-                            WHERE fd2.film_id = ?
-                        )
-                  )
-                """;
+            SELECT COUNT(*)
+            FROM films f
+            WHERE LOWER(f.name) = LOWER(?)
+              AND YEAR(f.release_date) = ?
+              AND f.id != ?
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM film_directors fd1
+                  JOIN film_directors fd2 ON fd1.director_id = fd2.director_id
+                  WHERE fd1.film_id = f.id
+                    AND fd2.film_id = ?
+              )
+            """;
 
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class,
                 name.toLowerCase(), releaseYear, excludedId, excludedId);
@@ -371,39 +334,6 @@ public class FilmDbStorage implements FilmStorage {
         });
 
         log.debug("Получены лайки для {} пользователей", likesByUser.size());
-        return likesByUser;
-    }
-
-    public Map<Long, Set<Long>> getRecentLikesByUsers(int limit) {
-        String sql = "SELECT user_id, film_id FROM likes " +
-                "ORDER BY created_at DESC LIMIT ?";
-
-        Map<Long, Set<Long>> likesByUser = new HashMap<>();
-
-        jdbcTemplate.query(sql, (rs) -> {
-            Long userId = rs.getLong("user_id");
-            Long filmId = rs.getLong("film_id");
-            likesByUser.computeIfAbsent(userId, k -> new HashSet<>()).add(filmId);
-        }, limit);
-
-        log.debug("Получены последние {} лайков для {} пользователей", limit, likesByUser.size());
-        return likesByUser;
-    }
-
-    public Map<Long, Set<Long>> getLikesByUsersSince(LocalDateTime since) {
-        String sql = "SELECT user_id, film_id FROM likes " +
-                "WHERE created_at >= ? " +
-                "ORDER BY created_at DESC";
-
-        Map<Long, Set<Long>> likesByUser = new HashMap<>();
-
-        jdbcTemplate.query(sql, (rs) -> {
-            Long userId = rs.getLong("user_id");
-            Long filmId = rs.getLong("film_id");
-            likesByUser.computeIfAbsent(userId, k -> new HashSet<>()).add(filmId);
-        }, Timestamp.valueOf(since));
-
-        log.debug("Получены лайки с {} для {} пользователей", since, likesByUser.size());
         return likesByUser;
     }
 

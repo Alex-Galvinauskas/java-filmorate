@@ -67,50 +67,7 @@ public class LikeService {
         log.info("Пользователь {} удалил лайк у фильма {}", userId, filmId);
     }
 
-    /**
-     * Проверяет, поставил ли пользователь лайк фильму.
-     *
-     * @param filmId ID фильма
-     * @param userId ID пользователя
-     * @return true если пользователь поставил лайк фильму
-     */
-    public boolean hasUserLikedFilm(Long filmId, Long userId) {
-        log.debug("Проверка лайка пользователя {} фильму {}", userId, filmId);
 
-        try {
-            filmService.getFilmById(filmId);
-            Set<Long> likes = filmDbStorage.getLikesByFilmId(filmId);
-            boolean hasLiked = likes.contains(userId);
-
-            log.debug("Пользователь {} {} лайкнул фильм {}",
-                    userId, hasLiked ? "уже" : "не", filmId);
-            return hasLiked;
-        } catch (NotFoundException e) {
-            log.debug("Фильм с ID {} не найден, лайк отсутствует", filmId);
-            return false;
-        }
-    }
-
-    /**
-     * Получает количество лайков у фильма.
-     *
-     * @param filmId ID фильма
-     * @return количество лайков
-     */
-    public int getLikeCount(Long filmId) {
-        log.debug("Получение количества лайков фильма {}", filmId);
-
-        try {
-            filmService.getFilmById(filmId); // Проверяем существование фильма
-            Set<Long> likes = filmDbStorage.getLikesByFilmId(filmId);
-            int count = likes.size();
-            log.debug("Фильм {} имеет {} лайков", filmId, count);
-            return count;
-        } catch (NotFoundException e) {
-            log.debug("Фильм с ID {} не найден", filmId);
-            return 0;
-        }
-    }
 
     /**
      * Получает список пользователей, которые лайкнули фильм.
@@ -122,7 +79,7 @@ public class LikeService {
         log.debug("Получение пользователей, лайкнувших фильм {}", filmId);
 
         try {
-            filmService.getFilmById(filmId); // Проверяем существование фильма
+            filmService.getFilmById(filmId);
             Set<Long> likes = filmDbStorage.getLikesByFilmId(filmId);
             log.debug("Фильм {} лайкнули {} пользователей", filmId, likes.size());
             return likes;
