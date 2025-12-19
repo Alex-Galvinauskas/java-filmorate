@@ -29,12 +29,10 @@ import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.film.validation.FilmValidatorRules;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -49,6 +47,7 @@ public class FilmServiceImpl implements FilmService {
     private final FilmMapper filmMapper;
     private final DirectorService directorService;
     private final FeedService feedService;
+    private final FilmSearchService filmSearchService;
 
     /**
      * Создает новый фильм с проверкой уникальности.
@@ -244,45 +243,7 @@ public class FilmServiceImpl implements FilmService {
     }
 
     public List<FilmDTO> getFilmsViaSearch(String query, String searchBy) {
-        if (query == null && searchBy == null) {
-            log.debug("При поиске фильмов не были переданы параметры запроса " +
-                    "-> в ответ список всех фильмов по популярности.");
-            return getPopularFilms(getAllFilms().size(), null, null);
-        } else if (query == null || searchBy == null) {
-            log.debug("При поиске фильмов должно быть указано 2 параметра, но был указан только 1.");
-            throw new IllegalArgumentException("Для осуществления поиска параметры 'query' и" +
-                    " 'by' должны иметь непустые значения.");
-        }
-
-        final List<String> AVAILABLE_SEARCH_FIELDS = List.of("title", "director");
-        List<String> searchByParams = Stream.of(searchBy.split(","))
-                .peek(searchField -> {
-                    if (!AVAILABLE_SEARCH_FIELDS.contains(searchField)) {
-                        log.debug("При поиске фильмов передано недопустимое для параметра 'by' значение: {}", searchField);
-                        throw new IllegalArgumentException("Параметр 'by' может принимать только значения 'title'/'director'");
-                    }
-                })
-                .toList();
-
-        List<Film> filmsByTitle = new ArrayList<>();
-        List<Film> filmsByDirector = new ArrayList<>();
-        for (String searchField : searchByParams) {
-            if (searchField.equalsIgnoreCase("title")) {
-                filmsByTitle = filmDbStorage.getFilmsViaSearchByName(query);
-                log.debug("При поиске фильмов по названию найдено фильмов : {}", filmsByTitle.size());
-
-            } else {
-                filmsByDirector = filmDbStorage.getFilmsViaSearchByDirector(query);
-                log.debug("При поиске фильмов по имени режиссера найдено фильмов : {}", filmsByTitle.size());
-            }
-        }
-
-        return Stream
-                .concat(filmsByTitle.stream(), filmsByDirector.stream())
-                .distinct()
-                .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
-                .map(filmMapper::toDTO)
-                .toList();
+        return filmSearchService.searchFilms(query, searchBy);
     }
 
     /**
