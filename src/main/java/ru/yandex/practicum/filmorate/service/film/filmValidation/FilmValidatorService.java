@@ -32,7 +32,8 @@ public class FilmValidatorService implements FilmValidator {
 
     @Override
     public void validateFilmUniquenessForUpdate(Film existingFilm, Film updatedFilm) {
-        log.debug("Валидация уникальности для обновления. Существующий: ID={}, name={}, year={}. Обновляемый: name={}, year={}",
+        log.debug("Валидация уникальности для обновления. Существующий: " +
+                        "ID={}, name={}, year={}. Обновляемый: name={}, year={}",
                 existingFilm.getId(), existingFilm.getName(),
                 existingFilm.getReleaseDate() != null ? existingFilm.getReleaseDate().getYear() : "null",
                 updatedFilm.getName(),
@@ -99,7 +100,7 @@ public class FilmValidatorService implements FilmValidator {
      */
     public void validateAndPrepareGenres(Film film) {
         if (film == null) {
-            log.debug("Film is null, skipping genre validation");
+            log.debug("Фильм не передан");
             return;
         }
 
@@ -169,7 +170,6 @@ public class FilmValidatorService implements FilmValidator {
         if (friendId == null) {
             throw new IllegalArgumentException("Идентификатор друга не может быть null");
         }
-
         if (userId.equals(friendId)) {
             throw new IllegalArgumentException("Нельзя искать общие фильмы с самим собой");
         }
@@ -189,7 +189,8 @@ public class FilmValidatorService implements FilmValidator {
      */
     public void validateSearchParams(String query, String searchBy) {
         if (query == null && searchBy == null) {
-            log.debug("При поиске фильмов не были переданы параметры запроса -> в ответ список всех фильмов по популярности.");
+            log.debug("При поиске фильмов не были переданы параметры запроса -> " +
+                    "в ответ список всех фильмов по популярности.");
             return;
         } else if (query == null || searchBy == null) {
             log.debug("При поиске фильмов должно быть указано 2 параметра, но был указан только 1.");

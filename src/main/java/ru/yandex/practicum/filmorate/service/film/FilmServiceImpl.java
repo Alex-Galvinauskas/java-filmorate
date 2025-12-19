@@ -3,10 +3,6 @@
  * Содержит бизнес-логику приложения для операций с фильмами.
  * Обеспечивает проверку уникальности фильмов и обработку исключительных ситуаций.
  * Делегирует операции хранения данных объекту FilmStorage.
- *
- * @see ru.yandex.practicum.filmorate.service.film.FilmService
- * @see ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage
- * @see ru.yandex.practicum.filmorate.model.Film
  */
 package ru.yandex.practicum.filmorate.service.film;
 
@@ -19,15 +15,12 @@ import ru.yandex.practicum.filmorate.exception.DuplicateException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.managment.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
-import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Operation;
 import ru.yandex.practicum.filmorate.service.directors.DirectorService;
-import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.film.filmValidation.FilmValidator;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,7 +34,8 @@ public class FilmServiceImpl implements FilmService {
     private final UserService userService;
     private final FilmMapper filmMapper;
     private final DirectorService directorService;
-    private final FeedService feedService;
+    private final LikeEventService likeEventService;
+    private final PopularFilmService popularFilmsService;
 
     /**
      * Создает новый фильм с проверкой уникальности.
@@ -88,7 +82,7 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.addLike(filmId, userId);
-        recordLikeEvent(userId, filmId, Operation.ADD);
+        likeEventService.recordLikeEvent(userId, filmId, Operation.ADD);
     }
 
     /**
@@ -115,24 +109,8 @@ public class FilmServiceImpl implements FilmService {
      */
     @Override
     public List<FilmDTO> getPopularFilms(Integer count, Integer genreId, Integer year) {
-        log.debug("Получение списка популярных фильмов. Количество: {}, genreId: {}, year: {}", count, genreId, year);
-
-        int filmsCount = (count == null || count <= 0) ? 10 : count;
-
-        List<Film> films = filmDbStorage.getPopularFilms(filmsCount, genreId, year);
-
-        if (films == null || films.isEmpty()) {
-            log.debug("Список популярных фильмов пуст");
-            return Collections.emptyList();
-        }
-
-        log.debug("Найдено {} популярных фильмов", films.size());
-
-        filmValidator.validatePopularFilmsParams(count);
-
-        return films.stream()
-                .map(filmMapper::toDTO)
-                .collect(Collectors.toList());
+        log.debug("Делегирование запроса популярных фильмов в специализированный сервис");
+        return popularFilmsService.getPopularFilms(count, genreId, year);
     }
 
     public List<FilmDTO> getFilmsByDirector(Long directorId, String sortBy) {
@@ -187,7 +165,6 @@ public class FilmServiceImpl implements FilmService {
         Film film = filmMapper.toEntity(filmDTO);
         filmValidator.validateAndPrepareGenres(film);
         filmValidator.validateAndPrepareDirectors(filmDTO);
-
         filmValidator.validateFilmUniquenessForUpdate(filmMapper.toEntity(existingFilm), film);
 
         Film updatedFilm = filmDbStorage.updateFilm(film);
@@ -212,7 +189,7 @@ public class FilmServiceImpl implements FilmService {
         userService.getUserById(userId);
 
         filmDbStorage.removeLike(filmId, userId);
-        recordLikeEvent(userId, filmId, Operation.REMOVE);
+        likeEventService.recordLikeEvent(userId, filmId, Operation.REMOVE);
     }
 
     /**
@@ -235,19 +212,6 @@ public class FilmServiceImpl implements FilmService {
         } catch (Exception e) {
             log.error("Ошибка при удалении фильма с ID {}: {}", filmId, e.getMessage(), e);
             throw new RuntimeException("Не удалось удалить фильм", e);
-        }
-    }
-
-    /**
-     * Записывает событие лайка в ленту пользователя
-     */
-    private void recordLikeEvent(Long userId, Long filmId, Operation operation) {
-        try {
-            feedService.recordEvent(userId, userId, EventType.LIKE, operation, filmId);
-            log.debug("Событие лайка ({}) записано в ленту пользователя {}", operation, userId);
-        } catch (Exception e) {
-            log.error("Ошибка при записи события лайка в ленту: {}", e.getMessage());
-            throw e;
         }
     }
 
