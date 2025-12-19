@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.managment.inMemory.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.managment.inMemory.FilmStorage;
+import ru.yandex.practicum.filmorate.managment.inMemory.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
