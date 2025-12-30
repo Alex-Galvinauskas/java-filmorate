@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.service.film;
+package ru.yandex.practicum.filmorate.service.search;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,6 @@ public class FilmSearchServiceImpl implements FilmSearchService {
 
     private final FilmDbStorage filmDbStorage;
     private final FilmMapper filmMapper;
-    // УДАЛЕНО: private final FilmService filmService;
 
     private static final List<String> AVAILABLE_SEARCH_FIELDS = List.of("title", "director");
 
@@ -29,7 +28,6 @@ public class FilmSearchServiceImpl implements FilmSearchService {
         if (query == null && searchBy == null) {
             log.debug("При поиске фильмов не были переданы параметры запроса " +
                     "-> в ответ список всех фильмов по популярности.");
-            // Получаем все фильмы и сортируем по популярности
             return filmDbStorage.getAllFilms().stream()
                     .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
                     .map(filmMapper::toDTO)

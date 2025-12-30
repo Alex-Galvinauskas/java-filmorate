@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.service.film;
+package ru.yandex.practicum.filmorate.service.mpa_rating;
 
 import ru.yandex.practicum.filmorate.dto.MpaDTO;
 

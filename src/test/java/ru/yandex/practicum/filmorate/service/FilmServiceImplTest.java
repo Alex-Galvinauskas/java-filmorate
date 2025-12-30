@@ -17,8 +17,8 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.service.feed.FeedService;
 import ru.yandex.practicum.filmorate.service.film.FilmServiceImpl;
-import ru.yandex.practicum.filmorate.service.film.GenreService;
-import ru.yandex.practicum.filmorate.service.film.MpaService;
+import ru.yandex.practicum.filmorate.service.genre.GenreService;
+import ru.yandex.practicum.filmorate.service.mpa_rating.MpaService;
 import ru.yandex.practicum.filmorate.service.film.filmValidation.FilmValidatorService;
 import ru.yandex.practicum.filmorate.service.user.UserService;
 

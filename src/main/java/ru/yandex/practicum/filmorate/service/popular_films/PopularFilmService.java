@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.service.film;
+package ru.yandex.practicum.filmorate.service.popular_films;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +38,6 @@ public class PopularFilmService {
                 count, genreId, year);
 
         filmValidator.validatePopularFilmsParams(count);
-
         List<Film> films = filmDbStorage.getPopularFilms(count, genreId, year);
 
         if (films == null || films.isEmpty()) {
@@ -48,29 +47,8 @@ public class PopularFilmService {
 
         log.debug("Найдено {} популярных фильмов", films.size());
 
-
         return films.stream()
                 .map(filmMapper::toDTO)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Возвращает количество фильмов по умолчанию.
-     * Может использоваться для конфигурации или UI.
-     *
-     * @return стандартное количество фильмов
-     */
-    public int getDefaultCount() {
-        return 10;
-    }
-
-    /**
-     * Проверяет, является ли значение count валидным.
-     *
-     * @param count значение для проверки
-     * @return true если значение валидно (null, 0 или положительное)
-     */
-    public boolean isValidCount(Integer count) {
-        return count == null || count >= 0;
     }
 }

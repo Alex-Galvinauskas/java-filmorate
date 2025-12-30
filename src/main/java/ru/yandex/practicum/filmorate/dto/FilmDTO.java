@@ -17,10 +17,10 @@ import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.annotation.MinReleaseDate;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Data
 @Builder
@@ -50,11 +50,11 @@ public class FilmDTO {
     private MpaDTO mpa;
 
     @Builder.Default
-    private List<GenreDTO> genres = new ArrayList<>();
+    private List<GenreDTO> genres = new CopyOnWriteArrayList<>();
 
     @Builder.Default
     private Set<Long> likes = new HashSet<>();
 
     @Builder.Default
-    private List<DirectorDTO> directors = new ArrayList<>();
+    private List<DirectorDTO> directors = new CopyOnWriteArrayList<>();
 }

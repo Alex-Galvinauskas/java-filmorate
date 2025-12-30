@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Data
 @Builder
@@ -46,7 +47,7 @@ public class Film {
     private Set<Long> likes = ConcurrentHashMap.newKeySet();
 
     @Builder.Default
-    private List<Director> directors = new ArrayList<>();
+    private List<Director> directors = new CopyOnWriteArrayList<>();
 
     @JsonCreator
     public Film(
