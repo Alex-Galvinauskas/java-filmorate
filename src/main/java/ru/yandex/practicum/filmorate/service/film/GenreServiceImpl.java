@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.service.genre;
+package ru.yandex.practicum.filmorate.service.film;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

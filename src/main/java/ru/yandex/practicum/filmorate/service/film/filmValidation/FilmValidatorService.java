@@ -12,8 +12,8 @@ import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.service.directors.DirectorService;
-import ru.yandex.practicum.filmorate.service.genre.GenreService;
-import ru.yandex.practicum.filmorate.service.mpa_rating.MpaService;
+import ru.yandex.practicum.filmorate.service.film.GenreService;
+import ru.yandex.practicum.filmorate.service.film.MpaService;
 
 import java.util.Comparator;
 import java.util.List;

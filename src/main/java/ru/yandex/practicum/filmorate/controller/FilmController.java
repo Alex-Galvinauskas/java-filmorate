@@ -3,7 +3,7 @@ package ru.yandex.practicum.filmorate.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
-import ru.yandex.practicum.filmorate.service.search.FilmSearchService;
+import ru.yandex.practicum.filmorate.service.film.FilmSearchService;
 import ru.yandex.practicum.filmorate.service.film.FilmService;
 
 import java.util.List;

@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.service.search;
+package ru.yandex.practicum.filmorate.service.film;
 
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
 
